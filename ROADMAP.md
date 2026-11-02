@@ -17,7 +17,10 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Explainable dry-run recommendations
 - [x] Bounded job manager with scope checks, cancellation, and concurrency limits
 - [x] Structured job events and persisted results
-- [x] Initial tests for CLI, discovery, planning, scope, jobs, Metasploit metadata, and storage
+- [x] Per-action approval records and execution-layer approval enforcement
+- [x] Bounded evidence artifact collection with integrity verification
+- [x] Persisted evidence-linked findings
+- [x] Initial tests for CLI, discovery, planning, scope, jobs, approvals, evidence, findings, Metasploit metadata, and storage
 
 ## Phase 0: Architecture and audit — complete
 
@@ -25,7 +28,7 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Establish core, interface, discovery, scope, assessment, execution, integrations, and storage packages.
 - [x] Organize tests by unit, integration, workflow, and interface responsibility.
 - [x] Split domain records into focused storage model modules and remove transitional flat-module shims.
-- [ ] Implement remaining configuration, workspace, intelligence, approval history, sessions, evidence, findings, and reporting packages.
+- [ ] Implement remaining configuration, workspace, intelligence, approval history, sessions, and reporting packages.
 
 - [x] Audit current repository structure and tests
 - [x] Map current modules to target responsibilities
