@@ -24,7 +24,7 @@ if not collector.verify(record):
 
 The default maximum artifact size is 2,000,000 bytes. Artifacts are written beneath the directory containing the workspace database, in a workspace-specific directory. On POSIX systems, the collector applies mode 0700 to evidence directories and 0600 to artifact files. SQLite stores the provenance and integrity metadata, including the SHA-256 digest.
 
-The CLI automatically stores each safe-check outcome and its structured job events as a bounded `execution-result` evidence artifact. This captures the execution record, not arbitrary raw output from external tools; adapter-output capture and semantic correlation are separate future capabilities.
+The CLI stores each safe-check outcome, structured job events, and any textual adapter output as a bounded `execution-result` evidence artifact. Adapters return output through `CheckResult.output`; the job manager enforces a 256,000-byte UTF-8 limit and redacts common password, token, secret, API-key, authorization, cookie, credential, and bearer-token values before the output can be retrieved or persisted. Oversized or non-text output is rejected and the job is marked failed with `invalid-adapter-output`. Redaction is best-effort, not a guarantee that all sensitive data is removed. No live Metasploit execution adapter is implemented by this contract; it defines the boundary for future adapters.
 
 The collector does not redact, encrypt, or classify sensitive content. Sanitize artifacts before collection and protect the local evidence directory. Do not put credentials, tokens, or secrets in metadata or summaries.
 
