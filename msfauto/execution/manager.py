@@ -8,6 +8,7 @@ from typing import Protocol
 from uuid import uuid4
 
 from ..storage.models import ActionApproval, CheckJob, JobEvent, ScopePolicy, utc_now
+from .output import AdapterOutputError, sanitize_adapter_output
 
 
 class JobError(ValueError):
@@ -30,6 +31,7 @@ class CheckResult:
     status: str
     message: str
     error: str = ""
+    output: str = ""
 
 
 class CheckAdapter(Protocol):
@@ -74,6 +76,7 @@ class JobManager:
         self.approval_store = approval_store
         self._executor = ThreadPoolExecutor(max_workers=max_workers)
         self._jobs: dict[str, CheckJob] = {}
+        self._results: dict[str, CheckResult] = {}
         self._events: dict[str, list[JobEvent]] = {}
         self._cancel: dict[str, Event] = {}
         self._futures: dict[str, Future[None]] = {}
@@ -140,7 +143,12 @@ class JobManager:
             result = CheckResult("failed", authorization_error, "authorization-failed")
         else:
             result = self.adapter.run(request, cancel)
+            try:
+                result = replace(result, output=sanitize_adapter_output(result.output))
+            except AdapterOutputError as exc:
+                result = CheckResult("failed", "Adapter output was rejected by capture safeguards.", "invalid-adapter-output")
         with self._lock:
+            self._results[job_id] = result
             job = self._jobs[job_id]
             self._jobs[job_id] = replace(
                 job,
@@ -167,6 +175,14 @@ class JobManager:
             if job_id not in self._jobs:
                 raise JobError(f"Unknown job: {job_id}")
             return self._jobs[job_id]
+
+    def result(self, job_id: str) -> CheckResult:
+        with self._lock:
+            if job_id not in self._jobs:
+                raise JobError(f"Unknown job: {job_id}")
+            if job_id not in self._results:
+                raise JobError(f"Job has no completed result yet: {job_id}")
+            return self._results[job_id]
 
     def wait(self, job_id: str, timeout: float | None = None) -> CheckJob:
         with self._lock:
