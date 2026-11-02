@@ -119,6 +119,7 @@ def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int
         return 0
 
     manager = JobManager(workspace.policy, max_workers=workers, approval_store=store)
+    evidence_collector = EvidenceCollector(store)
     job_ids: list[str] = []
     try:
         for recommendation in approved:
@@ -156,19 +157,29 @@ def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int
             job = manager.wait(job_id, timeout=5)
             counts[job.status] += 1
             store.save_job(job)
-            evidence = EvidenceCollector(store).collect(
+            events = manager.events(job_id)
+            result_payload = {
+                "status": job.status,
+                "error": job.error,
+                "events": [
+                    {
+                        "level": event.level,
+                        "message": event.message,
+                        "timestamp": event.timestamp,
+                    }
+                    for event in events
+                ],
+            }
+            evidence = evidence_collector.collect(
                 workspace=workspace.name,
                 source=f"execution:{job.module_name}",
                 target=job.target,
                 evidence_type="execution-result",
-                summary=f"{job.status} result for {job.module_name} on {job.target}:{job.port}/{job.protocol}.",
-                content=json.dumps(
-                    {"status": job.status, "error": job.error, "events": [
-                        {"level": event.level, "message": event.message, "timestamp": event.timestamp}
-                        for event in manager.events(job_id)
-                    ]},
-                    sort_keys=True,
-                ).encode("utf-8"),
+                summary=(
+                    f"{job.status} result for {job.module_name} on "
+                    f"{job.target}:{job.port}/{job.protocol}."
+                ),
+                content=json.dumps(result_payload, sort_keys=True).encode("utf-8"),
                 metadata={
                     "job_id": job.job_id,
                     "module_name": job.module_name,
@@ -177,8 +188,11 @@ def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int
                     "status": job.status,
                 },
             )
-            print(f"  Evidence captured: {evidence.evidence_id[:12]} (SHA-256 {evidence.sha256[:12]}…).")
-            for event in manager.events(job_id):
+            print(
+                f"  Evidence captured: {evidence.evidence_id[:12]} "
+                f"(SHA-256 {evidence.sha256[:12]}…)."
+            )
+            for event in events:
                 store.save_job_event(event)
             print(f"{job.job_id[:8]} {job.status}: {job.target}:{job.port} -> {job.module_name}")
         if counts:
