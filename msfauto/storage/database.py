@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from ipaddress import ip_address
 from pathlib import Path
 
-from .models import AssessmentEvent, AssessmentPlan, AssessmentRun, CheckJob, DiscoveryRun, Host, JobEvent, ModuleMetadata, Recommendation, ScopePolicy, Service, Workspace
+from .models import ActionApproval, AssessmentEvent, AssessmentPlan, AssessmentRun, CheckJob, DiscoveryRun, Host, JobEvent, ModuleMetadata, Recommendation, ScopePolicy, Service, Workspace
 
 
 class WorkspaceStore:
@@ -131,6 +131,22 @@ class WorkspaceStore:
             )
 
 
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS action_approvals (
+                    action_id TEXT PRIMARY KEY,
+                    workspace TEXT NOT NULL,
+                    target TEXT NOT NULL,
+                    port INTEGER NOT NULL,
+                    protocol TEXT NOT NULL,
+                    module_name TEXT NOT NULL,
+                    decision TEXT NOT NULL,
+                    approver TEXT NOT NULL,
+                    decided_at TEXT NOT NULL,
+                    rationale TEXT NOT NULL
+                )
+                """
+            )
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS assessment_runs (
@@ -437,6 +453,43 @@ class WorkspaceStore:
                 (job_id,),
             ).fetchall()
         return tuple(JobEvent(**dict(row)) for row in rows)
+
+    def save_approval(self, approval: ActionApproval) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO action_approvals(
+                    action_id, workspace, target, port, protocol, module_name,
+                    decision, approver, decided_at, rationale
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(action_id) DO UPDATE SET
+                    decision = excluded.decision,
+                    approver = excluded.approver,
+                    decided_at = excluded.decided_at,
+                    rationale = excluded.rationale
+                """,
+                (
+                    approval.action_id, approval.workspace, approval.target,
+                    approval.port, approval.protocol, approval.module_name,
+                    approval.decision, approval.approver, approval.decided_at,
+                    approval.rationale,
+                ),
+            )
+
+    def get_approval(self, action_id: str) -> ActionApproval | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM action_approvals WHERE action_id = ?", (action_id,)
+            ).fetchone()
+        return ActionApproval(**dict(row)) if row is not None else None
+
+    def get_approvals(self, workspace: str) -> tuple[ActionApproval, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM action_approvals WHERE workspace = ? ORDER BY decided_at",
+                (workspace,),
+            ).fetchall()
+        return tuple(ActionApproval(**dict(row)) for row in rows)
 
     def save_assessment_run(self, run: AssessmentRun) -> None:
         with self._connect() as connection:
