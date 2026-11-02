@@ -73,7 +73,7 @@ Approval of one action must not imply approval of another action, a different ta
 
 ## Evidence and sensitive data
 
-Evidence records include source, collection time, target, workspace, artifact size, and SHA-256 integrity metadata. The initial collector enforces a configurable byte limit (2 MB by default) and stores artifacts locally beneath the workspace database directory. It does not automatically redact secrets or encrypt artifacts at rest: callers must sanitize content before collection, and local evidence directories must be protected with appropriate filesystem permissions. Findings are separate records linked only to evidence from the same workspace. Secrets, credentials, session tokens, and sensitive payload data must not be copied into ordinary logs or reports. Access to sensitive artifacts should be deliberate and clearly represented.
+Evidence records include source, collection time, target, workspace, artifact size, and SHA-256 integrity metadata. The initial collector enforces a configurable byte limit (2 MB by default), creates evidence directories with owner-only permissions (0700), and writes artifacts with owner-only permissions (0600) on POSIX systems. It stores artifacts locally beneath the workspace database directory. It does not automatically redact secrets or encrypt artifacts at rest: callers must sanitize content before collection. Findings are separate records linked only to evidence from the same workspace. Secrets, credentials, session tokens, and sensitive payload data must not be copied into ordinary logs or reports. Access to sensitive artifacts should be deliberate and clearly represented.
 
 ## Failure behavior
 
