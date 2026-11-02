@@ -45,7 +45,7 @@ Install the project and its dependencies in a virtual environment, then run:
 python -m msfauto
 ```
 
-The current supported module entry point is also:
+The equivalent module entry point is:
 
 ```bash
 python -m msfauto.cli
@@ -81,4 +81,4 @@ pytest
 ruff check .
 ```
 
-See [development setup](docs/development/migration-plan.md) for the migration plan and repository rules. Update `CHANGELOG.md` for meaningful changes.
+See [the migration plan](docs/development/migration-plan.md) for the development sequence and repository rules. Update `CHANGELOG.md` for meaningful changes.

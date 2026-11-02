@@ -7,6 +7,7 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 ## Current baseline
 
 - [x] Interactive terminal startup and workspace onboarding
+- [x] `python -m msfauto` application entry point
 - [x] SQLite workspace persistence
 - [x] Explicit IP/CIDR scope and optional port allowlists
 - [x] Scope-enforced Nmap XML import and normalized service storage
@@ -20,15 +21,15 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 
 The current Textual screen is a basic informational dashboard. The current job adapter is a bounded foundation and does not make arbitrary Metasploit modules executable.
 
-## Phase 0: Architecture and audit
+## Phase 0: Architecture and audit — complete
 
 - [x] Audit current repository structure and tests
 - [x] Map current modules to target responsibilities
 - [x] Define the guided assessment workflow
 - [x] Document architecture and component boundaries
 - [x] Document authorization and safety model
-- [ ] Correct remaining documentation inconsistencies
-- [ ] Remove tracked Python bytecode and add repository hygiene rules
+- [x] Correct README statements about implemented and planned functionality
+- [x] Add repository hygiene rules and remove tracked Python bytecode caches
 
 ## Phase 1: Wifite-inspired interface
 

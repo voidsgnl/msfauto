@@ -11,6 +11,10 @@ All notable changes to MSFAuto are documented here.
 - Documented authorization, approval, execution, and evidence-handling requirements.
 - Audited existing modules and mapped them to the target architecture.
 
+### Application entry point
+- Added `python -m msfauto` as a short entry point while retaining `python -m msfauto.cli`.
+
 ### Maintenance
-- Identified tracked Python bytecode caches for removal.
-- Identified README statements that need to be reconciled with the current implementation.
+- Added Python, virtual environment, local database, cache, and secret exclusions to `.gitignore`.
+- Removed tracked Python bytecode cache files from the repository.
+- Corrected README descriptions of implemented functionality and planned workflow.
