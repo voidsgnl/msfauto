@@ -8,6 +8,7 @@ All notable changes to MSFAuto are documented here.
 - Added stable action identifiers and SQLite-persisted per-recommendation approval decisions.
 - Required an approver identifier and exact `APPROVE` confirmation for each recommendation before CLI safe-check dispatch.
 - Recorded rejections as well as approvals; unapproved recommendations are not dispatched.
+- Enforced approval verification inside the job manager, including a second approval and scope check immediately before adapter dispatch; missing, rejected, mismatched, or revoked approvals fail closed.
 
 
 ### Quality and developer experience
