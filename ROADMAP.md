@@ -97,7 +97,8 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Verify evidence integrity and workspace ownership before linking it to a finding
 - [x] Separate evidence artifacts from interpreted findings
 - [x] Persist findings with severity, confidence, evidence references, and potential/confirmed/unverified/false-positive review states
-- [ ] Capture raw adapter output and automatically correlate validated observations with findings
+- [x] Capture bounded, sanitized textual adapter output as execution evidence
+- [ ] Automatically correlate validated observations with findings
 - [ ] Generate candidate findings from validated evidence with analyst review; never infer vulnerabilities from banners or tool errors alone
 - [x] Redact common secret fields from report exports
 - [ ] Expand secret redaction for ordinary logs and arbitrary adapter output
