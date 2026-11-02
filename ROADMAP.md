@@ -44,11 +44,11 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 ## Phase 2: Workflow orchestrator
 
 - [x] Introduce an initial application-service boundary for discovery, targets, and planning
-- [ ] Introduce a durable workflow state model
+- [x] Introduce a durable workflow state model
 - [ ] Coordinate scope validation, discovery, analysis, planning, approval, execution, and persistence
-- [ ] Publish structured progress events to the interface
-- [ ] Persist assessment lifecycle and recoverable failures
-- [ ] Ensure CLI and TUI use the same application services
+- [x] Persist structured workflow events and expose a progress callback
+- [x] Persist assessment lifecycle and failure state
+- [x] Expose the workflow through shared application services
 
 ## Phase 3: Discovery pipeline
 
