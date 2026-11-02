@@ -20,6 +20,7 @@ class CheckRequest:
     port: int
     protocol: str
     module_name: str
+    approval_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -52,11 +53,18 @@ class DeterministicSafeAdapter:
 class JobManager:
     """Small bounded job manager for future non-invasive check adapters."""
 
-    def __init__(self, policy: ScopePolicy, max_workers: int = 2, adapter: CheckAdapter | None = None) -> None:
+    def __init__(
+        self,
+        policy: ScopePolicy,
+        max_workers: int = 2,
+        adapter: CheckAdapter | None = None,
+        approval_store=None,
+    ) -> None:
         if max_workers < 1:
             raise JobError("max_workers must be at least one.")
         self.policy = policy
         self.adapter = adapter or DeterministicSafeAdapter()
+        self.approval_store = approval_store
         self._executor = ThreadPoolExecutor(max_workers=max_workers)
         self._jobs: dict[str, CheckJob] = {}
         self._events: dict[str, list[JobEvent]] = {}
@@ -64,17 +72,42 @@ class JobManager:
         self._futures: dict[str, Future[None]] = {}
         self._lock = Lock()
 
+    def _authorization_error(self, request: CheckRequest) -> str:
+        from ipaddress import ip_address
+
+        if self.approval_store is None:
+            return "Execution blocked: no approval store is configured."
+        if not request.approval_id:
+            return "Execution blocked: the request has no approval identifier."
+        approval = self.approval_store.get_approval(request.approval_id)
+        if approval is None:
+            return "Execution blocked: no persisted approval exists for this action."
+        if (
+            approval.decision != "approved"
+            or approval.action_id != request.approval_id
+            or approval.workspace != request.workspace
+            or approval.target != request.target
+            or approval.port != request.port
+            or approval.protocol != request.protocol
+            or approval.module_name != request.module_name
+        ):
+            return "Execution blocked: the persisted approval does not match this request."
+        try:
+            address = ip_address(request.target)
+        except ValueError:
+            return f"Invalid target address: {request.target}"
+        if not self.policy.permits_address(address):
+            return f"Target is outside the configured scope: {request.target}"
+        if not self.policy.permits_port(request.port):
+            return f"Port is outside the configured scope: {request.port}"
+        return ""
+
     def submit(self, request: CheckRequest) -> str:
         from ipaddress import ip_address
 
-        try:
-            address = ip_address(request.target)
-        except ValueError as exc:
-            raise JobError(f"Invalid target address: {request.target}") from exc
-        if not self.policy.permits_address(address):
-            raise JobError(f"Target is outside the configured scope: {request.target}")
-        if not self.policy.permits_port(request.port):
-            raise JobError(f"Port is outside the configured scope: {request.port}")
+        authorization_error = self._authorization_error(request)
+        if authorization_error:
+            raise JobError(authorization_error)
         job_id = uuid4().hex
         job = CheckJob(
             job_id, request.workspace, request.target, request.port, request.protocol,
@@ -93,7 +126,11 @@ class JobManager:
             self._jobs[job_id] = replace(queued, status="running")
             self._events[job_id].append(JobEvent(job_id, utc_now(), "info", "Job running."))
             cancel = self._cancel[job_id]
-        result = self.adapter.run(request, cancel)
+        authorization_error = self._authorization_error(request)
+        if authorization_error:
+            result = CheckResult("failed", authorization_error, "authorization-failed")
+        else:
+            result = self.adapter.run(request, cancel)
         with self._lock:
             job = self._jobs[job_id]
             self._jobs[job_id] = replace(
