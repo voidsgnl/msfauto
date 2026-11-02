@@ -17,6 +17,7 @@ class ActionApproval:
     approver: str
     decided_at: str = ""
     rationale: str = ""
+    risk: str = "non-invasive"
 
     def __post_init__(self) -> None:
         if self.decision not in {"approved", "rejected"}:
