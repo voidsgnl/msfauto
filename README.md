@@ -82,12 +82,23 @@ The remaining target areas—configuration, workspace lifecycle, intelligence, a
 
 ## Development
 
-Install development dependencies:
+Use the project setup script to create an isolated virtual environment and install the project with its development dependencies:
 
 ```bash
-python -m pip install -e ".[dev]"
-pytest
-ruff check .
+./scripts/setup_dev.sh
+source .venv/bin/activate
 ```
+
+Do not install project dependencies into Ubuntu's externally managed system Python. The setup script installs into `.venv/` and avoids PEP 668 conflicts.
+
+Run the application and checks from the activated environment:
+
+```bash
+python -m msfauto
+python -m pytest
+python -m ruff check .
+```
+
+GitHub Actions runs the test suite and Ruff on pushes to `main`, pull requests, and manual workflow dispatches, using Python 3.10, 3.12, and 3.14.
 
 See [the migration plan](docs/development/migration-plan.md) for the development sequence and repository rules. Update `CHANGELOG.md` for meaningful changes.
