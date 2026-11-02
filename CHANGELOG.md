@@ -4,6 +4,11 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Workflow orchestration
+- Added durable assessment-run records and timestamped workflow events in SQLite.
+- Added a shared discovery-to-read-only-plan orchestrator with scope preflight, stage transitions, progress callbacks, and persisted failure states.
+- Kept active checks out of the automated workflow; recommendations remain review-only.
+
 ### Interface
 - Replaced the static Textual dashboard with a guided assessment screen.
 - Added workspace/scope context, target browsing, selected-target details, and read-only plan display.
