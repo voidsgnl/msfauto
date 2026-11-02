@@ -79,7 +79,7 @@ Exploit execution, credential attacks, persistence, pivoting, and destructive ac
 
 The active code is organized by responsibility: `core/` owns orchestration, `interface/` owns the Textual UI, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning, `execution/` owns bounded checks, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models. Tests are grouped under `unit/`, `integration/`, `workflow/`, and `interface/`.
 
-The remaining target areas—configuration, workspace lifecycle, intelligence, approvals, sessions, evidence, findings, and reporting—will be added as real capabilities are implemented, not as empty placeholder modules.
+The remaining target areas—configuration, workspace lifecycle, intelligence, approval history, sessions, evidence, findings, and reporting—will be added as real capabilities are implemented, not as empty placeholder modules.
 
 ## Development
 
