@@ -34,6 +34,7 @@ def sanitize_adapter_output(output: str) -> str:
         raise AdapterOutputError(
             f"Adapter output exceeds the {MAX_ADAPTER_OUTPUT_BYTES}-byte capture limit."
         )
-    sanitized = _QUOTED_SECRET.sub(r"\1\2[REDACTED]\2", output)
+    sanitized = _BEARER.sub(r"\1[REDACTED]", output)
+    sanitized = _QUOTED_SECRET.sub(r"\1\2[REDACTED]\2", sanitized)
     sanitized = _UNQUOTED_SECRET.sub(r"\1[REDACTED]", sanitized)
-    return _BEARER.sub(r"\1[REDACTED]", sanitized)
+    return sanitized
