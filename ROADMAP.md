@@ -88,9 +88,10 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 ## Phase 6: Sessions, evidence, and findings
 
 - [ ] Track supported session metadata and lifecycle
-- [ ] Collect evidence with provenance and integrity metadata
-- [ ] Separate evidence artifacts from interpreted findings
-- [ ] Distinguish confirmed, potential, unverified, failed, skipped, and unsupported outcomes
+- [x] Collect bounded evidence artifacts with source, target, timestamp, metadata, and SHA-256 integrity verification
+- [x] Separate evidence artifacts from interpreted findings
+- [x] Persist findings with severity, confidence, evidence references, and potential/confirmed/unverified/false-positive review states
+- [ ] Automatically correlate adapter output and execution outcomes with evidence and findings
 - [ ] Redact secrets from ordinary logs and reports
 
 ## Phase 7: Reporting and stabilization
