@@ -11,11 +11,13 @@ class MemoryApprovalStore:
         decision: str = "approved",
         module_name: str = "scanner/example",
         target: str = "192.168.56.10",
+        protocol: str = "tcp",
         revoke_after_submit: bool = False,
     ) -> None:
         self.decision = decision
         self.module_name = module_name
         self.target = target
+        self.protocol = protocol
         self.revoke_after_submit = revoke_after_submit
         self.calls = 0
 
@@ -29,7 +31,7 @@ class MemoryApprovalStore:
             workspace="lab",
             target=self.target,
             port=22,
-            protocol="tcp",
+            protocol=self.protocol,
             module_name=self.module_name,
             decision=decision,
             approver="unit-test",
@@ -42,18 +44,20 @@ class JobManagerTests(unittest.TestCase):
         decision: str = "approved",
         module_name: str = "scanner/example",
         target: str = "192.168.56.10",
+        protocol: str = "tcp",
     ) -> JobManager:
         return JobManager(
             ScopePolicy(networks=(ip_network("192.168.56.0/24"),)),
-            approval_store=MemoryApprovalStore(decision, module_name, target),
+            approval_store=MemoryApprovalStore(decision, module_name, target, protocol),
         )
 
     def approved_request(
         self,
         module_name: str = "scanner/example",
         target: str = "192.168.56.10",
+        protocol: str = "tcp",
     ) -> CheckRequest:
-        return CheckRequest("lab", target, 22, "tcp", module_name, "approval-1")
+        return CheckRequest("lab", target, 22, protocol, module_name, "approval-1")
 
     def test_scanner_module_completes(self) -> None:
         manager = self.make_manager()
@@ -75,9 +79,9 @@ class JobManagerTests(unittest.TestCase):
             manager.close()
 
     def test_unsupported_protocol_is_skipped(self) -> None:
-        manager = self.make_manager(module_name="auxiliary/scanner/ping")
+        manager = self.make_manager(module_name="auxiliary/scanner/ping", protocol="icmp")
         try:
-            job_id = manager.submit(self.approved_request("auxiliary/scanner/ping"))
+            job_id = manager.submit(self.approved_request("auxiliary/scanner/ping", protocol="icmp"))
             job = manager.wait(job_id, timeout=1)
             self.assertEqual(job.status, "skipped")
         finally:
