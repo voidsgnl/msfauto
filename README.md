@@ -18,13 +18,13 @@ The current MVP provides foundations for:
 - Explainable dry-run plans with deterministic service matching.
 - A bounded job manager with scope checks, cancellation, concurrency limits, and structured events.
 - Bounded safe-check adapter execution and persisted results.
-- A basic Textual status dashboard.
+- A guided Textual interface with discovery, target browsing, target details, scope review, and read-only plan display.
 
-The current interface and workflow are still early-stage. In particular, the Textual screen is informational rather than a complete navigable operator experience. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
+The interface is an initial workflow-oriented release. It does not yet provide an approval queue, resumable assessment lifecycle, evidence management, or report generation. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
 
 ## Planned experience
 
-The intended primary workflow is:
+The intended full workflow is:
 
 1. Select or configure a workspace and authorized scope.
 2. Discover hosts, ports, and services.
@@ -45,20 +45,22 @@ Install the project and its dependencies in a virtual environment, then run:
 python -m msfauto
 ```
 
-The equivalent module entry point is:
+This opens the guided terminal interface. The equivalent module entry point is:
 
 ```bash
 python -m msfauto.cli
 ```
 
-On first launch, enter authorized IP/CIDR targets and optional ports. Existing command-line options remain available during the migration:
+On first launch, enter authorized IP/CIDR targets and optional ports. The main interface provides Start assessment, Browse targets, Assessment plan, and Scope. Keyboard shortcuts are shown in the footer; D, T, P, S, and Q are also available.
+
+Existing command-line operations remain available:
 
 ```bash
 python -m msfauto.cli --workspace lab --discover
 python -m msfauto.cli --workspace lab --import-nmap scan.xml
 python -m msfauto.cli --workspace lab --show-plan
 python -m msfauto.cli --workspace lab --run-safe-checks --max-checks 10 --check-workers 2
-python -m msfauto.cli --workspace lab --tui
+python -m msfauto.cli --workspace lab --show-scope
 ```
 
 The default workspace database is stored at `~/.msfauto/workspaces.sqlite3`. Set `MSFAUTO_HOME` to use another local directory.

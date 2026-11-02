@@ -4,6 +4,19 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Interface
+- Replaced the static Textual dashboard with a guided assessment screen.
+- Added workspace/scope context, target browsing, selected-target details, and read-only plan display.
+- Made the guided Textual interface the default interactive launch experience.
+- Added keyboard shortcuts for discovery, targets, plans, scope, and exit.
+
+### Application services
+- Added an application-service boundary for discovery, target retrieval, and plan generation.
+- Run discovery off the Textual event loop so the interface remains responsive.
+
+### Documentation
+- Updated the README, roadmap, and migration plan to reflect the initial interface implementation.
+
 ### Planning and architecture
 - Defined a Wifite-inspired, terminal-first guided assessment experience.
 - Documented component boundaries, data flow, and incremental migration strategy.
@@ -11,10 +24,7 @@ All notable changes to MSFAuto are documented here.
 - Documented authorization, approval, execution, and evidence-handling requirements.
 - Audited existing modules and mapped them to the target architecture.
 
-### Application entry point
-- Added `python -m msfauto` as a short entry point while retaining `python -m msfauto.cli`.
-
 ### Maintenance
 - Added Python, virtual environment, local database, cache, and secret exclusions to `.gitignore`.
 - Removed tracked Python bytecode cache files from the repository.
-- Corrected README descriptions of implemented functionality and planned workflow.
+- Added `python -m msfauto` as a short entry point.

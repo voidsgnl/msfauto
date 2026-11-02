@@ -2,18 +2,11 @@
 
 ## Baseline audit
 
-The current application is a compact Python package with a useful set of working foundations:
+The existing application has working foundations for workspace onboarding, SQLite persistence, explicit scope, Nmap discovery and XML import, read-only Metasploit metadata, deterministic recommendations, bounded jobs, and a basic Textual screen.
 
-- Interactive CLI and workspace onboarding.
-- SQLite workspace, host, plan, job, event, and module-metadata persistence.
-- Explicit IP/CIDR scope and optional port allowlists.
-- Nmap execution and XML import with scope validation.
-- Read-only Metasploit RPC metadata access.
-- Deterministic service-to-module recommendations.
-- A bounded job manager and a basic Textual dashboard.
-- Unit tests covering the existing CLI, discovery, jobs, Metasploit metadata, planning, scope, and storage paths.
+The first interface migration now provides a guided screen for discovery, target browsing, target details, scope review, and read-only plan display. Discovery and planning are called through an application-service boundary rather than being implemented in widget event handlers.
 
-The repository does not yet have a workflow orchestrator, a live progress-oriented interface, explicit per-action approval queues, a durable assessment lifecycle, or the full evidence and reporting layers.
+The repository still needs a durable assessment lifecycle, structured progress events, explicit per-action approvals, evidence management, and reporting.
 
 ## Existing-code disposition
 
@@ -21,6 +14,7 @@ The repository does not yet have a workflow orchestrator, a live progress-orient
 |---|---|---|
 | `cli.py` | Refactor, retain compatibility | CLI bootstrap and interactive application entry |
 | `tui.py` | Replace dashboard-only composition | Workflow-oriented Textual interface |
+| `application.py` | Initial service boundary | Application services and orchestrator |
 | `discovery.py` | Keep first, split when justified | Discovery service and Nmap integration |
 | `scope.py` | Keep and strengthen | Scope and authorization |
 | `models.py` | Keep initially, split by domain | Domain model packages |
@@ -42,35 +36,30 @@ Do not move modules simply to make the filesystem match a target diagram. A move
 - [x] Add repository hygiene rules and remove tracked interpreter caches.
 - [x] Add the `python -m msfauto` entry point.
 
-## Phase 1 — Interaction redesign
+## Phase 1 — Interaction redesign — initial implementation
 
-- Establish one primary interactive entry point.
-- Replace the informational dashboard with a navigable workflow.
-- Keep workspace and scope visible.
-- Add target list and target detail views.
-- Show discovery and execution progress, errors, and cancellation.
-- Preserve existing CLI flags until replacements have tests and documented migration paths.
-- Add Textual interaction tests.
+- [x] Make the guided Textual interface the default interactive entry point.
+- [x] Display workspace, profile, authorized scope, and allowed ports.
+- [x] Add Start assessment and run discovery away from the UI event loop.
+- [x] Add a target table with host state, hostname, and open-service summary.
+- [x] Add target detail selection.
+- [x] Add scope review and read-only assessment plan display.
+- [ ] Add structured progress events and cooperative cancellation.
+- [ ] Add job/history/report screens.
+- [ ] Add automated Textual pilot tests.
 
-Acceptance criteria:
+Acceptance criteria still to complete:
+- Discovery progress is streamed as meaningful stages and can be cancelled safely.
+- The interface exposes recoverable assessment history and job details.
+- Interface behavior is tested across supported terminal sizes.
 
-- A new user can create/select a workspace and start discovery without memorizing flags.
-- The interface presents discovered targets and allows target selection.
-- The interface does not directly execute external tools.
-- Existing supported CLI operations remain functional.
+## Phase 2 — Workflow orchestration
 
-## Phase 2 — Workflow orchestrator
-
-- Introduce application services and a workflow state model.
+- Introduce a durable workflow state model.
 - Coordinate scope validation, discovery, analysis, planning, approval, execution, and persistence.
-- Persist assessment lifecycle and recoverable failures.
 - Publish structured progress events for the interface.
-
-Acceptance criteria:
-
-- A complete discovery-to-plan workflow runs through one orchestrated path.
-- Interrupted workflows have an explicit state and useful recovery behavior.
-- Interface and CLI entry points use the same application services.
+- Persist assessment lifecycle and recoverable failures.
+- Ensure CLI and TUI use the same application services.
 
 ## Phase 3 — Discovery pipeline
 
@@ -78,12 +67,6 @@ Acceptance criteria:
 - Improve progress reporting and partial-result handling.
 - Normalize observations and preserve source provenance.
 - Enforce scope and port policy for each discovery operation.
-
-Acceptance criteria:
-
-- Discovery results are reproducible and traceable to their source.
-- Timeouts and partial results do not corrupt existing workspace data.
-- Out-of-scope results are rejected or quarantined with an explanation.
 
 ## Phase 4 — Intelligence and assessment planning
 
@@ -93,24 +76,12 @@ Acceptance criteria:
 - Explain prerequisites, rationale, risk, and expected outcomes.
 - Avoid treating version matches as confirmed vulnerabilities.
 
-Acceptance criteria:
-
-- Each recommendation can be traced to supporting observations.
-- Confirmed facts, potential weaknesses, and hypotheses are visibly distinct.
-- Planning remains read-only.
-
 ## Phase 5 — Approval and controlled execution
 
 - Introduce explicit approval records and policy evaluation.
 - Revalidate scope immediately before dispatch.
 - Harden timeouts, concurrency, cancellation, output capture, and error classification.
 - Keep high-impact actions disabled by default.
-
-Acceptance criteria:
-
-- No operation requiring approval can run without a matching approval record.
-- Changing target or material options invalidates the prior approval.
-- Execution results and audit events are persisted.
 
 ## Phase 6 — Sessions, evidence, and findings
 
@@ -119,23 +90,12 @@ Acceptance criteria:
 - Separate evidence artifacts from interpreted findings.
 - Redact secrets from ordinary logs and reports.
 
-Acceptance criteria:
-
-- Every finding references supporting evidence or clearly explains its lack of evidence.
-- Sensitive data is not emitted into ordinary logs by default.
-
 ## Phase 7 — Reporting and stabilization
 
 - Generate JSON and Markdown reports, then HTML.
 - Add end-to-end workflow tests.
 - Document installation, configuration, integrations, and troubleshooting.
 - Add CI checks for tests, linting, and static analysis.
-
-Acceptance criteria:
-
-- A completed assessment can be reopened and reported from persisted data.
-- Reports distinguish confirmed, potential, unverified, failed, skipped, and unsupported outcomes.
-- The documented installation and main workflow work from a clean environment.
 
 ## Repository rules
 

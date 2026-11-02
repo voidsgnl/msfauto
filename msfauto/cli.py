@@ -139,59 +139,17 @@ def interactive(store: WorkspaceStore, workspace_name: str, profile: str) -> int
             print(f"Scope error: {exc}")
             return 2
 
-    while True:
-        print(
-            "\nMSFAuto | "
-            f"workspace={workspace.name} | profile={workspace.policy.profile}\n"
-            "1. Review current scope\n"
-            "2. Run Nmap and import results automatically\n"
-            "3. Import an existing discovery XML\n"
-            "4. Build and show assessment plan\n"
-            "5. Run safe checks\n"
-            "6. Open dashboard\n"
-            "7. Reconfigure scope\n"
-            "0. Exit"
-        )
-        choice = input("Select an option: ").strip()
-        if choice == "0":
-            return 0
-        if choice == "1":
-            display_policy(workspace.policy)
-        elif choice == "2":
-            run_discovery(store, workspace)
-        elif choice == "3":
-            try:
-                path = Path(input("Path to authorized Nmap XML file: ").strip()).expanduser()
-                hosts = parse_nmap_xml(path, workspace.policy)
-                store.save_hosts(workspace.name, hosts)
-                print(f"Imported {len(hosts)} host(s). Choose option 4 to build a plan.")
-            except DiscoveryError as exc:
-                print(f"Discovery import error: {exc}")
-        elif choice == "4":
-            display_plan(store, workspace)
-        elif choice == "5":
-            try:
-                run_safe_checks(store, workspace, max_checks=10, workers=2)
-            except (JobError, TimeoutError) as exc:
-                print(f"Safe-check error: {exc}")
-        elif choice == "6":
-            from .tui import Dashboard
+    from .tui import Dashboard
 
-            Dashboard(workspace, store).run()
-        elif choice == "7":
-            try:
-                workspace = configure_workspace(store, workspace.name, workspace.policy.profile)
-            except ScopeError as exc:
-                print(f"Scope error: {exc}")
-        else:
-            print("Choose one of the displayed options.")
+    Dashboard(workspace, store).run()
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Local terminal-first assessment orchestrator.")
     parser.add_argument("--workspace", default="default", help="Workspace name to open.")
     parser.add_argument("--show-scope", action="store_true", help="Print the saved scope and exit.")
-    parser.add_argument("--tui", action="store_true", help="Open the Textual dashboard.")
+    parser.add_argument("--tui", action="store_true", help="Open the interactive terminal interface.")
     parser.add_argument("--import-nmap", type=Path, help="Import an Nmap XML result into the workspace.")
     parser.add_argument("--discover", action="store_true", help="Run Nmap using the saved scope and import results.")
     parser.add_argument("--show-plan", action="store_true", help="Build and print a read-only assessment plan.")
@@ -255,15 +213,6 @@ def main() -> int:
             print("--check-workers must be at least 1.")
             return 2
         return run_safe_checks(store, workspace, args.max_checks, args.check_workers)
-    if args.tui:
-        workspace = store.get(args.workspace)
-        if workspace is None:
-            print(f"Workspace not found: {args.workspace}")
-            return 1
-        from .tui import Dashboard
-
-        Dashboard(workspace, store).run()
-        return 0
     try:
         return interactive(store, args.workspace, args.profile)
     except (KeyboardInterrupt, EOFError):

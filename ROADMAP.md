@@ -19,8 +19,6 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Structured job events and persisted results
 - [x] Initial tests for CLI, discovery, planning, scope, jobs, Metasploit metadata, and storage
 
-The current Textual screen is a basic informational dashboard. The current job adapter is a bounded foundation and does not make arbitrary Metasploit modules executable.
-
 ## Phase 0: Architecture and audit — complete
 
 - [x] Audit current repository structure and tests
@@ -31,20 +29,23 @@ The current Textual screen is a basic informational dashboard. The current job a
 - [x] Correct README statements about implemented and planned functionality
 - [x] Add repository hygiene rules and remove tracked Python bytecode caches
 
-## Phase 1: Wifite-inspired interface
+## Phase 1: Wifite-inspired interface — initial implementation
 
-- [ ] Establish one primary interactive entry point
-- [ ] Replace the informational dashboard with a navigable workflow
-- [ ] Keep workspace and authorized scope visible
-- [ ] Add target list and target detail screens
-- [ ] Show live discovery and execution progress
-- [ ] Add clear cancellation, failure, and completion states
-- [ ] Preserve CLI compatibility and test both entry points
+- [x] Establish `python -m msfauto` as the primary interactive entry point
+- [x] Replace the informational dashboard with a workflow-oriented screen
+- [x] Keep workspace and authorized scope visible
+- [x] Add target list and target detail display
+- [x] Connect discovery and plan display through application services
+- [x] Keep discovery work off the UI event loop
+- [ ] Add explicit progress events and cancellation for long-running discovery
+- [ ] Add assessment history, jobs, findings, and report views
+- [ ] Add Textual interaction tests and accessibility/terminal-size checks
 
 ## Phase 2: Workflow orchestrator
 
-- [ ] Introduce application services and a workflow state model
-- [ ] Coordinate scope validation, discovery, analysis, planning, approval, and execution
+- [x] Introduce an initial application-service boundary for discovery, targets, and planning
+- [ ] Introduce a durable workflow state model
+- [ ] Coordinate scope validation, discovery, analysis, planning, approval, execution, and persistence
 - [ ] Publish structured progress events to the interface
 - [ ] Persist assessment lifecycle and recoverable failures
 - [ ] Ensure CLI and TUI use the same application services
