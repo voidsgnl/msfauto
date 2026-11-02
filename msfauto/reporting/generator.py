@@ -213,7 +213,10 @@ def write_report(store, workspace: str, output_format: str, output_path: Path | 
     report = build_report(store, workspace)
     extension = "json" if output_format == "json" else "md"
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    destination = output_path or (store.path.parent / "reports" / f"{workspace}-{timestamp}.{extension}")
+    safe_workspace = re.sub(r"[^A-Za-z0-9_-]+", "_", workspace).strip("_") or "workspace"
+    destination = output_path or (
+        store.path.parent / "reports" / f"{safe_workspace}-{timestamp}.{extension}"
+    )
     if destination.suffix.lower() != f".{extension}":
         raise ReportError(f"{output_format} reports must use the .{extension} extension.")
     try:
