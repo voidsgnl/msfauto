@@ -62,6 +62,17 @@ class EvidenceFindingTests(unittest.TestCase):
             self.assertEqual(updated.status, "confirmed")
             self.assertEqual(updated.evidence_ids, (evidence.evidence_id,))
 
+
+    def test_confirmed_finding_requires_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = WorkspaceStore(Path(directory) / "workspaces.sqlite3")
+            with self.assertRaisesRegex(ValueError, "must reference"):
+                create_finding(
+                    store, "lab", "Unsupported confirmation",
+                    "A confirmed finding cannot be evidence-free.",
+                    status="confirmed",
+                )
+
     def test_finding_rejects_evidence_from_another_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = WorkspaceStore(Path(directory) / "workspaces.sqlite3")
