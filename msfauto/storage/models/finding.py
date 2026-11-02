@@ -29,5 +29,7 @@ class Finding:
             raise ValueError(f"Unsupported finding status: {self.status}")
         if not 0 <= self.confidence <= 100:
             raise ValueError("Finding confidence must be between 0 and 100.")
+        if self.status == "confirmed" and not self.evidence_ids:
+            raise ValueError("Confirmed findings must reference at least one evidence record.")
         if not self.finding_id or not self.workspace or not self.title.strip():
             raise ValueError("Finding ID, workspace, and title are required.")
