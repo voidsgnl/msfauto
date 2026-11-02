@@ -6,7 +6,7 @@ from threading import Event, Lock
 from typing import Protocol
 from uuid import uuid4
 
-from ..storage.models import CheckJob, JobEvent, ScopePolicy, utc_now
+from ..storage.models import ActionApproval, CheckJob, JobEvent, ScopePolicy, utc_now
 
 
 class JobError(ValueError):
@@ -35,6 +35,11 @@ class CheckAdapter(Protocol):
         ...
 
 
+class ApprovalStore(Protocol):
+    def get_approval(self, action_id: str) -> ActionApproval | None:
+        ...
+
+
 class DeterministicSafeAdapter:
     """Safe, non-invasive classifier for MVP checks."""
 
@@ -58,7 +63,7 @@ class JobManager:
         policy: ScopePolicy,
         max_workers: int = 2,
         adapter: CheckAdapter | None = None,
-        approval_store=None,
+        approval_store: ApprovalStore | None = None,
     ) -> None:
         if max_workers < 1:
             raise JobError("max_workers must be at least one.")
@@ -103,8 +108,6 @@ class JobManager:
         return ""
 
     def submit(self, request: CheckRequest) -> str:
-        from ipaddress import ip_address
-
         authorization_error = self._authorization_error(request)
         if authorization_error:
             raise JobError(authorization_error)
