@@ -32,6 +32,8 @@ class DiscoveryRunnerTests(unittest.TestCase):
         run.assert_called_once()
 
     def test_runner_rejects_missing_scanner(self) -> None:
-        with patch("msfauto.discovery.pipeline.shutil.which", return_value=None):
-            with self.assertRaisesRegex(DiscoveryError, "not found"):
-                run_nmap("lab", build_policy(["127.0.0.1"]), Path("/tmp/scan.xml"))
+        with (
+            patch("msfauto.discovery.pipeline.shutil.which", return_value=None),
+            self.assertRaisesRegex(DiscoveryError, "not found"),
+        ):
+            run_nmap("lab", build_policy(["127.0.0.1"]), Path("/tmp/scan.xml"))
