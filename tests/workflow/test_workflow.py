@@ -26,7 +26,7 @@ class AssessmentWorkflowTests(unittest.TestCase):
             "completed", "started", "finished",
         )
         events = []
-        with patch("msfauto.application.run_nmap", return_value=(run, ())):
+        with patch("msfauto.core.orchestrator.run_nmap", return_value=(run, ())):
             workflow, plan = self.application.run_assessment(events.append)
 
         stored = self.store.get_assessment_run(workflow.run_id)
