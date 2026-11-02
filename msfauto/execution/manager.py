@@ -145,7 +145,7 @@ class JobManager:
             result = self.adapter.run(request, cancel)
             try:
                 result = replace(result, output=sanitize_adapter_output(result.output))
-            except AdapterOutputError as exc:
+            except AdapterOutputError:
                 result = CheckResult("failed", "Adapter output was rejected by capture safeguards.", "invalid-adapter-output")
         with self._lock:
             self._results[job_id] = result
