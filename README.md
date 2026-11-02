@@ -22,10 +22,10 @@ The current MVP provides foundations for:
 - A persisted discovery-to-planning workflow with progress events and recorded failure states.
 - Per-recommendation approval decisions persisted in SQLite; safe checks require an exact `APPROVE` confirmation and approver identifier.
 - Execution-layer authorization gate that independently verifies the persisted approval, exact workspace/target/port/protocol/module/risk context, and scope both at submission and immediately before adapter dispatch.
-- Bounded local evidence artifact collection with SHA-256 integrity verification and SQLite metadata.
+- Bounded local evidence artifact collection with SHA-256 integrity verification and SQLite metadata; safe-check outcomes and structured job events are captured automatically.
 - Persisted findings with severity, confidence, review status, and evidence references; evidence links are restricted to the same workspace.
 
-The interface is an initial workflow-oriented release. It does not yet provide approval history beyond the latest decision per action, workflow resumption, evidence/finding views, automatic evidence capture from adapters, or report generation. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
+The interface is an initial workflow-oriented release. It does not yet provide approval history beyond the latest decision per action, workflow resumption, evidence/finding views, raw adapter-output capture and automated evidence-to-finding correlation, or report generation. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
 
 ## Planned experience
 
