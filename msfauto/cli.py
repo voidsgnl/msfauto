@@ -152,7 +152,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--show-scope", action="store_true", help="Print the saved scope and exit.")
     parser.add_argument("--tui", action="store_true", help="Open the interactive terminal interface (now the default).")
     parser.add_argument("--import-nmap", type=Path, help="Import an Nmap XML result into the workspace.")
-    parser.add_argument("--discover", action="store_true", help="Run Nmap using the saved scope and import results.")
+    parser.add_argument("--discover", action="store_true", help="Run the saved-scope discovery and read-only planning workflow.")
     parser.add_argument("--show-plan", action="store_true", help="Build and print a read-only assessment plan.")
     parser.add_argument("--run-safe-checks", action="store_true", help="Run bounded non-invasive checks from the plan.")
     parser.add_argument("--max-checks", type=int, default=10, help="Maximum recommendations to run with --run-safe-checks.")
