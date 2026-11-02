@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import contextmanager
 from ipaddress import ip_address
 from pathlib import Path
 
@@ -14,10 +15,18 @@ class WorkspaceStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self):
         connection = sqlite3.connect(self.path)
         connection.row_factory = sqlite3.Row
-        return connection
+        try:
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
 
     def _initialize(self) -> None:
         with self._connect() as connection:
@@ -374,3 +383,30 @@ class WorkspaceStore:
                 "INSERT INTO job_events(job_id, timestamp, level, message) VALUES (?, ?, ?, ?)",
                 (event.job_id, event.timestamp, event.level, event.message),
             )
+
+    def get_jobs(self, workspace: str) -> tuple[CheckJob, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT job_id, workspace, target, port, protocol, module_name,
+                       status, started_at, finished_at, error
+                FROM check_jobs
+                WHERE workspace = ?
+                ORDER BY started_at DESC
+                """,
+                (workspace,),
+            ).fetchall()
+        return tuple(CheckJob(**dict(row)) for row in rows)
+
+    def get_job_events(self, job_id: str) -> tuple[JobEvent, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT job_id, timestamp, level, message
+                FROM job_events
+                WHERE job_id = ?
+                ORDER BY timestamp
+                """,
+                (job_id,),
+            ).fetchall()
+        return tuple(JobEvent(**dict(row)) for row in rows)

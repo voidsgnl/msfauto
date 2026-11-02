@@ -19,6 +19,8 @@ The initial slice provides:
 - Workspace-persisted module metadata and options
 - Explainable dry-run plans with deterministic service matching
 - Scope-checked bounded job manager with structured events
+- Dashboard visibility for stored hosts, plans, jobs, and job events
+- Bounded safe-check execution with status classification and persistence
 - Scope validation tests
 
 Discovery, Metasploit RPC integration, module planning, and execution are
@@ -48,6 +50,12 @@ module metadata:
 
 ```bash
 python -m msfauto.cli --workspace lab --show-plan
+```
+
+Run bounded non-invasive checks from the saved plan:
+
+```bash
+python -m msfauto.cli --workspace lab --run-safe-checks --max-checks 10 --check-workers 2
 ```
 
 The default workspace database is stored at `~/.msfauto/workspaces.sqlite3`.

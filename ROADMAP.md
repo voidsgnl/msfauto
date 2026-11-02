@@ -45,9 +45,9 @@ auditing, and safe defaults.
 - [x] Add a controlled, scope-checked job manager boundary
 - [x] Add cancellation and concurrency limits
 - [x] Emit structured job events and explicit unsupported status
-- [ ] Stream structured job output into the TUI
-- [ ] Classify completed, failed, skipped, and unsupported checks
-- [ ] Store complete audit events
+- [x] Stream persisted structured job output into the TUI view
+- [x] Classify completed, failed, skipped, and unsupported checks
+- [x] Store complete job audit events
 
 ## Phase 6: Approval-controlled actions
 
