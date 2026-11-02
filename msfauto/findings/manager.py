@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import replace
 from uuid import uuid4
 
-from ..storage.models import FINDING_STATUSES, Finding, utc_now
+from ..storage.models import Finding, utc_now
+from ..storage.models.finding import FINDING_STATUSES
 
 
 class FindingError(ValueError):
