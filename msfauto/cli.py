@@ -6,11 +6,11 @@ from collections import Counter
 from pathlib import Path
 
 from .assessment.approval import record_decision
+from .assessment.planner import build_plan
 from .core import AssessmentApplication
 from .discovery import DiscoveryError, parse_nmap_xml
 from .execution import CheckRequest, JobError, JobManager
 from .storage.models import ScopePolicy, Workspace
-from .assessment.planner import build_plan
 from .scope import PROFILES, ScopeError, build_policy
 from .storage import WorkspaceStore
 
