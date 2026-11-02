@@ -1,7 +1,6 @@
 from __future__ import annotations
+
 import re
-
-
 MAX_ADAPTER_OUTPUT_BYTES = 256_000
 
 _SECRET_NAMES = (
