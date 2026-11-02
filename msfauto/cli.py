@@ -149,6 +149,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Local terminal-first assessment orchestrator.")
     parser.add_argument("--workspace", default="default", help="Workspace name to open.")
     parser.add_argument("--show-scope", action="store_true", help="Print the saved scope and exit.")
+    parser.add_argument("--tui", action="store_true", help="Open the interactive terminal interface (now the default).")
     parser.add_argument("--tui", action="store_true", help="Open the interactive terminal interface.")
     parser.add_argument("--import-nmap", type=Path, help="Import an Nmap XML result into the workspace.")
     parser.add_argument("--discover", action="store_true", help="Run Nmap using the saved scope and import results.")
