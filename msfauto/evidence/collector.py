@@ -40,7 +40,10 @@ class EvidenceCollector:
         evidence_id = uuid4().hex
         workspace_key = hashlib.sha256(workspace.encode()).hexdigest()[:20]
         directory = self.root / workspace_key
-        directory.mkdir(parents=True, exist_ok=True)
+        self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.root.chmod(0o700)
+        directory.chmod(0o700)
         artifact = directory / f"{evidence_id}.bin"
         temporary = directory / f".{evidence_id}.tmp"
         digest = hashlib.sha256(content).hexdigest()
@@ -48,8 +51,10 @@ class EvidenceCollector:
             with temporary.open("xb") as handle:
                 handle.write(content)
             temporary.replace(artifact)
+            artifact.chmod(0o600)
         except OSError as exc:
             temporary.unlink(missing_ok=True)
+            artifact.unlink(missing_ok=True)
             raise EvidenceError(f"Unable to persist evidence artifact: {exc}") from exc
 
         record = EvidenceRecord(
@@ -76,5 +81,8 @@ class EvidenceCollector:
         root = self.root.resolve()
         if not artifact.is_relative_to(root) or not artifact.is_file():
             return False
-        digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+        try:
+            digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+        except OSError:
+            return False
         return digest == evidence.sha256
