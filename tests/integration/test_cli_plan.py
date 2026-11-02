@@ -23,9 +23,11 @@ class PlanCliTests(unittest.TestCase):
             store.save_module_metadata(
                 ModuleMetadata("lab", "auxiliary", "scanner/ssh/version", {"description": "ssh"}, {}, "test")
             )
-            with patch.dict("os.environ", {"MSFAUTO_HOME": directory}):
-                with patch("builtins.print") as printer:
-                    result = main_with_args(["--workspace", "lab", "--show-plan"])
+            with (
+                patch.dict("os.environ", {"MSFAUTO_HOME": directory}),
+                patch("builtins.print") as printer,
+            ):
+                result = main_with_args(["--workspace", "lab", "--show-plan"])
 
         self.assertEqual(result, 0)
         self.assertTrue(any("scanner/ssh/version" in str(call) for call in printer.call_args_list))
