@@ -29,12 +29,17 @@ class SafeChecksCliTests(unittest.TestCase):
                     source="test",
                 )
             )
-            result = run_main_with_env(directory, ["--workspace", "lab", "--run-safe-checks", "--max-checks", "1"])
+            with patch("builtins.input", side_effect=["operator-1", "APPROVE"]):
+                result = run_main_with_env(directory, ["--workspace", "lab", "--run-safe-checks", "--max-checks", "1"])
+            approvals = store.get_approvals("lab")
             jobs = store.get_jobs("lab")
 
         self.assertEqual(result, 0)
         self.assertEqual(len(jobs), 1)
         self.assertEqual(jobs[0].status, "completed")
+        self.assertEqual(len(approvals), 1)
+        self.assertEqual(approvals[0].decision, "approved")
+        self.assertEqual(approvals[0].approver, "operator-1")
 
 
 def run_main_with_env(home: str, argv: list[str]) -> int:
