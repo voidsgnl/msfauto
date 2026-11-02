@@ -3,7 +3,7 @@ from __future__ import annotations
 from ipaddress import ip_address, ip_network
 from typing import Iterable
 
-from .models import IPAddress, IPNetwork, ScopePolicy
+from ..models import IPAddress, IPNetwork, ScopePolicy
 
 PROFILES = ("safe", "dangerous-actions")
 

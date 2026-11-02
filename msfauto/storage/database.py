@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from ipaddress import ip_address
 from pathlib import Path
 
-from .models import AssessmentEvent, AssessmentPlan, AssessmentRun, CheckJob, DiscoveryRun, Host, JobEvent, ModuleMetadata, Recommendation, ScopePolicy, Service, Workspace
+from ..models import AssessmentEvent, AssessmentPlan, AssessmentRun, CheckJob, DiscoveryRun, Host, JobEvent, ModuleMetadata, Recommendation, ScopePolicy, Service, Workspace
 
 
 class WorkspaceStore:
@@ -185,7 +185,7 @@ class WorkspaceStore:
         if row is None:
             return None
         policy_data = json.loads(row["policy_json"])
-        from .scope import build_policy
+        from ..scope import build_policy
 
         policy = build_policy(
             [*policy_data["networks"], *policy_data["addresses"]],

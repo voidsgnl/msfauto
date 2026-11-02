@@ -7,7 +7,7 @@ import shutil
 import subprocess
 from datetime import datetime, timezone
 
-from .models import DiscoveryRun, Host, ScopePolicy, Service
+from ..models import DiscoveryRun, Host, ScopePolicy, Service
 
 
 class DiscoveryError(ValueError):
