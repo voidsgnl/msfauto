@@ -47,6 +47,6 @@ finding = create_finding(
 finding = update_finding_status(store, finding.finding_id, "confirmed")
 ```
 
-Supported severities are `info`, `low`, `medium`, `high`, and `critical`. Supported finding states are `potential`, `confirmed`, `unverified`, and `false_positive`. Confidence is an integer from 0 to 100.
+Supported severities are `info`, `low`, `medium`, `high`, and `critical`. Supported finding states are `potential`, `confirmed`, `unverified`, and `false_positive`. Confidence is an integer from 0 to 100. A finding cannot be marked `confirmed` unless it references at least one persisted evidence record.
 
 Execution outcomes such as `completed`, `failed`, `skipped`, `cancelled`, and `unsupported` remain job states; they must not be converted into confirmed findings automatically. Adapter-output capture, automated correlation, evidence/finding UI, and report generation remain future work.
