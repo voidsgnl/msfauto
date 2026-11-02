@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from threading import Event, Lock
@@ -85,7 +86,10 @@ class JobManager:
             return "Execution blocked: no approval store is configured."
         if not request.approval_id:
             return "Execution blocked: the request has no approval identifier."
-        approval = self.approval_store.get_approval(request.approval_id)
+        try:
+            approval = self.approval_store.get_approval(request.approval_id)
+        except (sqlite3.Error, OSError):
+            return "Execution blocked: persisted approval could not be verified."
         if approval is None:
             return "Execution blocked: no persisted approval exists for this action."
         if (
