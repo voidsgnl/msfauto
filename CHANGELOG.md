@@ -14,7 +14,13 @@ All notable changes to MSFAuto are documented here.
 - Added SQLite-backed findings with severity, confidence, review status, and same-workspace evidence references.
 - Automatically captured safe-check outcomes and structured job events as bounded evidence artifacts.
 - Required evidence integrity and workspace ownership verification before evidence can be linked to a finding; did not auto-classify execution outcomes or banners as vulnerabilities.
+- Added workspace-scoped JSON and Markdown assessment reports with scope, asset, job, finding, and evidence registers.
+- Added report-time SHA-256 evidence integrity checks and redaction of common secret fields; raw evidence artifacts are not embedded in reports.
 
+
+### Reporting
+- Added `--report json` and `--report markdown` CLI exports with optional explicit output paths.
+- Added report schema versioning, atomic file replacement, workspace isolation, and tests for redaction and tampered evidence.
 
 ### Quality and developer experience
 - Added GitHub Actions CI for the test suite and Ruff across Python 3.10, 3.12, and 3.14.
