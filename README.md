@@ -9,7 +9,7 @@ The goal is to make complex security tooling approachable without hiding scope, 
 The current MVP provides foundations for:
 
 - Interactive workspace creation and startup.
-- SQLite-backed workspaces and assessment data.
+- SQLite-backed workspaces, discovery observations, assessment plans, workflow runs, and events.
 - Explicit IP/CIDR scope and optional port allowlists.
 - Nmap discovery with bounded execution and XML output.
 - Scope-enforced Nmap XML import and normalized host/service storage.
@@ -19,8 +19,9 @@ The current MVP provides foundations for:
 - A bounded job manager with scope checks, cancellation, concurrency limits, and structured events.
 - Bounded safe-check adapter execution and persisted results.
 - A guided Textual interface with discovery, target browsing, target details, scope review, and read-only plan display.
+- A persisted discovery-to-planning workflow with progress events and recorded failure states.
 
-The interface is an initial workflow-oriented release. It does not yet provide an approval queue, resumable assessment lifecycle, evidence management, or report generation. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
+The interface is an initial workflow-oriented release. It does not yet provide per-action approval records, workflow resumption, evidence management, or report generation. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
 
 ## Planned experience
 
@@ -72,6 +73,12 @@ The MVP accepts IP addresses and CIDR networks. It does not resolve or scan arbi
 MSFAuto is intended for owned systems, isolated labs, and explicitly authorized assessments. Discovery does not grant permission to perform intrusive operations. Scope is enforced independently of the interface, and active operations require policy checks and appropriate approval.
 
 Exploit execution, credential attacks, persistence, pivoting, and destructive actions are not part of the normal automated workflow.
+
+## Code layout
+
+The active code is organized by responsibility: `core/` owns orchestration, `interface/` owns the Textual UI, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning, `execution/` owns bounded checks, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models. Tests are grouped under `unit/`, `integration/`, `workflow/`, and `interface/`.
+
+The remaining target areas—configuration, workspace lifecycle, intelligence, approvals, sessions, evidence, findings, and reporting—will be added as real capabilities are implemented, not as empty placeholder modules.
 
 ## Development
 

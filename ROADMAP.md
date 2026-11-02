@@ -24,7 +24,8 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Begin migration from flat modules into the supplied package architecture.
 - [x] Establish core, interface, discovery, scope, assessment, execution, integrations, and storage packages.
 - [x] Organize tests by unit, integration, workflow, and interface responsibility.
-- [ ] Complete the remaining domain, repository, configuration, and documentation package alignment.
+- [x] Split domain records into focused storage model modules and remove transitional flat-module shims.
+- [ ] Implement remaining configuration, workspace, intelligence, approvals, sessions, evidence, findings, and reporting packages.
 
 - [x] Audit current repository structure and tests
 - [x] Map current modules to target responsibilities

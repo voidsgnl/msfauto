@@ -10,7 +10,7 @@ The durable discovery-and-planning lifecycle and structured workflow events are 
 
 ## Package migration status
 
-The first migration slice is implemented: discovery, scope, assessment planning, storage, core orchestration, interface, execution, and Metasploit integration now have responsibility-based packages. Domain records are under `msfauto/storage/models.py`. Tests are grouped into unit, integration, workflow, and interface suites. The CLI and primary interface use canonical package imports. Temporary root-level compatibility modules remain and will be removed after all internal and external import paths are verified.
+The first migration slice is implemented: discovery, scope, assessment planning, storage, core orchestration, interface, execution, and Metasploit integration now have responsibility-based packages. Domain records are split into focused modules under `msfauto/storage/models/`. Tests are grouped into unit, integration, workflow, and interface suites. The CLI, interface, tests, and internal services use canonical package imports. Transitional flat-module shims have been removed.
 
 The existing SQLite schema and table names are intentionally unchanged. This migration does not require deleting or recreating a user's database.
 
@@ -19,18 +19,18 @@ The existing SQLite schema and table names are intentionally unchanged. This mig
 | Existing module | Decision | Migration target |
 |---|---|---|
 | `cli.py` | Refactor, retain compatibility | CLI bootstrap and interactive application entry |
-| `tui.py` | Replace dashboard-only composition | Workflow-oriented Textual interface |
-| `application.py` | Initial service boundary | Application services and orchestrator |
-| `discovery.py` | Keep first, split when justified | Discovery service and Nmap integration |
-| `scope.py` | Keep and strengthen | Scope and authorization |
-| `models.py` | Keep initially, split by domain | Domain model packages |
-| `storage.py` | Keep initially, introduce repository boundaries | Storage and repositories |
-| `planner.py` | Keep and expand | Assessment planning and recommendation logic |
-| `jobs.py` | Keep and harden | Execution manager |
-| `metasploit.py` | Keep | Metasploit integration |
+| `tui.py` | Migrated | `interface/app.py` |
+| `application.py` | Migrated | `core/orchestrator.py` |
+| `discovery.py` | Migrated | `discovery/pipeline.py` |
+| `scope.py` | Migrated | `scope/manager.py` |
+| `models.py` | Split by responsibility | `storage/models/` |
+| `storage.py` | Migrated; repository decomposition remains | `storage/database.py` and future repositories |
+| `planner.py` | Migrated | `assessment/planner.py` |
+| `jobs.py` | Migrated | `execution/manager.py` |
+| `metasploit.py` | Migrated | `integrations/metasploit/client.py` |
 | Existing tests | Preserve and expand | Unit, integration, workflow, interface, security |
 
-Do not move modules simply to make the filesystem match a target diagram. A move is justified when it improves ownership, testability, or dependency direction.
+The user-supplied package tree is the required architecture. Implement each package when it has real responsibilities and behavior; do not create empty placeholder files merely to make the tree look complete.
 
 ## Phase 0 — Architecture and documentation — complete
 
