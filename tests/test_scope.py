@@ -20,3 +20,12 @@ class ScopePolicyTests(unittest.TestCase):
     def test_invalid_port_is_rejected(self) -> None:
         with self.assertRaisesRegex(ScopeError, "between 1 and 65535"):
             build_policy(["127.0.0.1"], "70000")
+
+    def test_profiles_are_explicit(self) -> None:
+        policy = build_policy(["127.0.0.1"], profile="dangerous-actions")
+        self.assertTrue(policy.allows_dangerous_actions)
+        self.assertEqual(build_policy(["127.0.0.1"]).profile, "safe")
+
+    def test_unknown_profile_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ScopeError, "Unknown profile"):
+            build_policy(["127.0.0.1"], profile="anything")

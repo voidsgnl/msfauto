@@ -51,6 +51,7 @@ auditing, and safe defaults.
 
 ## Phase 6: Approval-controlled actions
 
+- [x] Add explicit `safe` and `dangerous-actions` profiles
 - [ ] Add explicit approval queues
 - [ ] Require per-action confirmation for intrusive operations
 - [ ] Add policy profiles for isolated labs and controlled assessments

@@ -5,6 +5,8 @@ from typing import Iterable
 
 from .models import IPAddress, IPNetwork, ScopePolicy
 
+PROFILES = ("safe", "dangerous-actions")
+
 
 class ScopeError(ValueError):
     """Raised when an assessment scope is invalid or unsafe."""
@@ -45,8 +47,8 @@ def parse_ports(value: str) -> tuple[int, ...]:
 
 
 def build_policy(targets: Iterable[str], ports: str = "", profile: str = "safe") -> ScopePolicy:
-    if profile != "safe":
-        raise ScopeError("Only the safe profile is available in this MVP.")
+    if profile not in PROFILES:
+        raise ScopeError(f"Unknown profile: {profile}. Choose safe or dangerous-actions.")
     networks, addresses = parse_targets(targets)
     return ScopePolicy(
         networks=networks,
@@ -54,4 +56,3 @@ def build_policy(targets: Iterable[str], ports: str = "", profile: str = "safe")
         allowed_ports=parse_ports(ports),
         profile=profile,
     )
-

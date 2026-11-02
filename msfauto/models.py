@@ -28,6 +28,10 @@ class ScopePolicy:
     def permits_port(self, port: int) -> bool:
         return not self.allowed_ports or port in self.allowed_ports
 
+    @property
+    def allows_dangerous_actions(self) -> bool:
+        return self.profile == "dangerous-actions"
+
 
 @dataclass
 class Workspace:
