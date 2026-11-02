@@ -160,7 +160,13 @@ class Dashboard(App[None]):
         button.disabled = True
         self._set_status("Discovery running. Scanning only the workspace's authorized scope…")
         try:
-            _, hosts = await asyncio.to_thread(self.services.discover)
+            workflow, plan = await asyncio.to_thread(
+                self.services.run_assessment,
+                lambda item: self.call_from_thread(
+                    self._set_status, f"{item.stage}: {item.message}"
+                ),
+            )
+            hosts = self.services.targets()
         except DiscoveryError as exc:
             self._set_status(f"[bold red]Discovery did not complete:[/bold red] {exc}")
             self.query_one("#details", Static).update(
@@ -171,9 +177,12 @@ class Dashboard(App[None]):
         else:
             self._load_targets()
             self.query_one("#targets", DataTable).display = True
-            self._set_status(f"Discovery complete. Imported {len(hosts)} host(s) into workspace {self.workspace.name}.")
+            self._set_status(
+                f"Assessment {workflow.run_id[:8]} completed: {len(hosts)} host(s), "
+                f"{len(plan.recommendations)} read-only recommendation(s)."
+            )
             self.query_one("#details", Static).update(
-                "Select a target to inspect its open services, or generate an assessment plan."
+                "The assessment plan is saved. Review it before taking further action; no checks were executed."
             )
         finally:
             button.disabled = False
