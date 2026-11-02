@@ -112,7 +112,7 @@ class EvidenceFindingTests(unittest.TestCase):
                 "lab-a", "unit-test", "192.168.56.10", "text/plain",
                 "Observed banner.", b"SSH-2.0-example",
             )
-            with self.assertRaisesRegex(FindingError, "does not exist"):
+            with self.assertRaisesRegex(FindingError, "another workspace"):
                 create_finding(
                     store, "lab-b", "Cross-workspace reference",
                     "This must be rejected.", evidence_ids=(evidence.evidence_id,),
