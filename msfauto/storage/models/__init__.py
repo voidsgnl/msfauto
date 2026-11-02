@@ -1,6 +1,8 @@
 """Persistent and domain records used across MSFAuto."""
 
 from .approval import ActionApproval
+from .evidence import EvidenceRecord
+from .finding import Finding
 from .assessment import (
     AssessmentEvent, AssessmentPlan, AssessmentRun, DiscoveryRun,
     ModuleMetadata, Recommendation,
@@ -14,5 +16,5 @@ from .workspace import ScopePolicy, Workspace
 __all__ = [
     "IPAddress", "IPNetwork", "utc_now", "ScopePolicy", "Workspace",
     "Service", "Host", "DiscoveryRun", "ModuleMetadata", "Recommendation",
-    "AssessmentPlan", "AssessmentRun", "AssessmentEvent", "ActionApproval", "JobEvent", "CheckJob",
+    "AssessmentPlan", "AssessmentRun", "AssessmentEvent", "ActionApproval", "EvidenceRecord", "Finding", "JobEvent", "CheckJob",
 ]
