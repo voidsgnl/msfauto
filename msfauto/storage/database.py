@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from ipaddress import ip_address
 from pathlib import Path
 
-from ..models import AssessmentEvent, AssessmentPlan, AssessmentRun, CheckJob, DiscoveryRun, Host, JobEvent, ModuleMetadata, Recommendation, ScopePolicy, Service, Workspace
+from .models import AssessmentEvent, AssessmentPlan, AssessmentRun, CheckJob, DiscoveryRun, Host, JobEvent, ModuleMetadata, Recommendation, ScopePolicy, Service, Workspace
 
 
 class WorkspaceStore:

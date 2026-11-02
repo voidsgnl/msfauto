@@ -5,11 +5,11 @@ import os
 from collections import Counter
 from pathlib import Path
 
-from .application import AssessmentApplication
+from .core import AssessmentApplication
 from .discovery import DiscoveryError, parse_nmap_xml
-from .jobs import CheckRequest, JobError, JobManager
-from .models import ScopePolicy, Workspace
-from .planner import build_plan
+from .execution import CheckRequest, JobError, JobManager
+from .storage.models import ScopePolicy, Workspace
+from .assessment.planner import build_plan
 from .scope import PROFILES, ScopeError, build_policy
 from .storage import WorkspaceStore
 
@@ -140,7 +140,7 @@ def interactive(store: WorkspaceStore, workspace_name: str, profile: str) -> int
             print(f"Scope error: {exc}")
             return 2
 
-    from .tui import Dashboard
+    from .interface import Dashboard
 
     Dashboard(workspace, store).run()
     return 0
@@ -219,7 +219,7 @@ def main() -> int:
         if workspace is None:
             print(f"Workspace not found: {args.workspace}")
             return 1
-        from .tui import Dashboard
+        from .interface import Dashboard
 
         Dashboard(workspace, store).run()
         return 0

@@ -8,7 +8,7 @@ from textual.widgets import Button, DataTable, Footer, Header, Static
 
 from ..core import AssessmentApplication
 from ..discovery import DiscoveryError
-from ..models import Host, Workspace
+from ..storage.models import Host, Workspace
 from ..storage import WorkspaceStore
 
 
