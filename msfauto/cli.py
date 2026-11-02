@@ -143,6 +143,7 @@ def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int
                             protocol=recommendation.protocol,
                             module_name=f"{recommendation.module_type}/{recommendation.module_name}",
                             approval_id=approval.action_id,
+                            risk=recommendation.risk,
                         )
                     )
                 )
