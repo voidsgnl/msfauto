@@ -116,7 +116,6 @@ class JobManagerTests(unittest.TestCase):
         finally:
             manager.close()
 
-
     def test_revoked_approval_is_rechecked_before_adapter_dispatch(self) -> None:
         approval_store = MemoryApprovalStore(revoke_after_submit=True)
         manager = JobManager(
