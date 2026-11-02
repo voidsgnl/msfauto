@@ -40,6 +40,8 @@ class SafeChecksCliTests(unittest.TestCase):
 def run_main_with_env(home: str, argv: list[str]) -> int:
     import sys
 
-    with patch.dict("os.environ", {"MSFAUTO_HOME": home}):
-        with patch.object(sys, "argv", ["msfauto", *argv]):
-            return main()
+    with (
+        patch.dict("os.environ", {"MSFAUTO_HOME": home}),
+        patch.object(sys, "argv", ["msfauto", *argv]),
+    ):
+        return main()
