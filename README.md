@@ -20,8 +20,9 @@ The current MVP provides foundations for:
 - Bounded safe-check adapter execution and persisted results.
 - A guided Textual interface with discovery, target browsing, target details, scope review, and read-only plan display.
 - A persisted discovery-to-planning workflow with progress events and recorded failure states.
+- Per-recommendation approval decisions persisted in SQLite; safe checks require an exact `APPROVE` confirmation and approver identifier.
 
-The interface is an initial workflow-oriented release. It does not yet provide per-action approval records, workflow resumption, evidence management, or report generation. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
+The interface is an initial workflow-oriented release. It does not yet provide approval history beyond the latest decision per action, workflow resumption, evidence management, or report generation. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
 
 ## Planned experience
 
