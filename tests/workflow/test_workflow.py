@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from msfauto.application import AssessmentApplication, WorkflowError
-from msfauto.models import DiscoveryRun, Workspace
+from msfauto.core import AssessmentApplication, WorkflowError
+from msfauto.storage.models import DiscoveryRun, Workspace
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
 

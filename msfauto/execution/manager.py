@@ -6,7 +6,7 @@ from threading import Event, Lock
 from typing import Protocol
 from uuid import uuid4
 
-from ..models import CheckJob, JobEvent, ScopePolicy, utc_now
+from ..storage.models import CheckJob, JobEvent, ScopePolicy, utc_now
 
 
 class JobError(ValueError):

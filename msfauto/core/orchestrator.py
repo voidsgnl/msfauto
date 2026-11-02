@@ -4,7 +4,7 @@ from collections.abc import Callable
 from uuid import uuid4
 
 from ..discovery import DiscoveryError, run_nmap
-from ..models import (
+from ..storage.models import (
     AssessmentEvent, AssessmentPlan, AssessmentRun, Host, Workspace, utc_now,
 )
 from ..assessment.planner import build_plan

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..models import AssessmentPlan, Host, ModuleMetadata, Recommendation
+from ..storage.models import AssessmentPlan, Host, ModuleMetadata, Recommendation
 
 
 def _module_text(module: ModuleMetadata) -> str:

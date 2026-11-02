@@ -4,8 +4,8 @@ from ipaddress import ip_address
 from pathlib import Path
 from unittest.mock import patch
 
-from msfauto.application import AssessmentApplication
-from msfauto.models import DiscoveryRun, Host, Service, Workspace
+from msfauto.core import AssessmentApplication
+from msfauto.storage.models import DiscoveryRun, Host, Service, Workspace
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
 
@@ -27,7 +27,7 @@ class AssessmentApplicationTests(unittest.TestCase):
                 "completed", "start", "finish",
             )
             service = AssessmentApplication(workspace, store)
-            with patch("msfauto.application.run_nmap", return_value=(run, (host,))):
+            with patch("msfauto.core.orchestrator.run_nmap", return_value=(run, (host,))):
                 status, hosts = service.discover()
 
             self.assertEqual(status, "completed")
