@@ -19,6 +19,7 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Structured job events and persisted results
 - [x] Per-action approval records and execution-layer approval enforcement
 - [x] Bounded evidence artifact collection with integrity verification
+- [x] Automatically persist safe-check outcomes and structured job events as evidence
 - [x] Persisted evidence-linked findings
 - [x] Initial tests for CLI, discovery, planning, scope, jobs, approvals, evidence, findings, Metasploit metadata, and storage
 
@@ -92,9 +93,12 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 
 - [ ] Track supported session metadata and lifecycle
 - [x] Collect bounded evidence artifacts with source, target, timestamp, metadata, and SHA-256 integrity verification
+- [x] Capture safe-check execution outcomes and job events as evidence artifacts
+- [x] Verify evidence integrity and workspace ownership before linking it to a finding
 - [x] Separate evidence artifacts from interpreted findings
 - [x] Persist findings with severity, confidence, evidence references, and potential/confirmed/unverified/false-positive review states
-- [ ] Automatically correlate adapter output and execution outcomes with evidence and findings
+- [ ] Capture raw adapter output and automatically correlate validated observations with findings
+- [ ] Generate candidate findings from validated evidence with analyst review; never infer vulnerabilities from banners or tool errors alone
 - [ ] Redact secrets from ordinary logs and reports
 
 ## Phase 7: Reporting and stabilization
