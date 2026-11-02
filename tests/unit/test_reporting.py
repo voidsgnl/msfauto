@@ -4,8 +4,8 @@ import sys
 import tempfile
 import unittest
 from ipaddress import ip_address
-from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
 
 from msfauto.cli import main
 from msfauto.evidence import EvidenceCollector
