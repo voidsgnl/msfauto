@@ -5,7 +5,8 @@ import os
 from collections import Counter
 from pathlib import Path
 
-from .assessment.approval import record_decision\nfrom .core import AssessmentApplication
+from .assessment.approval import record_decision
+from .core import AssessmentApplication
 from .discovery import DiscoveryError, parse_nmap_xml
 from .execution import CheckRequest, JobError, JobManager
 from .storage.models import ScopePolicy, Workspace
@@ -95,7 +96,7 @@ def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int
     for index, recommendation in enumerate(selected, start=1):
         module_name = f"{recommendation.module_type}/{recommendation.module_name}"
         print(
-            f"\\n[{index}/{len(selected)}] {recommendation.target}:"
+            f"\n[{index}/{len(selected)}] {recommendation.target}:"
             f"{recommendation.port}/{recommendation.protocol} -> {module_name}"
         )
         print(f"Risk: {recommendation.risk} | Confidence: {recommendation.confidence}%")
