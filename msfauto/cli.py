@@ -159,9 +159,11 @@ def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int
             counts[job.status] += 1
             store.save_job(job)
             events = manager.events(job_id)
+            adapter_result = manager.result(job_id)
             result_payload = {
                 "status": job.status,
                 "error": job.error,
+                "adapter_output": adapter_result.output,
                 "events": [
                     {
                         "level": event.level,
