@@ -5,7 +5,8 @@ import os
 from collections import Counter
 from pathlib import Path
 
-from .discovery import DiscoveryError, parse_nmap_xml, run_nmap
+from .application import AssessmentApplication
+from .discovery import DiscoveryError, parse_nmap_xml
 from .jobs import CheckRequest, JobError, JobManager
 from .models import ScopePolicy, Workspace
 from .planner import build_plan
@@ -54,22 +55,22 @@ def display_plan(store: WorkspaceStore, workspace: Workspace) -> None:
 
 
 def run_discovery(store: WorkspaceStore, workspace: Workspace) -> int:
-    output_path = store.path.parent / "discovery" / f"{workspace.name}.xml"
-    print(f"Running Nmap against the saved scope; XML will be stored at {output_path}.")
+    application = AssessmentApplication(workspace, store)
+    print("Starting the saved-scope assessment workflow (discovery + read-only planning).")
     try:
-        run, hosts = run_nmap(workspace.name, workspace.policy, output_path)
-    except DiscoveryError as exc:
-        print(f"Discovery error: {exc}")
+        run, plan = application.run_assessment(
+            lambda event: print(f"[{event.stage}] {event.message}")
+        )
+    except (DiscoveryError, RuntimeError) as exc:
+        print(f"Assessment failed: {exc}")
         return 2
-    store.save_discovery_run(run)
-    if run.status != "completed":
-        print(f"Nmap discovery {run.status}: {run.error or 'no additional details'}")
-        return 2
-    store.save_hosts(workspace.name, hosts)
-    print(f"Discovery complete: imported {len(hosts)} host(s).")
-    print("Next step: choose 'Build and show assessment plan' from the menu.")
+    print(
+        f"Assessment {run.run_id} completed: "
+        f"{len(store.get_hosts(workspace.name))} host(s), "
+        f"{len(plan.recommendations)} read-only recommendation(s)."
+    )
+    print("No active checks were dispatched.")
     return 0
-
 
 def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int, workers: int) -> int:
     plan = store.get_plan(workspace.name)
