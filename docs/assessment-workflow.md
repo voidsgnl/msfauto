@@ -83,7 +83,7 @@ The operator may inspect, exclude, or defer recommendations. Plan generation mus
 
 ### 6. Approval
 
-Before an operation is dispatched, show what will run, against which target and port, using which integration, and with what expected impact. Require explicit approval for active or intrusive operations. Record approvals and denials with timestamps and the relevant plan/action identifier.
+Before a safe check is dispatched, the CLI displays its target, port, module, risk, confidence, and rationale. The operator supplies an approver identifier and must type the exact word `APPROVE` for each recommendation. Every approval or rejection is persisted with a stable action identifier, timestamp, approver, and rationale. A decision applies only to that exact workspace/target/port/protocol/module/risk tuple; it does not authorize another recommendation. The current implementation stores the latest decision per action.
 
 ### 7. Execution
 
