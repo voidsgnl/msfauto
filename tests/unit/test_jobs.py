@@ -56,8 +56,9 @@ class JobManagerTests(unittest.TestCase):
         module_name: str = "scanner/example",
         target: str = "192.168.56.10",
         protocol: str = "tcp",
+        risk: str = "non-invasive",
     ) -> CheckRequest:
-        return CheckRequest("lab", target, 22, protocol, module_name, "approval-1")
+        return CheckRequest("lab", target, 22, protocol, module_name, "approval-1", risk)
 
     def test_scanner_module_completes(self) -> None:
         manager = self.make_manager()
@@ -117,6 +118,15 @@ class JobManagerTests(unittest.TestCase):
         try:
             with self.assertRaisesRegex(JobError, "does not match"):
                 manager.submit(self.approved_request("scanner/different"))
+        finally:
+            manager.close()
+
+
+    def test_approval_for_different_risk_blocks_submission(self) -> None:
+        manager = self.make_manager()
+        try:
+            with self.assertRaisesRegex(JobError, "does not match"):
+                manager.submit(self.approved_request(risk="intrusive"))
         finally:
             manager.close()
 
