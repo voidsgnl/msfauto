@@ -121,3 +121,24 @@ class CheckJob:
     started_at: str
     finished_at: str = ""
     error: str = ""
+
+
+@dataclass(frozen=True)
+class AssessmentRun:
+    run_id: str
+    workspace: str
+    status: str
+    stage: str
+    started_at: str
+    updated_at: str
+    finished_at: str = ""
+    error: str = ""
+
+
+@dataclass(frozen=True)
+class AssessmentEvent:
+    run_id: str
+    timestamp: str
+    stage: str
+    level: str
+    message: str
