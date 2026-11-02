@@ -3,7 +3,7 @@ import unittest
 from contextlib import redirect_stdout
 
 from msfauto.cli import display_next_steps
-from msfauto.models import Workspace
+from msfauto.storage.models import Workspace
 from msfauto.scope import build_policy
 
 
