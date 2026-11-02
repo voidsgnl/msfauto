@@ -9,6 +9,8 @@ All notable changes to MSFAuto are documented here.
 - Required an approver identifier and exact `APPROVE` confirmation for each recommendation before CLI safe-check dispatch.
 - Recorded rejections as well as approvals; unapproved recommendations are not dispatched.
 - Enforced approval verification inside the job manager, including a second approval and scope check immediately before adapter dispatch; missing, rejected, mismatched, or revoked approvals fail closed.
+- Added bounded local evidence artifact storage with SHA-256 integrity metadata and verification.
+- Added SQLite-backed findings with severity, confidence, review status, and same-workspace evidence references.
 
 
 ### Quality and developer experience
