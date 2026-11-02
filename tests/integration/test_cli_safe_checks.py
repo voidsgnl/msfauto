@@ -5,9 +5,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from msfauto.cli import main
-from msfauto.storage.models import Host, ModuleMetadata, Service, Workspace
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
+from msfauto.storage.models import Host, ModuleMetadata, Service, Workspace
 
 
 class SafeChecksCliTests(unittest.TestCase):
