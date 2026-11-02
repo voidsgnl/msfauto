@@ -1,8 +1,8 @@
 import unittest
 from ipaddress import ip_network
 
-from msfauto.jobs import CheckRequest, JobError, JobManager
-from msfauto.models import ScopePolicy
+from msfauto.execution import CheckRequest, JobError, JobManager
+from msfauto.storage.models import ScopePolicy
 
 
 class JobManagerTests(unittest.TestCase):

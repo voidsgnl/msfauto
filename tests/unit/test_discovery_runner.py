@@ -14,7 +14,7 @@ class DiscoveryRunnerTests(unittest.TestCase):
             output = Path(directory) / "scan.xml"
             output.write_text(xml, encoding="utf-8")
             completed = unittest.mock.Mock(returncode=0, stderr="", stdout="")
-            with patch("msfauto.discovery.shutil.which", return_value="/usr/bin/nmap"), patch(
+            with patch("msfauto.discovery.pipeline.shutil.which", return_value="/usr/bin/nmap"), patch(
                 "msfauto.discovery.subprocess.run", return_value=completed
             ) as run:
                 result, hosts = run_nmap(
@@ -32,6 +32,6 @@ class DiscoveryRunnerTests(unittest.TestCase):
         run.assert_called_once()
 
     def test_runner_rejects_missing_scanner(self) -> None:
-        with patch("msfauto.discovery.shutil.which", return_value=None):
+        with patch("msfauto.discovery.pipeline.shutil.which", return_value=None):
             with self.assertRaisesRegex(DiscoveryError, "not found"):
                 run_nmap("lab", build_policy(["127.0.0.1"]), Path("/tmp/scan.xml"))
