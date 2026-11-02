@@ -130,6 +130,33 @@ class WorkspaceStore:
                 """
             )
 
+
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS assessment_runs (
+                    run_id TEXT PRIMARY KEY,
+                    workspace TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    stage TEXT NOT NULL,
+                    started_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    finished_at TEXT NOT NULL,
+                    error TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS assessment_events (
+                    run_id TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    stage TEXT NOT NULL,
+                    level TEXT NOT NULL,
+                    message TEXT NOT NULL
+                )
+                """
+            )
+
     def save(self, workspace: Workspace) -> None:
         policy = {
             "networks": [str(item) for item in workspace.policy.networks],
@@ -410,3 +437,60 @@ class WorkspaceStore:
                 (job_id,),
             ).fetchall()
         return tuple(JobEvent(**dict(row)) for row in rows)
+
+    def save_assessment_run(self, run: AssessmentRun) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO assessment_runs(
+                    run_id, workspace, status, stage, started_at, updated_at,
+                    finished_at, error
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(run_id) DO UPDATE SET
+                    status = excluded.status,
+                    stage = excluded.stage,
+                    updated_at = excluded.updated_at,
+                    finished_at = excluded.finished_at,
+                    error = excluded.error
+                """,
+                (
+                    run.run_id, run.workspace, run.status, run.stage,
+                    run.started_at, run.updated_at, run.finished_at, run.error,
+                ),
+            )
+
+    def get_assessment_run(self, run_id: str) -> AssessmentRun | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM assessment_runs WHERE run_id = ?", (run_id,)
+            ).fetchone()
+        return AssessmentRun(**dict(row)) if row is not None else None
+
+    def get_assessment_runs(self, workspace: str) -> tuple[AssessmentRun, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM assessment_runs WHERE workspace = ? ORDER BY started_at DESC",
+                (workspace,),
+            ).fetchall()
+        return tuple(AssessmentRun(**dict(row)) for row in rows)
+
+    def save_assessment_event(self, event: AssessmentEvent) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO assessment_events(run_id, timestamp, stage, level, message)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (event.run_id, event.timestamp, event.stage, event.level, event.message),
+            )
+
+    def get_assessment_events(self, run_id: str) -> tuple[AssessmentEvent, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT run_id, timestamp, stage, level, message
+                FROM assessment_events WHERE run_id = ? ORDER BY timestamp
+                """,
+                (run_id,),
+            ).fetchall()
+        return tuple(AssessmentEvent(**dict(row)) for row in rows)
