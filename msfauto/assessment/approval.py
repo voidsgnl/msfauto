@@ -39,6 +39,7 @@ def record_decision(
         decision=decision,
         approver=approver,
         rationale=rationale,
+        risk=recommendation.risk,
     )
     store.save_approval(record)
     return record
