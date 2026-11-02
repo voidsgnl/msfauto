@@ -88,6 +88,23 @@ class EvidenceFindingTests(unittest.TestCase):
                     evidence_ids=(evidence.evidence_id,),
                 )
 
+
+    def test_status_change_rejects_evidence_tampered_after_finding_creation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = WorkspaceStore(Path(directory) / "workspaces.sqlite3")
+            evidence = EvidenceCollector(store).collect(
+                "lab", "unit-test", "192.168.56.10", "text/plain",
+                "Observed service response.", b"safe-observation",
+            )
+            finding = create_finding(
+                store, "lab", "Potential observation",
+                "An analyst must review this observation.",
+                evidence_ids=(evidence.evidence_id,),
+            )
+            Path(evidence.artifact_path).write_bytes(b"tampered")
+            with self.assertRaisesRegex(FindingError, "integrity verification"):
+                update_finding_status(store, finding.finding_id, "confirmed")
+
     def test_finding_rejects_evidence_from_another_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = WorkspaceStore(Path(directory) / "workspaces.sqlite3")
