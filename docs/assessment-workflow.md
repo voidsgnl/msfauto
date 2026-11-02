@@ -96,7 +96,7 @@ Before a safe check is dispatched, the CLI displays its target, port, module, ri
 
 ### 8. Findings and evidence
 
-Persist raw evidence separately from interpreted findings. Findings should identify their confidence, severity rationale, status, and evidence references. A tool error or version-based match must not be reported as a confirmed vulnerability.
+Persist raw evidence separately from interpreted findings. The initial collector stores bounded local artifacts with source, target, collection time, metadata, and SHA-256 integrity verification. Findings are separate SQLite records with severity, confidence, status, and evidence references; references must belong to the same workspace. Supported finding states are potential, confirmed, unverified, and false positive. Execution outcomes such as failed, skipped, cancelled, and unsupported remain job outcomes, not vulnerability findings. A tool error or version-based match must not be reported as a confirmed vulnerability.
 
 ### 9. Completion and reporting
 
