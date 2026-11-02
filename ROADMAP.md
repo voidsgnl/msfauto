@@ -80,7 +80,7 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Bounded job manager foundation
 - [x] Scope-checked job submission
 - [x] Cancellation and concurrency limits
-- [ ] Add explicit per-action approval records
+- [x] Add explicit per-action approval records
 - [ ] Revalidate scope and policy immediately before dispatch
 - [ ] Add robust timeouts, output capture, and recoverable errors
 - [ ] Keep high-impact actions disabled by default
