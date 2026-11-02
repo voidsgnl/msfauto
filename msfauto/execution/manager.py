@@ -21,6 +21,7 @@ class CheckRequest:
     protocol: str
     module_name: str
     approval_id: str = ""
+    risk: str = "non-invasive"
 
 
 @dataclass(frozen=True)
@@ -95,6 +96,7 @@ class JobManager:
             or approval.port != request.port
             or approval.protocol != request.protocol
             or approval.module_name != request.module_name
+            or approval.risk != request.risk
         ):
             return "Execution blocked: the persisted approval does not match this request."
         try:
