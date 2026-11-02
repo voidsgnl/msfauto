@@ -10,7 +10,7 @@ from ..evidence import EvidenceCollector
 
 
 _SECRET_KEY = re.compile(r"(password|passwd|secret|token|credential|authorization|api[_-]?key)", re.I)
-_SECRET_TEXT = re.compile(r"(?i)\b(password|passwd|secret|token|api[_-]?key)\s*([:=])\s*([^\s,;]+)")
+_SECRET_TEXT = re.compile(r"(?i)\b(password|passwd|secret|token|credential|authorization|api[_-]?key)\s*([:=])\s*([^\s,;]+)")
 
 
 class ReportError(ValueError):
