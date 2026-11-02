@@ -1,3 +1,4 @@
+import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -25,6 +26,8 @@ class EvidenceFindingTests(unittest.TestCase):
 
             self.assertEqual(saved, evidence)
             self.assertTrue(collector.verify(saved))
+            self.assertEqual(stat.S_IMODE(Path(saved.artifact_path).stat().st_mode), 0o600)
+            self.assertEqual(stat.S_IMODE(Path(saved.artifact_path).parent.stat().st_mode), 0o700)
             Path(saved.artifact_path).write_bytes(b"modified")
             self.assertFalse(collector.verify(saved))
 
