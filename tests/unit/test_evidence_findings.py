@@ -62,7 +62,6 @@ class EvidenceFindingTests(unittest.TestCase):
             self.assertEqual(updated.status, "confirmed")
             self.assertEqual(updated.evidence_ids, (evidence.evidence_id,))
 
-
     def test_confirmed_finding_requires_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = WorkspaceStore(Path(directory) / "workspaces.sqlite3")
@@ -85,7 +84,6 @@ class EvidenceFindingTests(unittest.TestCase):
                     store, "lab-b", "Cross-workspace reference",
                     "This must be rejected.", evidence_ids=(evidence.evidence_id,),
                 )
-
 
 if __name__ == "__main__":
     unittest.main()
