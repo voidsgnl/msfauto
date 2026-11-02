@@ -1,9 +1,13 @@
 import json
+import os
+import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from ipaddress import ip_address
 from pathlib import Path
 
+from msfauto.cli import main
 from msfauto.evidence import EvidenceCollector
 from msfauto.findings import create_finding
 from msfauto.reporting import ReportError, build_report, write_report
@@ -70,6 +74,26 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("| Evidence ID | Type | Target | Integrity | SHA-256 |", rendered)
             self.assertIn("| failed |", rendered)
             self.assertIn("not, by themselves, proof of a vulnerability", rendered)
+
+
+    def test_cli_exports_workspace_report(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            store = WorkspaceStore(root / "workspaces.sqlite3")
+            store.save(Workspace("lab", build_policy(["192.168.56.0/24"])))
+            output = root / "cli-report.json"
+            with (
+                patch.dict(os.environ, {"MSFAUTO_HOME": directory}),
+                patch.object(
+                    sys, "argv",
+                    ["msfauto", "--workspace", "lab", "--report", "json", "--report-output", str(output)],
+                ),
+            ):
+                result = main()
+
+            self.assertEqual(result, 0)
+            self.assertTrue(output.is_file())
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["workspace"]["name"], "lab")
 
     def test_report_requires_matching_extension_and_existing_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
