@@ -5,7 +5,7 @@ import os
 from collections import Counter
 from pathlib import Path
 
-from .core import AssessmentApplication
+from .assessment.approval import record_decision\nfrom .core import AssessmentApplication
 from .discovery import DiscoveryError, parse_nmap_xml
 from .execution import CheckRequest, JobError, JobManager
 from .storage.models import ScopePolicy, Workspace
@@ -85,10 +85,40 @@ def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int
         print("No recommendations are available for safe checks.")
         return 0
     selected = plan.recommendations[:max_checks]
+    print("Each recommendation requires a separate, recorded decision.")
+    approver = input("Approver identifier: ").strip()
+    if not approver:
+        print("No approver identifier supplied; no checks were dispatched.")
+        return 2
+
+    approved = []
+    for index, recommendation in enumerate(selected, start=1):
+        module_name = f"{recommendation.module_type}/{recommendation.module_name}"
+        print(
+            f"\\n[{index}/{len(selected)}] {recommendation.target}:"
+            f"{recommendation.port}/{recommendation.protocol} -> {module_name}"
+        )
+        print(f"Risk: {recommendation.risk} | Confidence: {recommendation.confidence}%")
+        print(f"Reason: {recommendation.reason}")
+        answer = input("Type APPROVE to authorize this exact action, or anything else to reject: ").strip()
+        decision = "approved" if answer == "APPROVE" else "rejected"
+        record = record_decision(
+            store, workspace.name, recommendation, decision, approver,
+            "Operator entered the exact APPROVE confirmation." if decision == "approved"
+            else "Operator did not enter the exact APPROVE confirmation.",
+        )
+        print(f"Decision recorded: {record.decision} ({record.action_id[:12]}).")
+        if decision == "approved":
+            approved.append(recommendation)
+
+    if not approved:
+        print("No recommendations were approved; no checks were dispatched.")
+        return 0
+
     manager = JobManager(workspace.policy, max_workers=workers)
     job_ids: list[str] = []
     try:
-        for recommendation in selected:
+        for recommendation in approved:
             try:
                 job_ids.append(
                     manager.submit(
