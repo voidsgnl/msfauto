@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from msfauto.models import CheckJob, JobEvent
+from msfauto.storage.models import CheckJob, JobEvent
 from msfauto.storage import WorkspaceStore
 
 
