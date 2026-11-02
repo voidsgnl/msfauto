@@ -10,7 +10,7 @@ from ..evidence import EvidenceCollector
 
 
 _SECRET_KEY = re.compile(r"(password|passwd|secret|token|credential|authorization|api[_-]?key)", re.I)
-_SECRET_TEXT = re.compile(r"(?i)\\b(password|passwd|secret|token|api[_-]?key)\\s*([:=])\\s*([^\\s,;]+)")
+_SECRET_TEXT = re.compile(r"(?i)\b(password|passwd|secret|token|api[_-]?key)\s*([:=])\s*([^\s,;]+)")
 
 
 class ReportError(ValueError):
@@ -204,7 +204,7 @@ def _markdown(report: dict[str, Any]) -> str:
         "Finding status reflects analyst review.",
         "",
     ])
-    return "\\n".join(lines)
+    return "\n".join(lines)
 
 
 def write_report(store, workspace: str, output_format: str, output_path: Path | None = None) -> Path:
@@ -219,7 +219,7 @@ def write_report(store, workspace: str, output_format: str, output_path: Path | 
     try:
         destination.parent.mkdir(parents=True, exist_ok=True)
         content = (
-            json.dumps(report, indent=2, sort_keys=True) + "\\n"
+            json.dumps(report, indent=2, sort_keys=True) + "\n"
             if output_format == "json"
             else _markdown(report)
         )
