@@ -15,7 +15,7 @@ class DiscoveryRunnerTests(unittest.TestCase):
             output.write_text(xml, encoding="utf-8")
             completed = unittest.mock.Mock(returncode=0, stderr="", stdout="")
             with patch("msfauto.discovery.pipeline.shutil.which", return_value="/usr/bin/nmap"), patch(
-                "msfauto.discovery.subprocess.run", return_value=completed
+                "msfauto.discovery.pipeline.subprocess.run", return_value=completed
             ) as run:
                 result, hosts = run_nmap(
                     "lab",
