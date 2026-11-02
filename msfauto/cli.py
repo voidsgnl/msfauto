@@ -213,6 +213,15 @@ def main() -> int:
             print("--check-workers must be at least 1.")
             return 2
         return run_safe_checks(store, workspace, args.max_checks, args.check_workers)
+    if args.tui:
+        workspace = store.get(args.workspace)
+        if workspace is None:
+            print(f"Workspace not found: {args.workspace}")
+            return 1
+        from .tui import Dashboard
+
+        Dashboard(workspace, store).run()
+        return 0
     try:
         return interactive(store, args.workspace, args.profile)
     except (KeyboardInterrupt, EOFError):
