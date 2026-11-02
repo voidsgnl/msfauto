@@ -4,6 +4,12 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Approval and execution controls
+- Added stable action identifiers and SQLite-persisted per-recommendation approval decisions.
+- Required an approver identifier and exact `APPROVE` confirmation for each recommendation before CLI safe-check dispatch.
+- Recorded rejections as well as approvals; unapproved recommendations are not dispatched.
+
+
 ### Quality and developer experience
 - Added GitHub Actions CI for the test suite and Ruff across Python 3.10, 3.12, and 3.14.
 - Added a project-local virtual environment setup script to avoid PEP 668 conflicts with externally managed Python installations.
