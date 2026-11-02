@@ -4,13 +4,17 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Quality and developer experience
+- Added GitHub Actions CI for the test suite and Ruff across Python 3.10, 3.12, and 3.14.
+- Added a project-local virtual environment setup script to avoid PEP 668 conflicts with externally managed Python installations.
+- Updated development instructions to use the setup script and the project's virtual environment.
+
 ### Architecture alignment
 - Moved discovery, scope management, assessment planning, SQLite persistence, orchestration, terminal interface, job execution, and Metasploit RPC into responsibility-based packages.
 - Split domain records into focused modules under `msfauto/storage/models/` and removed transitional flat-module shims.
 - Organized tests into unit, integration, workflow, and interface suites.
 - Updated the CLI, interface, tests, and internal services to use canonical package imports.
 - Preserved the existing SQLite schema and database initialization behavior.
-
 
 ### Workflow orchestration
 - Added durable assessment-run records and timestamped workflow events in SQLite.
@@ -35,7 +39,7 @@ All notable changes to MSFAuto are documented here.
 - Documented component boundaries, data flow, and incremental migration strategy.
 - Defined the assessment lifecycle from scope validation through reporting.
 - Documented authorization, approval, execution, and evidence-handling requirements.
-- Audited existing modules and mapped them to the target architecture.
+- Audited existing modules and mapped them to target responsibilities.
 
 ### Maintenance
 - Added Python, virtual environment, local database, cache, and secret exclusions to `.gitignore`.
