@@ -12,6 +12,7 @@ from .core import AssessmentApplication
 from .discovery import DiscoveryError, parse_nmap_xml
 from .evidence import EvidenceCollector
 from .execution import CheckRequest, JobError, JobManager
+from .reporting import ReportError, write_report
 from .scope import PROFILES, ScopeError, build_policy
 from .storage import WorkspaceStore
 from .storage.models import ScopePolicy, Workspace
@@ -241,6 +242,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-safe-checks", action="store_true", help="Run bounded non-invasive checks from the plan.")
     parser.add_argument("--max-checks", type=int, default=10, help="Maximum recommendations to run with --run-safe-checks.")
     parser.add_argument("--check-workers", type=int, default=2, help="Concurrent workers for --run-safe-checks.")
+    parser.add_argument("--report", choices=("json", "markdown"), help="Export a workspace assessment report.")
+    parser.add_argument("--report-output", type=Path, help="Optional report destination; extension must match --report.")
     parser.add_argument(
         "--profile",
         choices=PROFILES,
@@ -253,6 +256,17 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
     store = default_store()
+    if args.report is not None:
+        try:
+            destination = write_report(store, args.workspace, args.report, args.report_output)
+        except ReportError as exc:
+            print(f"Report error: {exc}")
+            return 2
+        print(f"Report written: {destination}")
+        return 0
+    if args.report_output is not None:
+        print("--report-output requires --report json or --report markdown.")
+        return 2
     if args.show_scope:
         workspace = store.get(args.workspace)
         if workspace is None:
