@@ -40,7 +40,7 @@ The intended full workflow is:
 7. Execute supported checks with bounded resources.
 8. Collect evidence, review findings, and generate reports.
 
-See [the architecture](docs/architecture/overview.md), [assessment workflow](docs/assessment-workflow.md), [safety model](docs/security/safety-model.md), and [roadmap](ROADMAP.md).
+See [the architecture](docs/architecture/overview.md), [assessment workflow](docs/assessment-workflow.md), [evidence and findings guide](docs/evidence-and-findings.md), [safety model](docs/security/safety-model.md), and [roadmap](ROADMAP.md).
 
 ## Run from source
 
@@ -80,7 +80,7 @@ Exploit execution, credential attacks, persistence, pivoting, and destructive ac
 
 ## Code layout
 
-The active code is organized by responsibility: `core/` owns orchestration, `interface/` owns the Textual UI, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning, `execution/` owns bounded checks, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models. Tests are grouped under `unit/`, `integration/`, `workflow/`, and `interface/`.
+The active code is organized by responsibility: `core/` owns orchestration, `interface/` owns the Textual UI, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning and approval decisions, `execution/` owns approval-gated bounded checks, `evidence/` owns artifact collection and integrity verification, `findings/` owns evidence-linked assessment conclusions, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models. Tests are grouped under `unit/`, `integration/`, `workflow/`, and `interface/`.
 
 The remaining target areas—configuration, workspace lifecycle, intelligence, approval history, sessions, automatic adapter-to-evidence correlation, reporting, and richer evidence/finding views—will be added as real capabilities are implemented, not as empty placeholder modules.
 
