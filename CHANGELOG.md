@@ -4,6 +4,14 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Architecture alignment
+- Moved discovery, scope management, assessment planning, SQLite persistence, orchestration, terminal interface, job execution, and Metasploit RPC into responsibility-based packages.
+- Centralized domain records under `msfauto/storage/models.py` while retaining a compatibility import module during migration.
+- Organized tests into unit, integration, workflow, and interface suites.
+- Updated the CLI and interface to use canonical package imports.
+- Preserved the existing SQLite schema and database initialization behavior.
+
+
 ### Workflow orchestration
 - Added durable assessment-run records and timestamped workflow events in SQLite.
 - Added a shared discovery-to-read-only-plan orchestrator with scope preflight, stage transitions, progress callbacks, and persisted failure states.

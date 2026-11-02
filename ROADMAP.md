@@ -21,6 +21,11 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 
 ## Phase 0: Architecture and audit — complete
 
+- [x] Begin migration from flat modules into the supplied package architecture.
+- [x] Establish core, interface, discovery, scope, assessment, execution, integrations, and storage packages.
+- [x] Organize tests by unit, integration, workflow, and interface responsibility.
+- [ ] Complete the remaining domain, repository, configuration, and documentation package alignment.
+
 - [x] Audit current repository structure and tests
 - [x] Map current modules to target responsibilities
 - [x] Define the guided assessment workflow

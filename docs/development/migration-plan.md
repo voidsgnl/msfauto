@@ -6,7 +6,13 @@ The existing application has working foundations for workspace onboarding, SQLit
 
 The first interface migration now provides a guided screen for discovery, target browsing, target details, scope review, and read-only plan display. Discovery and planning are called through an application-service boundary rather than being implemented in widget event handlers.
 
-The repository still needs a durable assessment lifecycle, structured progress events, explicit per-action approvals, evidence management, and reporting.
+The durable discovery-and-planning lifecycle and structured workflow events are now persisted. Explicit per-action approvals, evidence management, and reporting remain future work.
+
+## Package migration status
+
+The first migration slice is implemented: discovery, scope, assessment planning, storage, core orchestration, interface, execution, and Metasploit integration now have responsibility-based packages. Domain records are under `msfauto/storage/models.py`. Tests are grouped into unit, integration, workflow, and interface suites. The CLI and primary interface use canonical package imports. Temporary root-level compatibility modules remain and will be removed after all internal and external import paths are verified.
+
+The existing SQLite schema and table names are intentionally unchanged. This migration does not require deleting or recreating a user's database.
 
 ## Existing-code disposition
 
