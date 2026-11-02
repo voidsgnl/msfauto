@@ -35,6 +35,11 @@ class SafeChecksCliTests(unittest.TestCase):
             approvals = store.get_approvals("lab")
             jobs = store.get_jobs("lab")
             evidence_records = store.get_evidence_records("lab")
+            self.assertEqual(len(evidence_records), 1)
+            self.assertEqual(evidence_records[0].evidence_type, "execution-result")
+            self.assertEqual(evidence_records[0].metadata["status"], "completed")
+            self.assertTrue(EvidenceCollector(store).verify(evidence_records[0]))
+            self.assertEqual(store.get_findings("lab"), ())
 
         self.assertEqual(result, 0)
         self.assertEqual(len(jobs), 1)
@@ -42,11 +47,6 @@ class SafeChecksCliTests(unittest.TestCase):
         self.assertEqual(len(approvals), 1)
         self.assertEqual(approvals[0].decision, "approved")
         self.assertEqual(approvals[0].approver, "operator-1")
-        self.assertEqual(len(evidence_records), 1)
-        self.assertEqual(evidence_records[0].evidence_type, "execution-result")
-        self.assertEqual(evidence_records[0].metadata["status"], "completed")
-        self.assertTrue(EvidenceCollector(store).verify(evidence_records[0]))
-        self.assertEqual(store.get_findings("lab"), ())
 
 
 def run_main_with_env(home: str, argv: list[str]) -> int:
