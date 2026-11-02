@@ -1,6 +1,10 @@
 import unittest
 
-from msfauto.execution import AdapterOutputError, MAX_ADAPTER_OUTPUT_BYTES, sanitize_adapter_output
+from msfauto.execution import (
+    MAX_ADAPTER_OUTPUT_BYTES,
+    AdapterOutputError,
+    sanitize_adapter_output,
+)
 
 
 class AdapterOutputTests(unittest.TestCase):
