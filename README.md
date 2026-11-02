@@ -24,8 +24,9 @@ The current MVP provides foundations for:
 - Execution-layer authorization gate that independently verifies the persisted approval, exact workspace/target/port/protocol/module/risk context, and scope both at submission and immediately before adapter dispatch.
 - Bounded local evidence artifact collection with SHA-256 integrity verification and SQLite metadata; safe-check outcomes and structured job events are captured automatically.
 - Persisted findings with severity, confidence, review status, and evidence references; evidence links are restricted to the same workspace.
+- Workspace-scoped JSON and Markdown reports covering scope, discovered assets, execution jobs, findings, and evidence integrity; common secret fields are redacted.
 
-The interface is an initial workflow-oriented release. It does not yet provide approval history beyond the latest decision per action, workflow resumption, evidence/finding views, raw adapter-output capture and automated evidence-to-finding correlation, or report generation. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
+The interface is an initial workflow-oriented release. It does not yet provide approval history beyond the latest decision per action, workflow resumption, evidence/finding views, raw adapter-output capture, automated evidence-to-finding correlation, HTML reports, and report views in the TUI. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
 
 ## Planned experience
 
@@ -66,6 +67,8 @@ python -m msfauto.cli --workspace lab --import-nmap scan.xml
 python -m msfauto.cli --workspace lab --show-plan
 python -m msfauto.cli --workspace lab --run-safe-checks --max-checks 10 --check-workers 2
 python -m msfauto.cli --workspace lab --show-scope
+python -m msfauto.cli --workspace lab --report json
+python -m msfauto.cli --workspace lab --report markdown --report-output ./assessment-report.md
 ```
 
 The default workspace database is stored at `~/.msfauto/workspaces.sqlite3`. Set `MSFAUTO_HOME` to use another local directory.
@@ -80,9 +83,9 @@ Exploit execution, credential attacks, persistence, pivoting, and destructive ac
 
 ## Code layout
 
-The active code is organized by responsibility: `core/` owns orchestration, `interface/` owns the Textual UI, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning and approval decisions, `execution/` owns approval-gated bounded checks, `evidence/` owns artifact collection and integrity verification, `findings/` owns evidence-linked assessment conclusions, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models. Tests are grouped under `unit/`, `integration/`, `workflow/`, and `interface/`.
+The active code is organized by responsibility: `core/` owns orchestration, `interface/` owns the Textual UI, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning and approval decisions, `execution/` owns approval-gated bounded checks, `evidence/` owns artifact collection and integrity verification, `findings/` owns evidence-linked assessment conclusions, `reporting/` exports workspace reports, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models. Tests are grouped under `unit/`, `integration/`, `workflow/`, and `interface/`.
 
-The remaining target areas—configuration, workspace lifecycle, intelligence, approval history, sessions, automatic adapter-to-evidence correlation, reporting, and richer evidence/finding views—will be added as real capabilities are implemented, not as empty placeholder modules.
+The remaining target areas—configuration, workspace lifecycle, intelligence, approval history, sessions, automatic adapter-to-evidence correlation, HTML reporting, and richer evidence/finding views—will be added as real capabilities are implemented, not as empty placeholder modules.
 
 ## Development
 
