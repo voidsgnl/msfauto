@@ -47,7 +47,7 @@ The interface must not be the enforcement boundary. These checks belong in appli
 
 ## Approval records
 
-An approval record should identify:
+The current approval record identifies:
 
 - Workspace and assessment.
 - Action or recommendation identifier.
