@@ -45,7 +45,6 @@ class ApprovalTests(unittest.TestCase):
         self.assertEqual(saved.port, 22)
         self.assertEqual(saved.risk, "non-invasive")
 
-
     def test_existing_approval_table_is_migrated_with_risk(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "state.sqlite3"
@@ -78,8 +77,6 @@ class ApprovalTests(unittest.TestCase):
             saved = store.get_approval(record.action_id)
 
         self.assertEqual(saved.risk, "intrusive")
-
-
 
 if __name__ == "__main__":
     unittest.main()
