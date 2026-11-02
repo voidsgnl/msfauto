@@ -116,7 +116,7 @@ def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int
         print("No recommendations were approved; no checks were dispatched.")
         return 0
 
-    manager = JobManager(workspace.policy, max_workers=workers)
+    manager = JobManager(workspace.policy, max_workers=workers, approval_store=store)
     job_ids: list[str] = []
     try:
         for recommendation in approved:
@@ -142,6 +142,7 @@ def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int
                             port=recommendation.port,
                             protocol=recommendation.protocol,
                             module_name=f"{recommendation.module_type}/{recommendation.module_name}",
+                            approval_id=approval.action_id,
                         )
                     )
                 )
