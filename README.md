@@ -1,92 +1,84 @@
 # MSFAuto
 
-MSFAuto is a local, terminal-first orchestrator for authorized security
-assessment workflows. It is designed to make complex tooling approachable
-without hiding the scope, policy, or actions being requested.
+MSFAuto is a local, terminal-first orchestrator for authorized security assessment workflows. Its interaction model is inspired by Wifite: start the application, define an authorized scope, discover targets, inspect results, review an assessment plan, approve actions, and collect evidence.
 
-## Current MVP
+The goal is to make complex security tooling approachable without hiding scope, policy, or the operations being requested.
 
-The initial slice provides:
+## Current implementation
 
-- `msfauto` interactive startup
-- Optional Textual dashboard with `--tui`
-- SQLite-backed workspaces
-- Explicit IP/CIDR scope
-- Optional port allowlists
-- A safe-only profile
-- Scope-enforced discovery XML import and normalized service storage
-- Read-only Metasploit RPC module metadata client
-- Workspace-persisted module metadata and options
-- Explainable dry-run plans with deterministic service matching
-- Scope-checked bounded job manager with structured events
-- Dashboard visibility for stored hosts, plans, jobs, and job events
-- Bounded safe-check execution with status classification and persistence
-- Explicit `safe` and `dangerous-actions` workspace profiles
-- Scope validation tests
+The current MVP provides foundations for:
 
-Discovery, Metasploit RPC integration, module planning, and execution are
-intentionally not enabled yet.
+- Interactive workspace creation and startup.
+- SQLite-backed workspaces and assessment data.
+- Explicit IP/CIDR scope and optional port allowlists.
+- Nmap discovery with bounded execution and XML output.
+- Scope-enforced Nmap XML import and normalized host/service storage.
+- Read-only Metasploit RPC module metadata, search, and option inspection.
+- Workspace-persisted module metadata and options.
+- Explainable dry-run plans with deterministic service matching.
+- A bounded job manager with scope checks, cancellation, concurrency limits, and structured events.
+- Bounded safe-check adapter execution and persisted results.
+- A basic Textual status dashboard.
+
+The current interface and workflow are still early-stage. In particular, the Textual screen is informational rather than a complete navigable operator experience. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
+
+## Planned experience
+
+The intended primary workflow is:
+
+1. Select or configure a workspace and authorized scope.
+2. Discover hosts, ports, and services.
+3. Select a discovered target.
+4. Analyze observations and generate recommendations.
+5. Review an explainable assessment plan.
+6. Approve operations according to policy.
+7. Execute supported checks with bounded resources.
+8. Collect evidence, review findings, and generate reports.
+
+See [the architecture](docs/architecture/overview.md), [assessment workflow](docs/assessment-workflow.md), [safety model](docs/security/safety-model.md), and [roadmap](ROADMAP.md).
 
 ## Run from source
 
+Install the project and its dependencies in a virtual environment, then run:
+
 ```bash
-cd msfauto
+python -m msfauto
+```
+
+The current supported module entry point is also:
+
+```bash
 python -m msfauto.cli
 ```
 
-On first launch, enter the authorized IP/CIDR targets and optional ports.
-After saving them, the menu explains the next steps: import discovery results,
-build a plan, run safe checks, or open the dashboard.
-
-After creating a workspace, the interactive menu guides you through running
-Nmap, building a plan, running safe checks, and opening the dashboard.
-
-To open the dashboard directly:
-
-```bash
-python -m msfauto.cli --tui
-```
-
-Import an authorized Nmap XML result into an existing workspace:
-
-```bash
-python -m msfauto.cli --workspace lab --import-nmap scan.xml
-```
-
-Run Nmap automatically from the workspace's saved scope and import the XML:
+On first launch, enter authorized IP/CIDR targets and optional ports. Existing command-line options remain available during the migration:
 
 ```bash
 python -m msfauto.cli --workspace lab --discover
-```
-
-Build and display a read-only plan from the workspace's stored services and
-module metadata:
-
-```bash
+python -m msfauto.cli --workspace lab --import-nmap scan.xml
 python -m msfauto.cli --workspace lab --show-plan
-```
-
-Run bounded non-invasive checks from the saved plan:
-
-```bash
 python -m msfauto.cli --workspace lab --run-safe-checks --max-checks 10 --check-workers 2
+python -m msfauto.cli --workspace lab --tui
 ```
 
-The default workspace database is stored at `~/.msfauto/workspaces.sqlite3`.
-Set `MSFAUTO_HOME` to use another local directory.
+The default workspace database is stored at `~/.msfauto/workspaces.sqlite3`. Set `MSFAUTO_HOME` to use another local directory.
 
-New workspaces use the safe profile by default. To create a workspace with the
-alternative profile:
+The MVP accepts IP addresses and CIDR networks. It does not resolve or scan arbitrary hostnames.
+
+## Safety
+
+MSFAuto is intended for owned systems, isolated labs, and explicitly authorized assessments. Discovery does not grant permission to perform intrusive operations. Scope is enforced independently of the interface, and active operations require policy checks and appropriate approval.
+
+Exploit execution, credential attacks, persistence, pivoting, and destructive actions are not part of the normal automated workflow.
+
+## Development
+
+Install development dependencies:
 
 ```bash
-python -m msfauto.cli --workspace lab --profile dangerous-actions
+python -m pip install -e ".[dev]"
+pytest
+ruff check .
 ```
 
-The `dangerous-actions` profile is an explicit policy selection and warning
-boundary. It does not bypass scope validation or automatically execute
-exploits, payloads, persistence, credential attacks, or destructive actions.
-
-The MVP accepts only IP addresses and CIDR networks. It does not resolve or
-scan arbitrary hostnames.
-
-See [ROADMAP.md](ROADMAP.md) for the development plan.
+See [development setup](docs/development/migration-plan.md) for the migration plan and repository rules. Update `CHANGELOG.md` for meaningful changes.

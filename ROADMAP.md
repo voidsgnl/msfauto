@@ -1,83 +1,107 @@
 # MSFAuto Roadmap
 
-The roadmap prioritizes a dependable, explainable terminal workflow before
-adding broader automation. Each stage must preserve explicit scope validation,
-auditing, and safe defaults.
+MSFAuto is evolving toward a Wifite-inspired, terminal-first guided assessment experience. The operator should be able to start one workflow, follow discovery results, select targets, review recommendations, approve permitted actions, and inspect evidence without manually coordinating every underlying tool.
 
-## Phase 1: Foundation — current
+The roadmap preserves working foundations and prioritizes a dependable, explainable workflow over feature accumulation.
 
-- [x] Interactive terminal startup
-- [x] Initial Textual dashboard
+## Current baseline
+
+- [x] Interactive terminal startup and workspace onboarding
 - [x] SQLite workspace persistence
-- [x] Explicit IP/CIDR scope
-- [x] Optional port allowlists
-- [x] Safe profile enforcement
-- [x] Focused validation tests
+- [x] Explicit IP/CIDR scope and optional port allowlists
+- [x] Scope-enforced Nmap XML import and normalized service storage
+- [x] Bounded Nmap execution adapter
+- [x] Read-only Metasploit RPC module metadata integration
+- [x] Module metadata and options persistence
+- [x] Explainable dry-run recommendations
+- [x] Bounded job manager with scope checks, cancellation, and concurrency limits
+- [x] Structured job events and persisted results
+- [x] Initial tests for CLI, discovery, planning, scope, jobs, Metasploit metadata, and storage
 
-## Phase 2: Discovery
+The current Textual screen is a basic informational dashboard. The current job adapter is a bounded foundation and does not make arbitrary Metasploit modules executable.
 
-- [x] Add a pluggable discovery adapter boundary
-- [x] Normalize hosts, ports, services, and banners
-- [x] Persist discovered hosts and services
-- [x] Import scanner XML with scope enforcement
-- [x] Add a bounded, no-shell scanner execution adapter
-- [ ] Show live progress and recoverable failures
-- [ ] Enforce scope and port policy for every operation
+## Phase 0: Architecture and audit
 
-## Phase 3: Metasploit integration
+- [x] Audit current repository structure and tests
+- [x] Map current modules to target responsibilities
+- [x] Define the guided assessment workflow
+- [x] Document architecture and component boundaries
+- [x] Document authorization and safety model
+- [ ] Correct remaining documentation inconsistencies
+- [ ] Remove tracked Python bytecode and add repository hygiene rules
 
-- [x] Add a local Metasploit RPC adapter
-- [x] Detect connection and dependency problems explicitly
-- [x] Search and inspect module metadata
-- [x] Validate module options without executing actions
-- [x] Persist module metadata with workspace provenance
+## Phase 1: Wifite-inspired interface
 
-## Phase 4: Explainable planning
+- [ ] Establish one primary interactive entry point
+- [ ] Replace the informational dashboard with a navigable workflow
+- [ ] Keep workspace and authorized scope visible
+- [ ] Add target list and target detail screens
+- [ ] Show live discovery and execution progress
+- [ ] Add clear cancellation, failure, and completion states
+- [ ] Preserve CLI compatibility and test both entry points
 
-- [x] Correlate discovered services with relevant capabilities
-- [x] Rank recommendations using deterministic evidence
-- [x] Display prerequisites, confidence, and risk
-- [x] Provide dry-run plans before execution
-- [x] Preserve the underlying module and options for expert review
+## Phase 2: Workflow orchestrator
 
-## Phase 5: Safe assessment checks
+- [ ] Introduce application services and a workflow state model
+- [ ] Coordinate scope validation, discovery, analysis, planning, approval, and execution
+- [ ] Publish structured progress events to the interface
+- [ ] Persist assessment lifecycle and recoverable failures
+- [ ] Ensure CLI and TUI use the same application services
 
-- [x] Add a controlled, scope-checked job manager boundary
-- [x] Add cancellation and concurrency limits
-- [x] Emit structured job events and explicit unsupported status
-- [x] Stream persisted structured job output into the TUI view
-- [x] Classify completed, failed, skipped, and unsupported checks
-- [x] Store complete job audit events
+## Phase 3: Discovery pipeline
 
-## Phase 6: Approval-controlled actions
+- [x] Nmap XML import with scope enforcement
+- [x] Bounded Nmap execution adapter
+- [ ] Separate scanner integration from discovery coordination
+- [ ] Improve live progress and partial-result handling
+- [ ] Preserve observation timestamps and source provenance
+- [ ] Enforce target and port policy for every discovery operation
 
-- [x] Add explicit `safe` and `dangerous-actions` profiles
-- [ ] Add explicit approval queues
-- [ ] Require per-action confirmation for intrusive operations
-- [ ] Add policy profiles for isolated labs and controlled assessments
-- [ ] Keep credential attacks, persistence, pivoting, and destructive actions
-      disabled by default
-- [ ] Add a reproducible action log
+## Phase 4: Intelligence and assessment planning
 
-## Phase 7: Sessions, evidence, and reports
+- [x] Correlate discovered services with relevant module metadata
+- [x] Deterministic recommendations with confidence and rationale
+- [x] Read-only plan generation
+- [ ] Improve service fingerprinting and evidence correlation
+- [ ] Distinguish confirmed observations, potential weaknesses, and hypotheses
+- [ ] Add explicit prerequisites, operation classes, and risk explanations
+- [ ] Generate plans automatically after analysis
 
-- [ ] Track sessions and their lifecycle
-- [ ] Collect command output and assessment evidence
-- [ ] Index loot and artifacts without exposing secrets unnecessarily
-- [ ] Generate terminal, JSON, and Markdown reports
-- [ ] Distinguish confirmed, possible, failed, and skipped findings
+## Phase 5: Approval and controlled execution
 
-## Phase 8: Expert mode and extensibility
+- [x] Bounded job manager foundation
+- [x] Scope-checked job submission
+- [x] Cancellation and concurrency limits
+- [ ] Add explicit per-action approval records
+- [ ] Revalidate scope and policy immediately before dispatch
+- [ ] Add robust timeouts, output capture, and recoverable errors
+- [ ] Keep high-impact actions disabled by default
 
-- [ ] Add searchable advanced module controls
+## Phase 6: Sessions, evidence, and findings
+
+- [ ] Track supported session metadata and lifecycle
+- [ ] Collect evidence with provenance and integrity metadata
+- [ ] Separate evidence artifacts from interpreted findings
+- [ ] Distinguish confirmed, potential, unverified, failed, skipped, and unsupported outcomes
+- [ ] Redact secrets from ordinary logs and reports
+
+## Phase 7: Reporting and stabilization
+
+- [ ] Generate JSON reports
+- [ ] Generate Markdown reports
+- [ ] Add HTML reports
+- [ ] Add end-to-end workflow tests
+- [ ] Document installation, configuration, integrations, and troubleshooting
+- [ ] Add CI for tests, linting, and static analysis
+
+## Phase 8: Expert features and extensibility
+
+- [ ] Add searchable advanced module metadata controls
 - [ ] Support custom profiles and policy files
-- [ ] Add discovery and reporting plugins
+- [ ] Add documented integration boundaries
 - [ ] Add plan import/export
-- [ ] Provide a documented automation API
+- [ ] Consider third-party extensions only when a concrete use case exists
 
 ## Non-goals
 
-MSFAuto will not silently attack arbitrary targets, bypass scope controls, or
-hide the underlying operation from the operator. Automation is intended for
-authorized environments such as owned systems, isolated labs, and explicitly
-approved assessments.
+MSFAuto will not silently attack arbitrary targets, bypass scope controls, or hide operations from the operator. Discovery does not imply authorization. Exploitation, credential attacks, persistence, pivoting, and destructive actions remain disabled by default and outside the normal automated workflow.
