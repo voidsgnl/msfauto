@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from msfauto.cli import main
+from msfauto.evidence import EvidenceCollector
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
 from msfauto.storage.models import Host, ModuleMetadata, Service, Workspace
@@ -33,6 +34,7 @@ class SafeChecksCliTests(unittest.TestCase):
                 result = run_main_with_env(directory, ["--workspace", "lab", "--run-safe-checks", "--max-checks", "1"])
             approvals = store.get_approvals("lab")
             jobs = store.get_jobs("lab")
+            evidence_records = store.get_evidence_records("lab")
 
         self.assertEqual(result, 0)
         self.assertEqual(len(jobs), 1)
@@ -40,6 +42,11 @@ class SafeChecksCliTests(unittest.TestCase):
         self.assertEqual(len(approvals), 1)
         self.assertEqual(approvals[0].decision, "approved")
         self.assertEqual(approvals[0].approver, "operator-1")
+        self.assertEqual(len(evidence_records), 1)
+        self.assertEqual(evidence_records[0].evidence_type, "execution-result")
+        self.assertEqual(evidence_records[0].metadata["status"], "completed")
+        self.assertTrue(EvidenceCollector(store).verify(evidence_records[0]))
+        self.assertEqual(store.get_findings("lab"), ())
 
 
 def run_main_with_env(home: str, argv: list[str]) -> int:
