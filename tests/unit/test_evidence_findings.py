@@ -72,6 +72,22 @@ class EvidenceFindingTests(unittest.TestCase):
                     status="confirmed",
                 )
 
+
+    def test_findings_reject_tampered_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = WorkspaceStore(Path(directory) / "workspaces.sqlite3")
+            evidence = EvidenceCollector(store).collect(
+                "lab", "unit-test", "192.168.56.10", "text/plain",
+                "Observed banner.", b"SSH-2.0-example",
+            )
+            Path(evidence.artifact_path).write_bytes(b"tampered")
+            with self.assertRaisesRegex(FindingError, "integrity verification"):
+                create_finding(
+                    store, "lab", "Tampered evidence",
+                    "This evidence must not support a finding.",
+                    evidence_ids=(evidence.evidence_id,),
+                )
+
     def test_finding_rejects_evidence_from_another_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = WorkspaceStore(Path(directory) / "workspaces.sqlite3")
