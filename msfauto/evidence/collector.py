@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import sqlite3
 from pathlib import Path
 from typing import Mapping
 from uuid import uuid4
@@ -65,7 +66,7 @@ class EvidenceCollector:
         )
         try:
             self.store.save_evidence(record)
-        except Exception:
+        except (sqlite3.Error, TypeError, ValueError):
             artifact.unlink(missing_ok=True)
             raise
         return record
