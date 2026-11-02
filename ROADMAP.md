@@ -29,7 +29,7 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Establish core, interface, discovery, scope, assessment, execution, integrations, and storage packages.
 - [x] Organize tests by unit, integration, workflow, and interface responsibility.
 - [x] Split domain records into focused storage model modules and remove transitional flat-module shims.
-- [ ] Implement remaining configuration, workspace, intelligence, approval history, sessions, and reporting packages.
+- [ ] Implement remaining configuration, workspace, intelligence, approval history, and sessions packages.
 
 - [x] Audit current repository structure and tests
 - [x] Map current modules to target responsibilities
@@ -99,13 +99,16 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Persist findings with severity, confidence, evidence references, and potential/confirmed/unverified/false-positive review states
 - [ ] Capture raw adapter output and automatically correlate validated observations with findings
 - [ ] Generate candidate findings from validated evidence with analyst review; never infer vulnerabilities from banners or tool errors alone
-- [ ] Redact secrets from ordinary logs and reports
+- [x] Redact common secret fields from report exports
+- [ ] Expand secret redaction for ordinary logs and arbitrary adapter output
 
 ## Phase 7: Reporting and stabilization
 
-- [ ] Generate JSON reports
-- [ ] Generate Markdown reports
-- [ ] Add HTML reports
+- [x] Generate workspace-scoped JSON reports
+- [x] Generate workspace-scoped Markdown reports
+- [x] Include scope, assets, jobs, findings, and evidence integrity in report exports
+- [x] Redact common secret fields in report data
+- [ ] Add HTML reports and report views in the TUI
 - [ ] Add end-to-end workflow tests
 - [ ] Document installation, configuration, integrations, and troubleshooting
 - [x] Add CI for tests and linting
