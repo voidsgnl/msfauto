@@ -42,7 +42,7 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Keep workspace and authorized scope visible
 - [x] Add target list and target detail display
 - [x] Connect discovery and plan display through application services
-- [x] Keep discovery work off the UI event loop
+- [x] Keep discovery work off the Textual event loop
 - [ ] Add explicit progress events and cancellation for long-running discovery
 - [ ] Add assessment history, jobs, findings, and report views
 - [ ] Add Textual interaction tests and accessibility/terminal-size checks
@@ -100,7 +100,8 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [ ] Add HTML reports
 - [ ] Add end-to-end workflow tests
 - [ ] Document installation, configuration, integrations, and troubleshooting
-- [ ] Add CI for tests, linting, and static analysis
+- [x] Add CI for tests and linting
+- [ ] Add static analysis to CI
 
 ## Phase 8: Expert features and extensibility
 
