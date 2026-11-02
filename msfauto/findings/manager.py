@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 from uuid import uuid4
 
+from ..evidence import EvidenceCollector
 from ..storage.models import Finding, utc_now
 from ..storage.models.finding import FINDING_STATUSES
 
@@ -23,11 +24,16 @@ def create_finding(
 ) -> Finding:
     if not workspace:
         raise FindingError("A workspace is required.")
+    collector = EvidenceCollector(store)
     for evidence_id in evidence_ids:
         evidence = store.get_evidence(evidence_id)
-        if evidence is None or evidence.workspace != workspace:
+        if (
+            evidence is None
+            or evidence.workspace != workspace
+            or not collector.verify(evidence)
+        ):
             raise FindingError(
-                f"Evidence {evidence_id} does not exist in workspace {workspace}."
+                f"Evidence {evidence_id} is missing, belongs to another workspace, or failed integrity verification."
             )
     finding = Finding(
         finding_id=uuid4().hex,
