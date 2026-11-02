@@ -6,8 +6,15 @@ from msfauto.storage.models import ActionApproval, ScopePolicy
 
 
 class MemoryApprovalStore:
-    def __init__(self, decision: str = "approved") -> None:
+    def __init__(
+        self,
+        decision: str = "approved",
+        module_name: str = "scanner/example",
+        target: str = "192.168.56.10",
+    ) -> None:
         self.decision = decision
+        self.module_name = module_name
+        self.target = target
 
     def get_approval(self, action_id: str):
         if action_id != "approval-1":
@@ -15,24 +22,33 @@ class MemoryApprovalStore:
         return ActionApproval(
             action_id="approval-1",
             workspace="lab",
-            target="192.168.56.10",
+            target=self.target,
             port=22,
             protocol="tcp",
-            module_name="scanner/example",
+            module_name=self.module_name,
             decision=self.decision,
             approver="unit-test",
         )
 
 
 class JobManagerTests(unittest.TestCase):
-    def make_manager(self, decision: str = "approved") -> JobManager:
+    def make_manager(
+        self,
+        decision: str = "approved",
+        module_name: str = "scanner/example",
+        target: str = "192.168.56.10",
+    ) -> JobManager:
         return JobManager(
             ScopePolicy(networks=(ip_network("192.168.56.0/24"),)),
-            approval_store=MemoryApprovalStore(decision),
+            approval_store=MemoryApprovalStore(decision, module_name, target),
         )
 
-    def approved_request(self, module_name: str = "scanner/example") -> CheckRequest:
-        return CheckRequest("lab", "192.168.56.10", 22, "tcp", module_name, "approval-1")
+    def approved_request(
+        self,
+        module_name: str = "scanner/example",
+        target: str = "192.168.56.10",
+    ) -> CheckRequest:
+        return CheckRequest("lab", target, 22, "tcp", module_name, "approval-1")
 
     def test_scanner_module_completes(self) -> None:
         manager = self.make_manager()
@@ -45,7 +61,7 @@ class JobManagerTests(unittest.TestCase):
             manager.close()
 
     def test_non_scanner_module_is_unsupported(self) -> None:
-        manager = self.make_manager()
+        manager = self.make_manager(module_name="exploit/windows/smb/example")
         try:
             job_id = manager.submit(self.approved_request("exploit/windows/smb/example"))
             job = manager.wait(job_id, timeout=1)
@@ -54,7 +70,7 @@ class JobManagerTests(unittest.TestCase):
             manager.close()
 
     def test_unsupported_protocol_is_skipped(self) -> None:
-        manager = self.make_manager()
+        manager = self.make_manager(module_name="auxiliary/scanner/ping")
         try:
             job_id = manager.submit(self.approved_request("auxiliary/scanner/ping"))
             job = manager.wait(job_id, timeout=1)
@@ -63,14 +79,13 @@ class JobManagerTests(unittest.TestCase):
             manager.close()
 
     def test_failed_module_is_classified(self) -> None:
-        manager = self.make_manager()
+        manager = self.make_manager(module_name="auxiliary/scanner/fail")
         try:
             job_id = manager.submit(self.approved_request("auxiliary/scanner/fail"))
             job = manager.wait(job_id, timeout=1)
             self.assertEqual(job.status, "failed")
         finally:
             manager.close()
-
 
     def test_missing_approval_store_blocks_submission(self) -> None:
         manager = JobManager(ScopePolicy(networks=(ip_network("192.168.56.0/24"),)))
@@ -97,9 +112,9 @@ class JobManagerTests(unittest.TestCase):
             manager.close()
 
     def test_out_of_scope_target_is_rejected(self) -> None:
-        manager = self.make_manager()
+        manager = self.make_manager(target="192.168.57.10")
         try:
             with self.assertRaisesRegex(JobError, "outside"):
-                manager.submit(CheckRequest("lab", "192.168.57.10", 22, "tcp", "scanner/example", "approval-1"))
+                manager.submit(self.approved_request(target="192.168.57.10"))
         finally:
             manager.close()
