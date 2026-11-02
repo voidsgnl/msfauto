@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import sqlite3
+from typing import ClassVar
 
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, DataTable, Footer, Header, Static
 
-from ..core import AssessmentApplication
+from ..core import AssessmentApplication, WorkflowError
 from ..discovery import DiscoveryError
 from ..storage.models import Host, Workspace
 from ..storage import WorkspaceStore
@@ -60,7 +62,7 @@ class Dashboard(App[None]):
     }
     """
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("d", "discover", "Discover"),
         ("t", "targets", "Targets"),
         ("p", "plan", "Plan"),
@@ -167,13 +169,11 @@ class Dashboard(App[None]):
                 ),
             )
             hosts = self.services.targets()
-        except DiscoveryError as exc:
-            self._set_status(f"[bold red]Discovery did not complete:[/bold red] {exc}")
+        except (DiscoveryError, WorkflowError, OSError, sqlite3.Error) as exc:
+            self._set_status(f"[bold red]Assessment failed:[/bold red] {exc}")
             self.query_one("#details", Static).update(
-                "Review the scope, scanner installation, and discovery error before retrying."
+                "Review the authorization scope, scanner installation, and stored assessment data before retrying."
             )
-        except Exception as exc:
-            self._set_status(f"[bold red]Unexpected discovery error:[/bold red] {exc}")
         else:
             self._load_targets()
             self.query_one("#targets", DataTable).display = True
