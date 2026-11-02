@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from ipaddress import ip_address
@@ -38,6 +39,8 @@ class SafeChecksCliTests(unittest.TestCase):
             self.assertEqual(len(evidence_records), 1)
             self.assertEqual(evidence_records[0].evidence_type, "execution-result")
             self.assertEqual(evidence_records[0].metadata["status"], "completed")
+            payload = json.loads(Path(evidence_records[0].artifact_path).read_text())
+            self.assertEqual(payload["adapter_output"], "")
             self.assertTrue(EvidenceCollector(store).verify(evidence_records[0]))
             self.assertEqual(store.get_findings("lab"), ())
 
