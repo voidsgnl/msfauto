@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from collections import Counter
 from pathlib import Path
@@ -9,6 +10,7 @@ from .assessment.approval import action_id, record_decision
 from .assessment.planner import build_plan
 from .core import AssessmentApplication
 from .discovery import DiscoveryError, parse_nmap_xml
+from .evidence import EvidenceCollector
 from .execution import CheckRequest, JobError, JobManager
 from .scope import PROFILES, ScopeError, build_policy
 from .storage import WorkspaceStore
@@ -154,6 +156,28 @@ def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int
             job = manager.wait(job_id, timeout=5)
             counts[job.status] += 1
             store.save_job(job)
+            evidence = EvidenceCollector(store).collect(
+                workspace=workspace.name,
+                source=f"execution:{job.module_name}",
+                target=job.target,
+                evidence_type="execution-result",
+                summary=f"{job.status} result for {job.module_name} on {job.target}:{job.port}/{job.protocol}.",
+                content=json.dumps(
+                    {"status": job.status, "error": job.error, "events": [
+                        {"level": event.level, "message": event.message, "timestamp": event.timestamp}
+                        for event in manager.events(job_id)
+                    ]},
+                    sort_keys=True,
+                ).encode("utf-8"),
+                metadata={
+                    "job_id": job.job_id,
+                    "module_name": job.module_name,
+                    "port": job.port,
+                    "protocol": job.protocol,
+                    "status": job.status,
+                },
+            )
+            print(f"  Evidence captured: {evidence.evidence_id[:12]} (SHA-256 {evidence.sha256[:12]}…).")
             for event in manager.events(job_id):
                 store.save_job_event(event)
             print(f"{job.job_id[:8]} {job.status}: {job.target}:{job.port} -> {job.module_name}")
