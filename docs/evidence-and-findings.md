@@ -24,6 +24,8 @@ if not collector.verify(record):
 
 The default maximum artifact size is 2,000,000 bytes. Artifacts are written beneath the directory containing the workspace database, in a workspace-specific directory. On POSIX systems, the collector applies mode 0700 to evidence directories and 0600 to artifact files. SQLite stores the provenance and integrity metadata, including the SHA-256 digest.
 
+The CLI automatically stores each safe-check outcome and its structured job events as a bounded `execution-result` evidence artifact. This captures the execution record, not arbitrary raw output from external tools; adapter-output capture and semantic correlation are separate future capabilities.
+
 The collector does not redact, encrypt, or classify sensitive content. Sanitize artifacts before collection and protect the local evidence directory. Do not put credentials, tokens, or secrets in metadata or summaries.
 
 ## Findings
@@ -44,9 +46,9 @@ finding = create_finding(
     evidence_ids=(record.evidence_id,),
 )
 
-finding = update_finding_status(store, finding.finding_id, "confirmed")
+finding = update_finding_status(store, finding.finding_id, "unverified")
 ```
 
-Supported severities are `info`, `low`, `medium`, `high`, and `critical`. Supported finding states are `potential`, `confirmed`, `unverified`, and `false_positive`. Confidence is an integer from 0 to 100. A finding cannot be marked `confirmed` unless it references at least one persisted evidence record.
+Supported severities are `info`, `low`, `medium`, `high`, and `critical`. Supported finding states are `potential`, `confirmed`, `unverified`, and `false_positive`. Confidence is an integer from 0 to 100. Before a finding can reference evidence, MSFAuto verifies that every artifact still exists, belongs to the same workspace, and matches its stored SHA-256 digest. A finding cannot be marked `confirmed` unless it references at least one persisted evidence record; confirmation remains an analyst decision and requires evidence that actually supports the vulnerability claim. A service banner or execution status alone is not sufficient.
 
-Execution outcomes such as `completed`, `failed`, `skipped`, `cancelled`, and `unsupported` remain job states; they must not be converted into confirmed findings automatically. Adapter-output capture, automated correlation, evidence/finding UI, and report generation remain future work.
+Execution outcomes such as `completed`, `failed`, `skipped`, `cancelled`, and `unsupported` remain job states; they must not be converted into confirmed findings automatically. Automatic creation of vulnerability findings from execution evidence is intentionally not enabled: analysts must supply an interpretation and supporting evidence. Adapter-output capture, automated correlation, evidence/finding UI, and report generation remain future work.
