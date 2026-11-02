@@ -55,6 +55,17 @@ def update_finding_status(store, finding_id: str, status: str) -> Finding:
     finding = store.get_finding(finding_id)
     if finding is None:
         raise FindingError(f"Unknown finding: {finding_id}")
+    collector = EvidenceCollector(store)
+    for evidence_id in finding.evidence_ids:
+        evidence = store.get_evidence(evidence_id)
+        if (
+            evidence is None
+            or evidence.workspace != finding.workspace
+            or not collector.verify(evidence)
+        ):
+            raise FindingError(
+                f"Evidence {evidence_id} is missing, belongs to another workspace, or failed integrity verification."
+            )
     updated = replace(finding, status=status, updated_at=utc_now())
     store.save_finding(updated)
     return updated
