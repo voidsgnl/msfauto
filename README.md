@@ -22,8 +22,10 @@ The current MVP provides foundations for:
 - A persisted discovery-to-planning workflow with progress events and recorded failure states.
 - Per-recommendation approval decisions persisted in SQLite; safe checks require an exact `APPROVE` confirmation and approver identifier.
 - Execution-layer authorization gate that independently verifies the persisted approval, exact workspace/target/port/protocol/module context, and scope both at submission and immediately before adapter dispatch.
+- Bounded local evidence artifact collection with SHA-256 integrity verification and SQLite metadata.
+- Persisted findings with severity, confidence, review status, and evidence references; evidence links are restricted to the same workspace.
 
-The interface is an initial workflow-oriented release. It does not yet provide approval history beyond the latest decision per action, workflow resumption, evidence management, or report generation. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
+The interface is an initial workflow-oriented release. It does not yet provide approval history beyond the latest decision per action, workflow resumption, evidence/finding views, automatic evidence capture from adapters, or report generation. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
 
 ## Planned experience
 
@@ -80,7 +82,7 @@ Exploit execution, credential attacks, persistence, pivoting, and destructive ac
 
 The active code is organized by responsibility: `core/` owns orchestration, `interface/` owns the Textual UI, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning, `execution/` owns bounded checks, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models. Tests are grouped under `unit/`, `integration/`, `workflow/`, and `interface/`.
 
-The remaining target areas—configuration, workspace lifecycle, intelligence, approval history, sessions, evidence, findings, and reporting—will be added as real capabilities are implemented, not as empty placeholder modules.
+The remaining target areas—configuration, workspace lifecycle, intelligence, approval history, sessions, automatic adapter-to-evidence correlation, reporting, and richer evidence/finding views—will be added as real capabilities are implemented, not as empty placeholder modules.
 
 ## Development
 
