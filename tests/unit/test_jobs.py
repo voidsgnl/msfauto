@@ -2,7 +2,7 @@ import sqlite3
 import unittest
 from ipaddress import ip_network
 
-from msfauto.execution import CheckRequest, JobError, JobManager
+from msfauto.execution import CheckRequest, CheckResult, JobError, JobManager
 from msfauto.storage.models import ActionApproval, ScopePolicy
 
 
@@ -95,6 +95,49 @@ class JobManagerTests(unittest.TestCase):
             job_id = manager.submit(self.approved_request("auxiliary/scanner/fail"))
             job = manager.wait(job_id, timeout=1)
             self.assertEqual(job.status, "failed")
+        finally:
+            manager.close()
+
+    def test_adapter_output_is_redacted_and_retrievable(self) -> None:
+        class OutputAdapter:
+            def run(self, request: CheckRequest, cancel) -> CheckResult:
+                return CheckResult(
+                    "completed",
+                    "Adapter completed.",
+                    output='service=ssh password="super-secret" Authorization: Bearer abc.def',
+                )
+
+        manager = JobManager(
+            ScopePolicy(networks=(ip_network("192.168.56.0/24"),)),
+            adapter=OutputAdapter(),
+            approval_store=MemoryApprovalStore(),
+        )
+        try:
+            job_id = manager.submit(self.approved_request())
+            manager.wait(job_id, timeout=1)
+            output = manager.result(job_id).output
+            self.assertNotIn("super-secret", output)
+            self.assertNotIn("abc.def", output)
+            self.assertIn("[REDACTED]", output)
+        finally:
+            manager.close()
+
+    def test_oversized_adapter_output_fails_closed(self) -> None:
+        class OversizedAdapter:
+            def run(self, request: CheckRequest, cancel) -> CheckResult:
+                return CheckResult("completed", "Adapter completed.", output="x" * 256_001)
+
+        manager = JobManager(
+            ScopePolicy(networks=(ip_network("192.168.56.0/24"),)),
+            adapter=OversizedAdapter(),
+            approval_store=MemoryApprovalStore(),
+        )
+        try:
+            job_id = manager.submit(self.approved_request())
+            job = manager.wait(job_id, timeout=1)
+            self.assertEqual(job.status, "failed")
+            self.assertEqual(job.error, "invalid-adapter-output")
+            self.assertEqual(manager.result(job_id).output, "")
         finally:
             manager.close()
 
