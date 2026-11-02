@@ -12,6 +12,8 @@ All notable changes to MSFAuto are documented here.
 - Bound approval records to the operation risk classification and added an in-place SQLite migration for existing approval tables.
 - Added bounded local evidence artifact storage with SHA-256 integrity metadata and verification.
 - Added SQLite-backed findings with severity, confidence, review status, and same-workspace evidence references.
+- Automatically captured safe-check outcomes and structured job events as bounded evidence artifacts.
+- Required evidence integrity and workspace ownership verification before evidence can be linked to a finding; did not auto-classify execution outcomes or banners as vulnerabilities.
 
 
 ### Quality and developer experience
