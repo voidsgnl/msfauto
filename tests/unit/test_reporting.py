@@ -3,8 +3,8 @@ import os
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
 from ipaddress import ip_address
+from unittest.mock import patch
 from pathlib import Path
 
 from msfauto.cli import main
