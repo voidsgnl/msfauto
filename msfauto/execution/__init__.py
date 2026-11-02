@@ -1,4 +1,4 @@
 """Policy-bounded job execution."""
-from .manager import CheckRequest, JobError, JobManager, SafeCheckAdapter
+from .manager import CheckRequest, DeterministicSafeAdapter, JobError, JobManager
 
-__all__ = ["CheckRequest", "JobError", "JobManager", "SafeCheckAdapter"]
+__all__ = ["CheckRequest", "DeterministicSafeAdapter", "JobError", "JobManager"]
