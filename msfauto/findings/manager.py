@@ -33,7 +33,8 @@ def create_finding(
             or not collector.verify(evidence)
         ):
             raise FindingError(
-                f"Evidence {evidence_id} is missing, belongs to another workspace, or failed integrity verification."
+                f"Evidence {evidence_id} is missing, belongs to another "
+                "workspace, or failed integrity verification."
             )
     finding = Finding(
         finding_id=uuid4().hex,
