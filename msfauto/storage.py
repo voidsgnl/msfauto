@@ -1,0 +1,376 @@
+from __future__ import annotations
+
+import json
+import sqlite3
+from ipaddress import ip_address
+from pathlib import Path
+
+from .models import AssessmentPlan, CheckJob, DiscoveryRun, Host, JobEvent, ModuleMetadata, Recommendation, ScopePolicy, Service, Workspace
+
+
+class WorkspaceStore:
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._initialize()
+
+    def _connect(self) -> sqlite3.Connection:
+        connection = sqlite3.connect(self.path)
+        connection.row_factory = sqlite3.Row
+        return connection
+
+    def _initialize(self) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS workspaces (
+                    name TEXT PRIMARY KEY,
+                    policy_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS check_jobs (
+                    job_id TEXT PRIMARY KEY,
+                    workspace TEXT NOT NULL,
+                    target TEXT NOT NULL,
+                    port INTEGER NOT NULL,
+                    protocol TEXT NOT NULL,
+                    module_name TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    started_at TEXT NOT NULL,
+                    finished_at TEXT NOT NULL,
+                    error TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS job_events (
+                    job_id TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    level TEXT NOT NULL,
+                    message TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS assessment_plans (
+                    workspace TEXT PRIMARY KEY,
+                    recommendations_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS module_metadata (
+                    workspace TEXT NOT NULL,
+                    module_type TEXT NOT NULL,
+                    module_name TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL,
+                    options_json TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    fetched_at TEXT NOT NULL,
+                    PRIMARY KEY(workspace, module_type, module_name)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS discovery_runs (
+                    workspace TEXT NOT NULL,
+                    scanner TEXT NOT NULL,
+                    command_json TEXT NOT NULL,
+                    output_path TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    started_at TEXT NOT NULL,
+                    finished_at TEXT NOT NULL,
+                    error TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS discovery_hosts (
+                    workspace TEXT NOT NULL,
+                    address TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    hostname TEXT NOT NULL,
+                    UNIQUE(workspace, address)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS discovery_services (
+                    workspace TEXT NOT NULL,
+                    address TEXT NOT NULL,
+                    port INTEGER NOT NULL,
+                    protocol TEXT NOT NULL,
+                    state TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    product TEXT NOT NULL,
+                    version TEXT NOT NULL,
+                    UNIQUE(workspace, address, port, protocol)
+                )
+                """
+            )
+
+    def save(self, workspace: Workspace) -> None:
+        policy = {
+            "networks": [str(item) for item in workspace.policy.networks],
+            "addresses": [str(item) for item in workspace.policy.addresses],
+            "allowed_ports": list(workspace.policy.allowed_ports),
+            "profile": workspace.policy.profile,
+        }
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO workspaces(name, policy_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(name) DO UPDATE SET
+                    policy_json = excluded.policy_json,
+                    updated_at = excluded.updated_at
+                """,
+                (workspace.name, json.dumps(policy), workspace.created_at, workspace.updated_at),
+            )
+
+    def get(self, name: str) -> Workspace | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT name, policy_json, created_at, updated_at FROM workspaces WHERE name = ?",
+                (name,),
+            ).fetchone()
+        if row is None:
+            return None
+        policy_data = json.loads(row["policy_json"])
+        from .scope import build_policy
+
+        policy = build_policy(
+            [*policy_data["networks"], *policy_data["addresses"]],
+            ",".join(str(port) for port in policy_data["allowed_ports"]),
+            policy_data["profile"],
+        )
+        return Workspace(
+            name=row["name"],
+            policy=policy,
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )
+
+    def save_hosts(self, workspace: str, hosts: tuple[Host, ...]) -> None:
+        with self._connect() as connection:
+            for host in hosts:
+                connection.execute(
+                    """
+                    INSERT INTO discovery_hosts(workspace, address, status, hostname)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(workspace, address) DO UPDATE SET
+                        status = excluded.status,
+                        hostname = excluded.hostname
+                    """,
+                    (workspace, str(host.address), host.status, host.hostname),
+                )
+                for service in host.services:
+                    connection.execute(
+                        """
+                        INSERT INTO discovery_services(
+                            workspace, address, port, protocol, state, name, product, version
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(workspace, address, port, protocol) DO UPDATE SET
+                            state = excluded.state,
+                            name = excluded.name,
+                            product = excluded.product,
+                            version = excluded.version
+                        """,
+                        (
+                            workspace,
+                            str(host.address),
+                            service.port,
+                            service.protocol,
+                            service.state,
+                            service.name,
+                            service.product,
+                            service.version,
+                        ),
+                    )
+
+    def get_hosts(self, workspace: str) -> tuple[Host, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT address, status, hostname FROM discovery_hosts WHERE workspace = ? ORDER BY address",
+                (workspace,),
+            ).fetchall()
+            hosts: list[Host] = []
+            for row in rows:
+                service_rows = connection.execute(
+                    """
+                    SELECT port, protocol, state, name, product, version
+                    FROM discovery_services
+                    WHERE workspace = ? AND address = ?
+                    ORDER BY port, protocol
+                    """,
+                    (workspace, row["address"]),
+                ).fetchall()
+                services = tuple(Service(**dict(service_row)) for service_row in service_rows)
+                hosts.append(Host(ip_address(row["address"]), row["status"], row["hostname"], services))
+        return tuple(hosts)
+
+    def save_discovery_run(self, run: DiscoveryRun) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO discovery_runs(
+                    workspace, scanner, command_json, output_path, status,
+                    started_at, finished_at, error
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run.workspace,
+                    run.scanner,
+                    json.dumps(run.command),
+                    run.output_path,
+                    run.status,
+                    run.started_at,
+                    run.finished_at,
+                    run.error,
+                ),
+            )
+
+    def save_module_metadata(self, module: ModuleMetadata) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO module_metadata(
+                    workspace, module_type, module_name, metadata_json,
+                    options_json, source, fetched_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(workspace, module_type, module_name) DO UPDATE SET
+                    metadata_json = excluded.metadata_json,
+                    options_json = excluded.options_json,
+                    source = excluded.source,
+                    fetched_at = excluded.fetched_at
+                """,
+                (
+                    module.workspace,
+                    module.module_type,
+                    module.module_name,
+                    json.dumps(module.metadata, sort_keys=True),
+                    json.dumps(module.options, sort_keys=True),
+                    module.source,
+                    module.fetched_at,
+                ),
+            )
+
+    def get_module_metadata(
+        self, workspace: str, module_type: str, module_name: str
+    ) -> ModuleMetadata | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT workspace, module_type, module_name, metadata_json,
+                       options_json, source, fetched_at
+                FROM module_metadata
+                WHERE workspace = ? AND module_type = ? AND module_name = ?
+                """,
+                (workspace, module_type, module_name),
+            ).fetchone()
+        if row is None:
+            return None
+        return ModuleMetadata(
+            workspace=row["workspace"],
+            module_type=row["module_type"],
+            module_name=row["module_name"],
+            metadata=json.loads(row["metadata_json"]),
+            options=json.loads(row["options_json"]),
+            source=row["source"],
+            fetched_at=row["fetched_at"],
+        )
+
+    def get_all_module_metadata(self, workspace: str) -> tuple[ModuleMetadata, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT workspace, module_type, module_name, metadata_json,
+                       options_json, source, fetched_at
+                FROM module_metadata
+                WHERE workspace = ?
+                ORDER BY module_type, module_name
+                """,
+                (workspace,),
+            ).fetchall()
+        return tuple(
+            ModuleMetadata(
+                workspace=row["workspace"],
+                module_type=row["module_type"],
+                module_name=row["module_name"],
+                metadata=json.loads(row["metadata_json"]),
+                options=json.loads(row["options_json"]),
+                source=row["source"],
+                fetched_at=row["fetched_at"],
+            )
+            for row in rows
+        )
+
+    def save_plan(self, plan: AssessmentPlan) -> None:
+        recommendations = [
+            {
+                "target": item.target,
+                "port": item.port,
+                "protocol": item.protocol,
+                "module_type": item.module_type,
+                "module_name": item.module_name,
+                "confidence": item.confidence,
+                "reason": item.reason,
+                "risk": item.risk,
+            }
+            for item in plan.recommendations
+        ]
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO assessment_plans(workspace, recommendations_json, created_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(workspace) DO UPDATE SET
+                    recommendations_json = excluded.recommendations_json,
+                    created_at = excluded.created_at
+                """,
+                (plan.workspace, json.dumps(recommendations, sort_keys=True), plan.created_at),
+            )
+
+    def get_plan(self, workspace: str) -> AssessmentPlan | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT workspace, recommendations_json, created_at FROM assessment_plans WHERE workspace = ?",
+                (workspace,),
+            ).fetchone()
+        if row is None:
+            return None
+        recommendations = tuple(
+            Recommendation(**item) for item in json.loads(row["recommendations_json"])
+        )
+        return AssessmentPlan(row["workspace"], recommendations, row["created_at"])
+
+    def save_job(self, job: CheckJob) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT OR REPLACE INTO check_jobs(
+                    job_id, workspace, target, port, protocol, module_name,
+                    status, started_at, finished_at, error
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                tuple(job.__dict__.values()),
+            )
+
+    def save_job_event(self, event: JobEvent) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "INSERT INTO job_events(job_id, timestamp, level, message) VALUES (?, ?, ?, ?)",
+                (event.job_id, event.timestamp, event.level, event.message),
+            )

@@ -18,6 +18,7 @@ The initial slice provides:
 - Read-only Metasploit RPC module metadata client
 - Workspace-persisted module metadata and options
 - Explainable dry-run plans with deterministic service matching
+- Scope-checked bounded job manager with structured events
 - Scope validation tests
 
 Discovery, Metasploit RPC integration, module planning, and execution are
