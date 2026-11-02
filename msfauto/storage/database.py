@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from ipaddress import ip_address
 from pathlib import Path
 
-from .models import ActionApproval, AssessmentEvent, AssessmentPlan, AssessmentRun, CheckJob, DiscoveryRun, Host, JobEvent, ModuleMetadata, Recommendation, ScopePolicy, Service, Workspace
+from .models import ActionApproval, AssessmentEvent, AssessmentPlan, AssessmentRun, CheckJob, DiscoveryRun, EvidenceRecord, Finding, Host, JobEvent, ModuleMetadata, Recommendation, ScopePolicy, Service, Workspace
 
 
 class WorkspaceStore:
@@ -144,6 +144,39 @@ class WorkspaceStore:
                     approver TEXT NOT NULL,
                     decided_at TEXT NOT NULL,
                     rationale TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS evidence_records (
+                    evidence_id TEXT PRIMARY KEY,
+                    workspace TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    target TEXT NOT NULL,
+                    evidence_type TEXT NOT NULL,
+                    summary TEXT NOT NULL,
+                    artifact_path TEXT NOT NULL,
+                    sha256 TEXT NOT NULL,
+                    size_bytes INTEGER NOT NULL,
+                    collected_at TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS findings (
+                    finding_id TEXT PRIMARY KEY,
+                    workspace TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    severity TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    confidence INTEGER NOT NULL,
+                    evidence_ids_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
                 )
                 """
             )
@@ -490,6 +523,104 @@ class WorkspaceStore:
                 (workspace,),
             ).fetchall()
         return tuple(ActionApproval(**dict(row)) for row in rows)
+
+    def save_evidence(self, evidence: EvidenceRecord) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO evidence_records(
+                    evidence_id, workspace, source, target, evidence_type,
+                    summary, artifact_path, sha256, size_bytes, collected_at,
+                    metadata_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(evidence_id) DO UPDATE SET
+                    summary = excluded.summary,
+                    artifact_path = excluded.artifact_path,
+                    sha256 = excluded.sha256,
+                    size_bytes = excluded.size_bytes,
+                    metadata_json = excluded.metadata_json
+                """,
+                (
+                    evidence.evidence_id, evidence.workspace, evidence.source,
+                    evidence.target, evidence.evidence_type, evidence.summary,
+                    evidence.artifact_path, evidence.sha256, evidence.size_bytes,
+                    evidence.collected_at,
+                    json.dumps(evidence.metadata, sort_keys=True),
+                ),
+            )
+
+    def get_evidence(self, evidence_id: str) -> EvidenceRecord | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM evidence_records WHERE evidence_id = ?", (evidence_id,)
+            ).fetchone()
+        if row is None:
+            return None
+        data = dict(row)
+        data["metadata"] = json.loads(data.pop("metadata_json"))
+        return EvidenceRecord(**data)
+
+    def get_evidence_records(self, workspace: str) -> tuple[EvidenceRecord, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM evidence_records WHERE workspace = ? ORDER BY collected_at",
+                (workspace,),
+            ).fetchall()
+        records = []
+        for row in rows:
+            data = dict(row)
+            data["metadata"] = json.loads(data.pop("metadata_json"))
+            records.append(EvidenceRecord(**data))
+        return tuple(records)
+
+    def save_finding(self, finding: Finding) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO findings(
+                    finding_id, workspace, title, description, severity, status,
+                    confidence, evidence_ids_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(finding_id) DO UPDATE SET
+                    title = excluded.title,
+                    description = excluded.description,
+                    severity = excluded.severity,
+                    status = excluded.status,
+                    confidence = excluded.confidence,
+                    evidence_ids_json = excluded.evidence_ids_json,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    finding.finding_id, finding.workspace, finding.title,
+                    finding.description, finding.severity, finding.status,
+                    finding.confidence, json.dumps(finding.evidence_ids),
+                    finding.created_at, finding.updated_at,
+                ),
+            )
+
+    def get_finding(self, finding_id: str) -> Finding | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM findings WHERE finding_id = ?", (finding_id,)
+            ).fetchone()
+        if row is None:
+            return None
+        data = dict(row)
+        data["evidence_ids"] = tuple(json.loads(data.pop("evidence_ids_json")))
+        return Finding(**data)
+
+    def get_findings(self, workspace: str) -> tuple[Finding, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM findings WHERE workspace = ? ORDER BY updated_at DESC",
+                (workspace,),
+            ).fetchall()
+        findings = []
+        for row in rows:
+            data = dict(row)
+            data["evidence_ids"] = tuple(json.loads(data.pop("evidence_ids_json")))
+            findings.append(Finding(**data))
+        return tuple(findings)
 
     def save_assessment_run(self, run: AssessmentRun) -> None:
         with self._connect() as connection:
