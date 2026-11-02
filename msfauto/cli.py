@@ -5,7 +5,7 @@ import os
 from collections import Counter
 from pathlib import Path
 
-from .assessment.approval import record_decision
+from .assessment.approval import action_id, record_decision
 from .assessment.planner import build_plan
 from .core import AssessmentApplication
 from .discovery import DiscoveryError, parse_nmap_xml
@@ -120,6 +120,19 @@ def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int
     job_ids: list[str] = []
     try:
         for recommendation in approved:
+            approval = store.get_approval(action_id(workspace.name, recommendation))
+            expected_module = f"{recommendation.module_type}/{recommendation.module_name}"
+            if (
+                approval is None
+                or approval.decision != "approved"
+                or approval.workspace != workspace.name
+                or approval.target != recommendation.target
+                or approval.port != recommendation.port
+                or approval.protocol != recommendation.protocol
+                or approval.module_name != expected_module
+            ):
+                print("Skipping recommendation: its persisted approval is missing or does not match.")
+                continue
             try:
                 job_ids.append(
                     manager.submit(
