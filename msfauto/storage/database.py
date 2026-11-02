@@ -140,6 +140,7 @@ class WorkspaceStore:
                     port INTEGER NOT NULL,
                     protocol TEXT NOT NULL,
                     module_name TEXT NOT NULL,
+                    risk TEXT NOT NULL DEFAULT 'non-invasive',
                     decision TEXT NOT NULL,
                     approver TEXT NOT NULL,
                     decided_at TEXT NOT NULL,
@@ -147,6 +148,14 @@ class WorkspaceStore:
                 )
                 """
             )
+            approval_columns = {
+                row["name"]
+                for row in connection.execute("PRAGMA table_info(action_approvals)")
+            }
+            if "risk" not in approval_columns:
+                connection.execute(
+                    "ALTER TABLE action_approvals ADD COLUMN risk TEXT NOT NULL DEFAULT 'non-invasive'"
+                )
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS evidence_records (
@@ -493,19 +502,20 @@ class WorkspaceStore:
                 """
                 INSERT INTO action_approvals(
                     action_id, workspace, target, port, protocol, module_name,
-                    decision, approver, decided_at, rationale
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    risk, decision, approver, decided_at, rationale
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(action_id) DO UPDATE SET
                     decision = excluded.decision,
                     approver = excluded.approver,
                     decided_at = excluded.decided_at,
-                    rationale = excluded.rationale
+                    rationale = excluded.rationale,
+                    risk = excluded.risk
                 """,
                 (
                     approval.action_id, approval.workspace, approval.target,
                     approval.port, approval.protocol, approval.module_name,
-                    approval.decision, approval.approver, approval.decided_at,
-                    approval.rationale,
+                    approval.risk, approval.decision, approval.approver,
+                    approval.decided_at, approval.rationale,
                 ),
             )
 
