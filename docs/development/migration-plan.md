@@ -32,32 +32,34 @@ The repository does not yet have a workflow orchestrator, a live progress-orient
 
 Do not move modules simply to make the filesystem match a target diagram. A move is justified when it improves ownership, testability, or dependency direction.
 
-## Phase 0 — Architecture and documentation
+## Phase 0 — Architecture and documentation — complete
 
 - [x] Inspect current package, tests, dependencies, and repository layout.
 - [x] Map current modules to target responsibilities.
 - [x] Define the operator workflow.
 - [x] Define the safety and authorization model.
-- [ ] Correct README statements that contradict implemented functionality.
-- [ ] Add repository hygiene rules and remove tracked interpreter caches.
+- [x] Correct README statements that contradict implemented functionality.
+- [x] Add repository hygiene rules and remove tracked interpreter caches.
+- [x] Add the `python -m msfauto` entry point.
 
 ## Phase 1 — Interaction redesign
 
 - Establish one primary interactive entry point.
-- Replace the informational dashboard with a navigable assessment workflow.
+- Replace the informational dashboard with a navigable workflow.
 - Keep workspace and scope visible.
 - Add target list and target detail views.
 - Show discovery and execution progress, errors, and cancellation.
-- Preserve existing CLI flags until equivalent behavior is covered by tests.
+- Preserve existing CLI flags until replacements have tests and documented migration paths.
 - Add Textual interaction tests.
 
 Acceptance criteria:
+
 - A new user can create/select a workspace and start discovery without memorizing flags.
 - The interface presents discovered targets and allows target selection.
 - The interface does not directly execute external tools.
 - Existing supported CLI operations remain functional.
 
-## Phase 2 — Workflow orchestration
+## Phase 2 — Workflow orchestrator
 
 - Introduce application services and a workflow state model.
 - Coordinate scope validation, discovery, analysis, planning, approval, execution, and persistence.
@@ -65,6 +67,7 @@ Acceptance criteria:
 - Publish structured progress events for the interface.
 
 Acceptance criteria:
+
 - A complete discovery-to-plan workflow runs through one orchestrated path.
 - Interrupted workflows have an explicit state and useful recovery behavior.
 - Interface and CLI entry points use the same application services.
@@ -77,6 +80,7 @@ Acceptance criteria:
 - Enforce scope and port policy for each discovery operation.
 
 Acceptance criteria:
+
 - Discovery results are reproducible and traceable to their source.
 - Timeouts and partial results do not corrupt existing workspace data.
 - Out-of-scope results are rejected or quarantined with an explanation.
@@ -90,6 +94,7 @@ Acceptance criteria:
 - Avoid treating version matches as confirmed vulnerabilities.
 
 Acceptance criteria:
+
 - Each recommendation can be traced to supporting observations.
 - Confirmed facts, potential weaknesses, and hypotheses are visibly distinct.
 - Planning remains read-only.
@@ -102,6 +107,7 @@ Acceptance criteria:
 - Keep high-impact actions disabled by default.
 
 Acceptance criteria:
+
 - No operation requiring approval can run without a matching approval record.
 - Changing target or material options invalidates the prior approval.
 - Execution results and audit events are persisted.
@@ -114,6 +120,7 @@ Acceptance criteria:
 - Redact secrets from ordinary logs and reports.
 
 Acceptance criteria:
+
 - Every finding references supporting evidence or clearly explains its lack of evidence.
 - Sensitive data is not emitted into ordinary logs by default.
 
@@ -125,6 +132,7 @@ Acceptance criteria:
 - Add CI checks for tests, linting, and static analysis.
 
 Acceptance criteria:
+
 - A completed assessment can be reopened and reported from persisted data.
 - Reports distinguish confirmed, potential, unverified, failed, skipped, and unsupported outcomes.
 - The documented installation and main workflow work from a clean environment.
