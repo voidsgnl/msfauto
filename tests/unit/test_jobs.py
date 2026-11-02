@@ -11,14 +11,19 @@ class MemoryApprovalStore:
         decision: str = "approved",
         module_name: str = "scanner/example",
         target: str = "192.168.56.10",
+        revoke_after_submit: bool = False,
     ) -> None:
         self.decision = decision
         self.module_name = module_name
         self.target = target
+        self.revoke_after_submit = revoke_after_submit
+        self.calls = 0
 
     def get_approval(self, action_id: str):
         if action_id != "approval-1":
             return None
+        self.calls += 1
+        decision = "rejected" if self.revoke_after_submit and self.calls > 1 else self.decision
         return ActionApproval(
             action_id="approval-1",
             workspace="lab",
@@ -26,7 +31,7 @@ class MemoryApprovalStore:
             port=22,
             protocol="tcp",
             module_name=self.module_name,
-            decision=self.decision,
+            decision=decision,
             approver="unit-test",
         )
 
@@ -108,6 +113,22 @@ class JobManagerTests(unittest.TestCase):
         try:
             with self.assertRaisesRegex(JobError, "does not match"):
                 manager.submit(self.approved_request("scanner/different"))
+        finally:
+            manager.close()
+
+
+    def test_revoked_approval_is_rechecked_before_adapter_dispatch(self) -> None:
+        approval_store = MemoryApprovalStore(revoke_after_submit=True)
+        manager = JobManager(
+            ScopePolicy(networks=(ip_network("192.168.56.0/24"),)),
+            approval_store=approval_store,
+        )
+        try:
+            job_id = manager.submit(self.approved_request())
+            job = manager.wait(job_id, timeout=1)
+            self.assertEqual(job.status, "failed")
+            self.assertEqual(job.error, "authorization-failed")
+            self.assertIn("does not match", manager.events(job_id)[-1].message)
         finally:
             manager.close()
 
