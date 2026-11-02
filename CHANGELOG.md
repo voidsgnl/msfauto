@@ -5,6 +5,8 @@ All notable changes to MSFAuto are documented here.
 ## Unreleased
 
 ### Approval and execution controls
+- Added a bounded textual adapter-output contract with a 256 KB UTF-8 limit and best-effort secret redaction before output is exposed or persisted.
+- Added job-result retrieval so the CLI can include sanitized adapter output in execution evidence.
 - Added stable action identifiers and SQLite-persisted per-recommendation approval decisions.
 - Required an approver identifier and exact `APPROVE` confirmation for each recommendation before CLI safe-check dispatch.
 - Recorded rejections as well as approvals; unapproved recommendations are not dispatched.
