@@ -33,7 +33,7 @@ def display_next_steps(workspace: Workspace) -> None:
     print("  2. Build a read-only assessment plan from discovered services.")
     print("  3. Run bounded non-invasive checks from that plan.")
     print("  4. Open the dashboard to review hosts, plans, and job results.")
-    print("\nThe menu below lets you perform these steps without memorizing commands.")
+    print("\nThe guided terminal interface opens next, so you can perform these steps without memorizing commands.")
 
 
 def display_plan(store: WorkspaceStore, workspace: Workspace) -> None:
