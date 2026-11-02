@@ -26,7 +26,7 @@ The current MVP provides foundations for:
 - Persisted findings with severity, confidence, review status, and evidence references; evidence links are restricted to the same workspace.
 - Workspace-scoped JSON and Markdown reports covering scope, discovered assets, execution jobs, findings, and evidence integrity; common secret fields are redacted.
 
-The interface is an initial workflow-oriented release. It does not yet provide approval history beyond the latest decision per action, workflow resumption, evidence/finding views, raw adapter-output capture, automated evidence-to-finding correlation, HTML reports, and report views in the TUI. The job/check layer is a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
+The interface is an initial workflow-oriented release. It does not yet provide approval history beyond the latest decision per action, workflow resumption, evidence/finding views, automated evidence-to-finding correlation, HTML reports, and report views in the TUI. The execution layer now accepts bounded textual adapter output, applies best-effort secret redaction, and includes sanitized output in execution evidence. The job/check layer remains a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
 
 ## Planned experience
 
