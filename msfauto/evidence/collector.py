@@ -42,6 +42,8 @@ class EvidenceCollector:
         directory = self.root / workspace_key
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if self.root.is_symlink() or directory.is_symlink():
+            raise EvidenceError("Evidence storage paths must not be symbolic links.")
         self.root.chmod(0o700)
         directory.chmod(0o700)
         artifact = directory / f"{evidence_id}.bin"
