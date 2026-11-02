@@ -51,4 +51,15 @@ finding = update_finding_status(store, finding.finding_id, "unverified")
 
 Supported severities are `info`, `low`, `medium`, `high`, and `critical`. Supported finding states are `potential`, `confirmed`, `unverified`, and `false_positive`. Confidence is an integer from 0 to 100. Before a finding can reference evidence, MSFAuto verifies that every artifact still exists, belongs to the same workspace, and matches its stored SHA-256 digest. A finding cannot be marked `confirmed` unless it references at least one persisted evidence record; confirmation remains an analyst decision and requires evidence that actually supports the vulnerability claim. A service banner or execution status alone is not sufficient.
 
-Execution outcomes such as `completed`, `failed`, `skipped`, `cancelled`, and `unsupported` remain job states; they must not be converted into confirmed findings automatically. Automatic creation of vulnerability findings from execution evidence is intentionally not enabled: analysts must supply an interpretation and supporting evidence. Adapter-output capture, automated correlation, evidence/finding UI, and report generation remain future work.
+Execution outcomes such as `completed`, `failed`, `skipped`, `cancelled`, and `unsupported` remain job states; they must not be converted into confirmed findings automatically. Automatic creation of vulnerability findings from execution evidence is intentionally not enabled: analysts must supply an interpretation and supporting evidence. Adapter-output capture, automated correlation, and evidence/finding UI remain future work.
+
+## Assessment reports
+
+Export the current workspace as JSON or Markdown:
+
+```bash
+python -m msfauto.cli --workspace lab --report json
+python -m msfauto.cli --workspace lab --report markdown --report-output ./assessment-report.md
+```
+
+Without `--report-output`, files are written under the workspace database directory in `reports/`. JSON exports use schema version 1. Both formats include the saved authorization scope, discovered hosts and services, execution job summaries, analyst findings, and an evidence register with current SHA-256 integrity state. Reports include evidence metadata and digests, not the raw artifact contents. Common secret-bearing metadata keys and inline password/token assignments are redacted during export. Treat reports as sensitive assessment records and review them before sharing; redaction is a safeguard, not a guarantee that all sensitive information is removed.
