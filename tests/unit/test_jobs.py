@@ -22,7 +22,7 @@ class MemoryApprovalStore:
         self.revoke_after_submit = revoke_after_submit
         self.calls = 0
 
-    def get_approval(self, action_id: str):
+    def get_approval(self, action_id: str) -> ActionApproval | None:
         if action_id != "approval-1":
             return None
         self.calls += 1
@@ -106,10 +106,9 @@ class JobManagerTests(unittest.TestCase):
         finally:
             manager.close()
 
-
     def test_approval_store_failure_blocks_submission(self) -> None:
         class FailingApprovalStore:
-            def get_approval(self, action_id: str):
+            def get_approval(self, action_id: str) -> ActionApproval | None:
                 raise sqlite3.OperationalError("database unavailable")
 
         manager = JobManager(
@@ -137,7 +136,6 @@ class JobManagerTests(unittest.TestCase):
                 manager.submit(self.approved_request("scanner/different"))
         finally:
             manager.close()
-
 
     def test_approval_for_different_risk_blocks_submission(self) -> None:
         manager = self.make_manager()
