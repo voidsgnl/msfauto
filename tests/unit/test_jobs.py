@@ -1,3 +1,4 @@
+import sqlite3
 import unittest
 from ipaddress import ip_network
 
@@ -101,6 +102,22 @@ class JobManagerTests(unittest.TestCase):
         manager = JobManager(ScopePolicy(networks=(ip_network("192.168.56.0/24"),)))
         try:
             with self.assertRaisesRegex(JobError, "no approval store"):
+                manager.submit(self.approved_request())
+        finally:
+            manager.close()
+
+
+    def test_approval_store_failure_blocks_submission(self) -> None:
+        class FailingApprovalStore:
+            def get_approval(self, action_id: str):
+                raise sqlite3.OperationalError("database unavailable")
+
+        manager = JobManager(
+            ScopePolicy(networks=(ip_network("192.168.56.0/24"),)),
+            approval_store=FailingApprovalStore(),
+        )
+        try:
+            with self.assertRaisesRegex(JobError, "could not be verified"):
                 manager.submit(self.approved_request())
         finally:
             manager.close()
