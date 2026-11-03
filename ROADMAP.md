@@ -58,31 +58,33 @@ Supporting platform capabilities:
 - [x] Assessment-run records, events, and immutable run-specific plan snapshots.
 - [x] CI coverage for Python 3.10, 3.12, and 3.14.
 
-OSV workflow integration is now active when explicit mappings are configured, but this does **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The current Metasploit execution adapter supports only its fixed passive-check allowlist; arbitrary exploit modules are not executable through the current workflow. Exploit catalog matching now identifies and persists candidate opportunities, but explicit review/approval, execution lifecycle, dispatch reconciliation, and session handling remain unimplemented.
+OSV workflow integration is now active when explicit mappings are configured, but this does **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The current Metasploit execution adapter supports only its fixed passive-check allowlist; arbitrary exploit modules are not executable through the current workflow. Exploit catalog matching identifies and persists candidate opportunities. Explicit review/authorization and a durable execution state machine are implemented; actual exploit dispatch integration, framework reconciliation, and session handling remain outstanding.
 
 ## Current handoff — 2026-11-03
 
-### Latest implementation milestone: exploit review and action-specific authorization
-- Added an explicit human review record for each exploit opportunity. Review decisions are `accepted`, `rejected`, or `deferred`, and bind the exact workspace, opportunity, exploit ID, module, target, port, protocol, product, and observed version.
-- Added a separate short-lived authorization record. Authorization requires an accepted review, a non-empty approver and rationale, a workspace profile that permits dangerous actions, and a target/port inside the current saved scope.
-- Authorization binds the current scope snapshot and exact service/module identity. Validation fails closed if the opportunity changes, scope changes, the authorization expires, or it is revoked.
-- Authorization lifetime is bounded to a maximum of eight hours (15 minutes by default). Records are persisted per workspace; review history is append-only and authorizations can be revoked.
-- This milestone adds no exploit dispatch path. It establishes the review/authorization contract that a future dispatcher must revalidate immediately before dispatch.
-- Added tests for accepted/rejected review, review reuse against a changed target, scope changes, out-of-scope targets, safe-profile denial, expiry, persistence, and revocation.
-- GitHub Actions run #337 passed on Python 3.10, 3.12, and 3.14: 124 tests passed (plus 2 subtests); Ruff passed on all versions.
-### Previous milestone: persistent Metasploit exploit catalog synchronization
-- Added the dedicated Metasploit RPC `module.exploits` client method with response validation and duplicate removal.
-- Added an importer that fetches detailed metadata only for explicitly mapped exploit modules and normalizes rank, description, platforms, architectures, targets, required options, references, and check support.
-- Added workspace-scoped SQLite persistence for imported exploit definitions, including source, module identity, metadata, active state, and last synchronization timestamp.
-- Refreshes update framework-supplied metadata while preserving operator-controlled product aliases, exact affected versions, and advisory mappings. Mapping changes require an explicit storage API call.
-- A successful non-empty source refresh deactivates entries removed from that source; an empty refresh is a no-op. The assessment workflow now merges active synchronized entries with the curated JSON catalog by exploit ID.
-- Synchronization stores metadata only. It does not approve or execute modules.
+### Latest implementation milestone: durable exploit execution lifecycle
+- Added `msfauto/execution/lifecycle.py` as a separate lifecycle domain; the existing passive-check manager and its fixed Metasploit allowlist are unchanged.
+- Added durable SQLite execution records and append-only transition events. State updates use a conditional state update to reject concurrent/stale transitions.
+- Lifecycle states include `prepared`, `dispatching`, `dispatch_uncertain`, `running`, `cancelling`, `completed`, `failed`, `timed_out`, and `cancelled`.
+- Preparation verifies the stored opportunity, accepted review, persisted authorization, and current workspace scope.
+- The pre-dispatch transition re-reads the opportunity, review, authorization, and current workspace policy. The `dispatching` record is persisted before a future external RPC call.
+- Recovery converts interrupted `dispatching` and `cancelling` records to `dispatch_uncertain`. Uncertain attempts cannot be dispatched again; operator reconciliation is required. A confirmed non-dispatch closes the attempt and requires a new review/authorization for another attempt.
+- Terminal states cannot be reopened. No exploit RPC dispatch was added.
+- Added lifecycle tests for durable transitions, stale scope, interrupted dispatch, uncertain reconciliation, non-retry behavior, and terminal-state enforcement.
 
-## Immediate next milestone: durable exploit execution lifecycle
+### Previous milestone: exploit review and action-specific authorization
+- Added explicit accepted/rejected/deferred human review decisions bound to the exact workspace, opportunity, exploit module, target, port, protocol, product, and observed version.
+- Added short-lived authorization records that require an accepted review, explicit approver/rationale, dangerous-actions workspace profile, and an in-scope target/port.
+- Authorization binds a scope snapshot and expires after 15 minutes by default (maximum eight hours). Validation fails closed on changed opportunity identity, scope change, expiry, or revocation.
+- Persisted review history, authorization records, and revocation state in SQLite.
 
-The review and authorization foundation is now in place. The next work is a durable, auditable execution lifecycle that consumes these exact authorization records, revalidates current scope and service identity immediately before dispatch, and treats ambiguous RPC outcomes as uncertain rather than retryable. Do not add arbitrary exploit dispatch until this lifecycle is enforced end to end.
+### Earlier milestone: persistent Metasploit exploit catalog synchronization
+- Added the dedicated Metasploit RPC `module.exploits` client method and metadata importer.
+- Import is limited to explicitly mapped exploit modules; product/version/advisory applicability is never inferred from module names or descriptions.
+- Persisted synchronized catalog definitions by workspace while preserving operator-controlled mappings.
+- Assessment merges active synchronized entries with curated JSON definitions. Synchronization is metadata-only and does not approve or execute modules.
 
-### Work sequence
+## Work sequence
 
 1. **Service enumeration foundation**
    - Extend the Nmap fingerprint baseline with structured service-specific enumeration adapters (HTTP/HTTPS, SSH, FTP, SMB2 negotiation, and TLS-only handshake inspection are implemented; HTTP technology detection remains).
@@ -111,8 +113,8 @@ The review and authorization foundation is now in place. The next work is a dura
    - Add maintained catalog synchronization/import adapters and version-range semantics with source-specific tests.
    - Represent expected outcomes and richer target compatibility metadata as catalog sources are integrated.
    - [x] Add explicit exploit review and action-specific authorization before dispatch.
-   - Build an execution lifecycle that records preparation, dispatch, running, completion, failure, timeout, cancellation, and uncertain dispatch state. Unknown dispatch outcomes must remain uncertain and must never be automatically retried.
-   - Start with controlled lab validation and a small, testable integration slice; do not expose arbitrary module execution as a shortcut.
+   - [x] Build a durable execution lifecycle for preparation, dispatch intent, running, completion, failure, timeout, cancellation, and uncertain dispatch. Unknown outcomes remain uncertain and are never automatically retried.
+   - Next: add a controlled Metasploit dispatch adapter that can only consume a prepared lifecycle record and its exact authorization; begin with isolated lab validation and explicit module/target selection. Do not expose arbitrary module execution as a shortcut.
 
 4. **Post-exploitation and session management**
    - Define session records and lifecycle separately from generic jobs.
@@ -178,9 +180,9 @@ The review and authorization foundation is now in place. The next work is a dura
 - [x] Import mapped Metasploit exploit metadata through the dedicated RPC catalog endpoint.
 - [x] Persist imported catalog definitions and support refresh/synchronization into assessment runs.
 - [x] Merge synchronized catalog entries into assessment runs while preserving explicit operator mappings.
-- [ ] Add explicit operator review and action-specific authorization.
+- [x] Add explicit operator review and action-specific authorization.
 - [ ] Add bounded exploit execution through supported integrations.
-- [ ] Persist dispatch state and execution outcomes; handle uncertain dispatch through operator reconciliation.
+- [x] Persist dispatch state and execution outcomes; handle uncertain dispatch through operator reconciliation.
 - [ ] Add controlled lab integration tests before enabling broader use.
 
 ### Phase 4 — Post-exploitation and sessions
