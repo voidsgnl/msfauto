@@ -109,6 +109,28 @@ def run_safe_checks(
             "MSFAUTO_METASPLOIT_PASSWORD."
         )
         return 2
+    adapter = None
+    if use_metasploit:
+        username = os.environ.get("MSFAUTO_METASPLOIT_USERNAME", "")
+        password = os.environ.get("MSFAUTO_METASPLOIT_PASSWORD", "")
+        config = MetasploitConfig(
+            url=os.environ.get(
+                "MSFAUTO_METASPLOIT_URL",
+                "http://127.0.0.1:55553/api/1.0",
+            ),
+            timeout=5.0,
+        )
+        try:
+            client = MetasploitClient(
+                MsgpackHttpTransport(config),
+                username=username,
+                password=password,
+            )
+        except MetasploitError as exc:
+            print(f"Metasploit connection failed: {exc}")
+            return 2
+        adapter = MetasploitSafeAdapter(client)
+
     selected = plan.recommendations[:max_checks]
     print("Each recommendation requires a separate, recorded decision.")
     approver = input("Approver identifier: ").strip()
@@ -139,28 +161,6 @@ def run_safe_checks(
     if not approved:
         print("No recommendations were approved; no checks were dispatched.")
         return 0
-
-    adapter = None
-    if use_metasploit:
-        username = os.environ.get("MSFAUTO_METASPLOIT_USERNAME", "")
-        password = os.environ.get("MSFAUTO_METASPLOIT_PASSWORD", "")
-        config = MetasploitConfig(
-            url=os.environ.get(
-                "MSFAUTO_METASPLOIT_URL",
-                "http://127.0.0.1:55553/api/1.0",
-            ),
-            timeout=5.0,
-        )
-        try:
-            client = MetasploitClient(
-                MsgpackHttpTransport(config),
-                username=username,
-                password=password,
-            )
-        except MetasploitError as exc:
-            print(f"Metasploit connection failed: {exc}")
-            return 2
-        adapter = MetasploitSafeAdapter(client)
 
     manager = JobManager(
         workspace.policy,
