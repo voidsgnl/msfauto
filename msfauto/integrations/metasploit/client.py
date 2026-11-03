@@ -54,7 +54,7 @@ class MsgpackHttpTransport:
             raise MetasploitError("Metasploit RPC returned an invalid MessagePack response.") from exc
         if not isinstance(decoded, dict):
             raise MetasploitError("Metasploit RPC returned an invalid response.")
-        if "error" in decoded and decoded["error"]:
+        if decoded.get("error"):
             message = decoded.get("error_message", "Metasploit RPC request failed")
             raise MetasploitError(str(message))
         return decoded
