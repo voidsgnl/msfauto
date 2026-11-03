@@ -4,6 +4,9 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Verification
+- GitHub Actions passed for Python 3.10, 3.12, and 3.14, including tests and Ruff (run #180).
+
 ### Assessment run provenance
 - Added immutable, run-specific SQLite snapshots of generated assessment plans while preserving the existing workspace-level latest-plan API.
 - Validated that a snapshot belongs to an existing assessment run in the same workspace.
