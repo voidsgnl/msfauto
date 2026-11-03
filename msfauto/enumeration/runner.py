@@ -90,7 +90,7 @@ def _smb_probe(
     # SMB2 NEGOTIATE only: no session setup, credentials, or file operations.
     header = struct.pack(
         "<4sHHHHHHIIQIIQ16s",
-        b"\\xfeSMB", 64, 0, 0, 0, 0, 1, 0, 0, 0, 0xFEFF, 0, 0,
+        b"\xfeSMB", 64, 0, 0, 0, 0, 1, 0, 0, 0, 0xFEFF, 0, 0,
         bytes(16),
     )
     body = struct.pack(
@@ -99,7 +99,7 @@ def _smb_probe(
         0, 0, 0,
     )
     request = header + body + struct.pack("<HHH", 0x0202, 0x0210, 0x0300)
-    framed = b"\\x00" + len(request).to_bytes(3, "big") + request
+    framed = b"\x00" + len(request).to_bytes(3, "big") + request
     try:
         with socket.create_connection((target, service.port), timeout=timeout) as sock:
             sock.settimeout(timeout)
@@ -111,7 +111,7 @@ def _smb_probe(
             if length < 128 or length > 65536:
                 raise ValueError("SMB response length is outside accepted bounds")
             response = _recv_exact(sock, length)
-        if response[:4] != b"\\xfeSMB" or len(response) < 128:
+        if response[:4] != b"\xfeSMB" or len(response) < 128:
             raise ValueError("Peer did not return a valid SMB2 negotiate response")
         status_code = struct.unpack_from("<I", response, 8)[0]
         command = struct.unpack_from("<H", response, 12)[0]
