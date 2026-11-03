@@ -306,7 +306,10 @@ class WorkspaceStore:
                     aliases_json TEXT NOT NULL,
                     PRIMARY KEY(advisory_id, source, package_name, ecosystem)
                 )
-,
+                """
+            )
+            connection.execute(
+                """
                 CREATE TABLE IF NOT EXISTS vulnerability_candidates (
                     candidate_id TEXT PRIMARY KEY, workspace TEXT NOT NULL,
                     target TEXT NOT NULL, port INTEGER NOT NULL, protocol TEXT NOT NULL,
