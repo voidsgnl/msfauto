@@ -69,6 +69,7 @@ OSV workflow integration is now active when explicit mappings are configured, bu
 - Preparation verifies the stored opportunity, accepted review, persisted authorization, and current workspace scope.
 - The pre-dispatch transition re-reads the opportunity, review, authorization, and current workspace policy. The `dispatching` record is persisted before a future external RPC call.
 - Recovery converts interrupted `dispatching` and `cancelling` records to `dispatch_uncertain`. Uncertain attempts cannot be dispatched again; operator reconciliation is required. A confirmed non-dispatch closes the attempt and requires a new review/authorization for another attempt.
+- Each authorization is single-use, enforced by a SQLite unique index, so one approval cannot be reused to create duplicate execution attempts.
 - Terminal states cannot be reopened. No exploit RPC dispatch was added.
 - Added lifecycle tests for durable transitions, stale scope, interrupted dispatch, uncertain reconciliation, non-retry behavior, and terminal-state enforcement.
 
