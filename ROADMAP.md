@@ -58,11 +58,11 @@ Supporting platform capabilities:
 - [x] Assessment-run records, events, and immutable run-specific plan snapshots.
 - [x] CI coverage for Python 3.10, 3.12, and 3.14.
 
-These foundations do **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The current Metasploit execution adapter supports only its fixed passive-check allowlist; arbitrary exploit modules are not executable through the current workflow.
+OSV workflow integration is now active when explicit mappings are configured, but this does **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The current Metasploit execution adapter supports only its fixed passive-check allowlist; arbitrary exploit modules are not executable through the current workflow.
 
 ## Current handoff — 2026-11-03
 
-### Latest implementation milestone: OSV vulnerability intelligence ingestion
+### Latest implementation milestone: OSV assessment workflow integration
 - Nmap discovery now requests service/version detection with -sV --version-light, still constrained by the workspace target and port scope.
 - Parsed service records retain product/version, Nmap probe method and confidence, extra information, TLS tunnel metadata, CPE identifiers, source, and observation timestamp.
 - SQLite schema upgrades add these fields in place; legacy service rows receive conservative unknown/zero defaults and remain readable.
@@ -76,7 +76,7 @@ These foundations do **not** mean the platform already provides a complete vulne
 - Added normalized vulnerability advisory and candidate domain records, strict product/CPE identity and exact version matching, source/evidence provenance, confidence limits, and workspace-scoped candidate persistence.
 - Added an OSV.dev client for exact package-ecosystem-version queries, normalizing returned advisory IDs, aliases, references, severity, affected versions, and original OSV affected-range metadata.
 - OSV package identity is explicit input (package name + ecosystem); MSFAuto does not guess an operating-system package identity from a network banner. Callers can supply product aliases to map a known package to a discovered service product. OSV query matches are recorded as source-backed matched versions.
-- Added persistent advisory registry storage and tests for request shape, package identity filtering, provider failures, metadata normalization, persistence, and end-to-end OSV-to-candidate matching. GitHub Actions run #259 passed on Python 3.10, 3.12, and 3.14: 92 tests passed (plus 2 subtests); Ruff passed on all versions. Product/version matches remain candidates or unverified hypotheses; they cannot become confirmed findings from banner evidence alone.
+- Added persistent advisory registry storage and tests for request shape, package identity filtering, provider failures, metadata normalization, persistence, and end-to-end OSV-to-candidate matching. GitHub Actions run #259 passed on Python 3.10, 3.12, and 3.14: 92 tests passed (plus 2 subtests); Ruff passed on all versions. Product/version matches remain candidates or unverified hypotheses; they cannot become confirmed findings from banner evidence alone.\n- Integrated OSV into the actual assessment workflow using explicit JSON-configured service product-to-package/ecosystem mappings (`MSFAUTO_OSV_PACKAGE_MAPPINGS`). Each distinct package/ecosystem/version is queried once; advisory records are merged and persisted; candidate matches are stored per workspace. OSV provider failures are isolated per query and surfaced in workflow events without aborting discovery, enumeration, or planning. Unmapped and unversioned services are skipped rather than guessed.\n- Added tests for mapping validation, query deduplication across hosts, candidate persistence, missing-version skips, and provider-failure isolation. CI verification for this milestone is pending.
 - Added unit coverage for exact matches, missing/nonmatching versions, unrelated products, closed services, provenance, confirmation guardrails, and persistence. CI run #244 passed on Python 3.10, 3.12, and 3.14: 87 tests passed (plus 2 subtests); Ruff passed on all versions.
 - Added append-only, workspace-scoped service observation persistence and integrated enumeration as an assessment stage after discovery.
 - Added local fake-server tests for HTTP and SSH plus scope/port filtering tests. CI run #217 passed on Python 3.10, 3.12, and 3.14 (77 tests; Ruff passed).
