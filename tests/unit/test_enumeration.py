@@ -11,7 +11,13 @@ from unittest.mock import patch
 
 from msfauto.enumeration import enumerate_services
 from msfauto.enumeration.models import ServiceObservation
-from msfauto.enumeration.runner import _ftp_probe, _http_probe, _smb_probe, _ssh_probe, _tls_probe
+from msfauto.enumeration.runner import (
+    _ftp_probe,
+    _http_probe,
+    _smb_probe,
+    _ssh_probe,
+    _tls_probe,
+)
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
 from msfauto.storage.models import Host, Service
@@ -137,9 +143,8 @@ class EnumerationTests(unittest.TestCase):
 
         def serve():
             conn, _ = listener.accept()
-            with conn:
-                with context.wrap_socket(conn, server_side=True):
-                    pass
+            with conn, context.wrap_socket(conn, server_side=True):
+                pass
             listener.close()
 
         thread = threading.Thread(target=serve, daemon=True)
