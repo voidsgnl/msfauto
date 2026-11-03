@@ -4,6 +4,11 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Assessment workflow audit
+- Audited the current application-service, orchestrator, CLI, storage, and reporting boundaries.
+- Documented that approval, safe-check execution, evidence, findings, and reporting remain separate from the discovery-and-planning run.
+- Recorded the missing run-level provenance and interruption-recovery safeguards as prerequisites to end-to-end orchestration.
+
 ### Roadmap and handoff
 - Recorded the clean-clone recovery state and the latest locally reported test result (66 passed).
 - Defined the next milestone: connect the existing assessment capabilities into a persisted, recoverable end-to-end workflow, with explicit acceptance criteria and safety invariants.
