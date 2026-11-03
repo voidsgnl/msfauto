@@ -68,8 +68,17 @@ OSV workflow integration is active when explicit mappings are configured, but th
 - Polling accepts only persisted `running` or `cancelling` records with both job ID and UUID references. Active jobs remain active; absent jobs are checked against the UUID-specific `module.results` endpoint.
 - Only recognized framework states (`completed`, `failed`, `cancelled`) transition to terminal lifecycle states. Missing results, unknown statuses, and contradictory running results remain unresolved and do not alter the execution record.
 - Framework completion is explicitly recorded as module execution completion, not proof of exploit success or security impact. Uncertain dispatch records remain on the separate operator-reconciliation path.
+- Added `msfauto/execution/outcome_validation.py` with append-only, workspace/target-bound target outcome assessments (`confirmed`, `not_confirmed`, `inconclusive`). Conclusive verdicts require linked evidence from the exact target and workspace; Metasploit framework status/evidence is explicitly rejected as an independent verifier.
+- The new API records an analyst or module-specific verifier's evidence-backed assessment; it does not invent a generic success indicator or automatically probe targets. No module-specific target verifier is configured yet.
 - Added fake-RPC tests for active jobs, completed/failed/cancelled results, missing results, unknown statuses, and rejection of uncertain records.
 - GitHub Actions run #406 passed on Python 3.10, 3.12, and 3.14: 146 tests passed (plus 2 subtests); Ruff passed on all versions.
+
+### Latest implementation milestone: independent target outcome assessment records
+- Added a separate outcome-assessment domain that preserves framework lifecycle state independently from target-side conclusions.
+- Added append-only assessments with explicit verifier, method, actor, rationale, timestamp, and evidence references. Verdicts are `confirmed`, `not_confirmed`, or `inconclusive`.
+- Conclusive verdicts require evidence records belonging to the same workspace and exact target as the execution. Framework-only sources cannot serve as independent verification evidence.
+- The component deliberately records the conclusion supplied by an analyst or a future module-specific verifier; it does not infer exploit success from Metasploit completion or claim a generic target-side indicator exists.
+- Added tests for evidence requirements, exact target/workspace binding, framework-source rejection, inconclusive assessments, and persistence round-trip.
 
 ### Previous milestone: controlled Metasploit exploit dispatch
 - Added `msfauto/execution/exploit_dispatch.py`, a dedicated dispatcher that accepts only an existing `prepared` execution ID; callers cannot pass arbitrary module names, targets, ports, or option dictionaries.
@@ -159,6 +168,6 @@ OSV workflow integration is active when explicit mappings are configured, but th
    - Keep dense technical detail accessible without making the product a terminal emulator.
    - Do not begin by merely porting the current TUI screen layout.
 
-## Immediate next milestone: isolated-lab validation and independent outcome verification
+## Immediate next milestone: live isolated-lab validation and module-specific verifiers
 
-The dispatcher and framework reconciler are implemented and covered by fake-RPC tests, but neither has been exercised against a live isolated Metasploit lab. Validate the supported RHOSTS/RPORT profile against a deliberately vulnerable lab target, verify job-list and UUID-result behavior on the connected Metasploit version, and capture the resulting evidence. Then add independent outcome checks so a completed framework run can be classified as successful, unsuccessful, or inconclusive based on target-side evidence. Do not equate a completed module job with exploit success. Session records and post-exploitation actions remain a later, separately authorized milestone.
+The dispatcher, framework reconciler, and evidence-backed outcome-assessment record are implemented and covered by fake-RPC/unit tests, but the dispatcher and reconciler have not been exercised against a live isolated Metasploit lab. Next, validate the supported RHOSTS/RPORT profile against a deliberately vulnerable lab target and verify job-list plus UUID-result behavior on the connected Metasploit version. Then implement opt-in, module-specific target verifiers with explicit expected indicators and bounded checks; a generic verifier must not guess what success looks like. Session records and post-exploitation actions remain a later, separately authorized milestone.
