@@ -6,9 +6,9 @@ All notable changes to MSFAuto are documented here.
 
 ### Vulnerability assessment foundation
 - Added normalized advisory and vulnerability-candidate records with source attribution, affected versions, prerequisites, references, and evidence requirements.
-- Added product/version matching against discovered open services, with exact version matches represented as candidates and missing/ambiguous versions retained as unverified.
+- Added strict product/CPE identity and exact version matching against discovered open services, with exact version matches represented as candidates and missing/ambiguous versions retained as unverified.
 - Persisted workspace-scoped candidates with confidence, rationale, and evidence provenance. A service banner or version match cannot mark a vulnerability confirmed.
-- Added tests for exact and ambiguous matches, missing versions, unrelated products, closed services, provenance, confirmation guardrails, and persistence. CI run #237 passed on Python 3.10, 3.12, and 3.14 (85 tests; 2 subtests; Ruff passed).
+- Added tests for exact and ambiguous matches, missing versions, unrelated products, closed services, provenance, confirmation guardrails, and persistence. CI run #244 passed on Python 3.10, 3.12, and 3.14 (87 tests; 2 subtests; Ruff passed).
 
 
 ### TLS-only service inspection
