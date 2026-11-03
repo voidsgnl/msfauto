@@ -4,8 +4,8 @@ import json
 from threading import Event
 from time import monotonic
 
-from .manager import CheckRequest, CheckResult
 from ..integrations.metasploit import MetasploitClient, MetasploitError
+from .manager import CheckRequest, CheckResult
 
 
 # These modules perform bounded service identification only. Do not broaden this
