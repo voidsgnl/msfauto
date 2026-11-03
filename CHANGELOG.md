@@ -4,6 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Metasploit execution
+- Added an explicit `--metasploit` CLI mode backed by the MessagePack RPC client.
+- Added a fixed allowlist of passive service-version modules; module names containing `scanner/` are not trusted as a safety signal.
+- Revalidated live Metasploit module stance before dispatch and passed only the approved target address and port as module options.
+- Added bounded UUID polling, cancellation via `job.stop`, a 60-second execution timeout, and structured execution errors.
+- Kept the deterministic adapter as the default; real Metasploit execution requires explicit opt-in and RPC credentials from environment variables.
+
 ### Approval and execution controls
 - Added a bounded textual adapter-output contract with a 256 KB UTF-8 limit and best-effort secret redaction before output is exposed or persisted.
 - Added job-result retrieval so the CLI can include sanitized adapter output in execution evidence.
