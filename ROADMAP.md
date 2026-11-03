@@ -69,7 +69,7 @@ OSV workflow integration is active when explicit mappings are configured, but th
 - Only recognized framework states (`completed`, `failed`, `cancelled`) transition to terminal lifecycle states. Missing results, unknown statuses, and contradictory running results remain unresolved and do not alter the execution record.
 - Framework completion is explicitly recorded as module execution completion, not proof of exploit success or security impact. Uncertain dispatch records remain on the separate operator-reconciliation path.
 - Added fake-RPC tests for active jobs, completed/failed/cancelled results, missing results, unknown statuses, and rejection of uncertain records.
-- CI verification is pending for this milestone.
+- GitHub Actions run #406 passed on Python 3.10, 3.12, and 3.14: 146 tests passed (plus 2 subtests); Ruff passed on all versions.
 
 ### Previous milestone: controlled Metasploit exploit dispatch
 - Added `msfauto/execution/exploit_dispatch.py`, a dedicated dispatcher that accepts only an existing `prepared` execution ID; callers cannot pass arbitrary module names, targets, ports, or option dictionaries.
