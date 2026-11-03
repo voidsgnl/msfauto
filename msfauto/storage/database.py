@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from ipaddress import ip_address
 from pathlib import Path
 
+from ..exploitation.models import ExploitOpportunity
 from .models import (
     ActionApproval,
     AssessmentEvent,
@@ -282,6 +283,31 @@ class WorkspaceStore:
                     source TEXT NOT NULL,
                     confidence INTEGER NOT NULL,
                     observed_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS exploit_opportunities (
+                    opportunity_id TEXT PRIMARY KEY,
+                    workspace TEXT NOT NULL,
+                    exploit_id TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    module_name TEXT NOT NULL,
+                    target TEXT NOT NULL,
+                    port INTEGER NOT NULL,
+                    protocol TEXT NOT NULL,
+                    product TEXT NOT NULL,
+                    observed_version TEXT NOT NULL,
+                    matched_by_json TEXT NOT NULL,
+                    vulnerability_candidate_ids_json TEXT NOT NULL,
+                    rank TEXT NOT NULL,
+                    risk TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    confidence INTEGER NOT NULL,
+                    rationale TEXT NOT NULL,
+                    references_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL
                 )
                 """
             )
@@ -1049,3 +1075,78 @@ class WorkspaceStore:
                 (run_id,),
             ).fetchall()
         return tuple(AssessmentEvent(**dict(row)) for row in rows)
+
+
+    def save_exploit_opportunities(
+        self, opportunities: tuple[ExploitOpportunity, ...]
+    ) -> None:
+        """Persist exploit applicability leads without implying approval or execution."""
+        with self._connect() as connection:
+            for item in opportunities:
+                connection.execute(
+                    """
+                    INSERT INTO exploit_opportunities(
+                        opportunity_id, workspace, exploit_id, source, module_name,
+                        target, port, protocol, product, observed_version,
+                        matched_by_json, vulnerability_candidate_ids_json, rank, risk,
+                        status, confidence, rationale, references_json, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(opportunity_id) DO UPDATE SET
+                        source = excluded.source,
+                        module_name = excluded.module_name,
+                        matched_by_json = excluded.matched_by_json,
+                        vulnerability_candidate_ids_json = excluded.vulnerability_candidate_ids_json,
+                        rank = excluded.rank, risk = excluded.risk,
+                        confidence = excluded.confidence,
+                        rationale = excluded.rationale,
+                        references_json = excluded.references_json
+                    """,
+                    (
+                        item.opportunity_id, item.workspace, item.exploit_id,
+                        item.source, item.module_name, item.target, item.port,
+                        item.protocol, item.product, item.observed_version,
+                        json.dumps(item.matched_by),
+                        json.dumps(item.vulnerability_candidate_ids),
+                        item.rank, item.risk, item.status, item.confidence,
+                        item.rationale, json.dumps(item.references), item.created_at,
+                    ),
+                )
+
+    def get_exploit_opportunities(
+        self, workspace: str
+    ) -> tuple[ExploitOpportunity, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT * FROM exploit_opportunities
+                WHERE workspace = ?
+                ORDER BY confidence DESC, target, port, exploit_id
+                """,
+                (workspace,),
+            ).fetchall()
+        return tuple(
+            ExploitOpportunity(
+                opportunity_id=row["opportunity_id"],
+                workspace=row["workspace"],
+                exploit_id=row["exploit_id"],
+                source=row["source"],
+                module_name=row["module_name"],
+                target=row["target"],
+                port=row["port"],
+                protocol=row["protocol"],
+                product=row["product"],
+                observed_version=row["observed_version"],
+                matched_by=tuple(json.loads(row["matched_by_json"])),
+                vulnerability_candidate_ids=tuple(
+                    json.loads(row["vulnerability_candidate_ids_json"])
+                ),
+                rank=row["rank"],
+                risk=row["risk"],
+                status=row["status"],
+                confidence=row["confidence"],
+                rationale=row["rationale"],
+                references=tuple(json.loads(row["references_json"])),
+                created_at=row["created_at"],
+            )
+            for row in rows
+        )
