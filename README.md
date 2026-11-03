@@ -115,7 +115,7 @@ The separate lifecycle API records an authorized attempt without broadening the 
 - `recover_interrupted_dispatches(...)` converts persisted `dispatching` or `cancelling` records to `dispatch_uncertain` after process recovery.
 - Resolve uncertainty only through an explicit operator reconciliation using `reconcile_uncertain_execution(...)`. A confirmed non-dispatch closes the attempt; another attempt requires a new review and authorization.
 
-Execution records and append-only transition events are stored in SQLite. State changes use an optimistic compare-and-swap update so concurrent operators cannot silently overwrite one another. Terminal records cannot be reopened. This milestone provides the durable lifecycle contract only: it does not send exploit RPC requests or make arbitrary modules executable.
+Execution records and append-only transition events are stored in SQLite. State changes use an optimistic compare-and-swap update so concurrent operators cannot silently overwrite one another. A database uniqueness constraint makes each authorization single-use: it can create only one execution attempt. Terminal records cannot be reopened. This milestone provides the durable lifecycle contract only: it does not send exploit RPC requests or make arbitrary modules executable.
 
 
 **Important limitation:** the current execution adapter only supports its fixed passive-check allowlist. It does not yet provide a general exploit execution workflow, a complete vulnerability assessment engine, or post-exploitation/session management. These are planned core capabilities, not features that should be assumed to exist today.
