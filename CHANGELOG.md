@@ -8,7 +8,7 @@ All notable changes to MSFAuto are documented here.
 - Added a first-class `msfauto/exploitation/` package with source-attributed exploit definitions and exact applicability matching against open service product aliases, affected versions, and explicitly linked vulnerability candidate IDs.
 - Added JSON catalog loading through `MSFAUTO_EXPLOIT_CATALOG`, stable opportunity identifiers, workspace-scoped opportunity persistence, and an `exploit_intelligence` assessment workflow stage.
 - Persisted opportunities remain `identified`; matching cannot approve or dispatch modules. No exploit module execution, payload handling, or post-exploitation behavior was added. Version-range and fuzzy product matching remain unimplemented.
-- Added tests for catalog validation, exact and negative matches, advisory-linked matches, persistence round-trip, and approval-state guardrails. CI verification pending.
+- Added tests for catalog validation, exact and negative matches, advisory-linked matches, persistence round-trip, approval-state guardrails, and end-to-end assessment workflow integration. GitHub Actions run #293 passed on Python 3.10, 3.12, and 3.14 (103 tests; 2 subtests; Ruff passed).
 
 
 ### OSV vulnerability intelligence ingestion
