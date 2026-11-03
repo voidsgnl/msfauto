@@ -90,6 +90,20 @@ The mapping must explicitly identify products and at least one exact affected ve
 
 Pass that JSON as `mappings` to `sync_metasploit_exploits(client, store, workspace, mappings)` from `msfauto.exploitation`, using an authenticated `MetasploitClient` and the workspace's `WorkspaceStore`. The helper imports the mapped modules and persists them in the workspace-scoped `exploit_catalog` table. The assessment workflow merges active synchronized entries with `MSFAUTO_EXPLOIT_CATALOG` by `exploit_id`. Refreshes update framework metadata but preserve existing operator-controlled product/version/advisory mappings; change those explicitly with `WorkspaceStore.update_exploit_catalog_mapping(...)`. A successful non-empty refresh deactivates entries no longer present in that source. An empty result does not deactivate the existing catalog. No module is approved or executed by synchronization.
 
+### Reviewing and authorizing an exploit opportunity
+
+Exploit matching produces an applicability lead, not an approval. The review and authorization primitives are deliberately separate from execution:
+
+- Create a human review with `review_opportunity(opportunity, reviewer, decision, rationale)`. Decisions are `accepted`, `rejected`, or `deferred`.
+- Persist the review with `WorkspaceStore.save_exploit_review(...)`.
+- Create an action-specific authorization with `authorize_opportunity(opportunity, current_scope_policy, approver, rationale, review=accepted_review)`.
+- Persist it with `WorkspaceStore.save_exploit_authorization(...)`.
+- Immediately before any future dispatch, load the authorization and call `validate_authorization(authorization, current_opportunity, current_scope_policy)`.
+
+The review and authorization bind the workspace, opportunity, exploit ID, module name, exact target and port, protocol, product, and observed version. Authorization additionally binds a digest of the current scope and expires after 15 minutes by default (maximum eight hours). It is denied unless the workspace uses the `dangerous-actions` profile and both target and port are in scope. Authorizations can be revoked with `WorkspaceStore.revoke_exploit_authorization(...)`.
+
+These APIs establish a gate; they do not execute a module. The execution layer must revalidate authorization immediately before dispatch and must never automatically retry an operation whose dispatch outcome is uncertain.
+
 **Important limitation:** the current execution adapter only supports its fixed passive-check allowlist. It does not yet provide a general exploit execution workflow, a complete vulnerability assessment engine, or post-exploitation/session management. These are planned core capabilities, not features that should be assumed to exist today.
 
 ## Interface direction
