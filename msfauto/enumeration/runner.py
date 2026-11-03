@@ -186,7 +186,7 @@ def enumerate_services(
         for future in as_completed(futures):
             try:
                 results.extend(future.result())
-            except Exception as exc:  # isolate an adapter failure to its service
+            except Exception as exc:  # noqa: BLE001 - isolate unexpected adapter failures per service
                 # The adapter contract normally converts network errors to observations.
                 # This fallback preserves workflow progress if an unexpected adapter error occurs.
                 task_index = futures.index(future)

@@ -3,16 +3,16 @@ import socket
 import tempfile
 import threading
 import unittest
-from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from unittest.mock import patch
 
 from msfauto.enumeration import enumerate_services
+from msfauto.enumeration.models import ServiceObservation
 from msfauto.enumeration.runner import _http_probe, _ssh_probe
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
 from msfauto.storage.models import Host, Service
-from msfauto.enumeration.models import ServiceObservation
 
 
 class _HTTPHandler(BaseHTTPRequestHandler):
