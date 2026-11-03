@@ -4,6 +4,12 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### FTP service enumeration
+- Added a bounded FTP adapter that records the server greeting and supported FEAT capabilities as structured service observations.
+- FTP enumeration is limited to discovered open TCP services fingerprinted as FTP or using conventional FTP ports, and inherits saved scope, timeout, and worker limits.
+- Added a local fake FTP server test for greeting and feature parsing. CI and full-suite verification are pending.
+
+
 ### Service fingerprinting foundation
 - Enabled Nmap service/version detection with -sV --version-light for discovered in-scope ports.
 - Expanded normalized service records with probe method, confidence, extra information, tunnel metadata, CPE identifiers, source, and observation timestamp.
