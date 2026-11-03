@@ -1,12 +1,14 @@
 import tempfile
 import unittest
+from ipaddress import ip_address
 from pathlib import Path
 from unittest.mock import patch
 
 from msfauto.core import AssessmentApplication, WorkflowError
+from msfauto.exploitation import ExploitDefinition
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
-from msfauto.storage.models import AssessmentPlan, DiscoveryRun, Workspace
+from msfauto.storage.models import AssessmentPlan, DiscoveryRun, Host, Service, Workspace
 
 
 class AssessmentWorkflowTests(unittest.TestCase):
@@ -41,6 +43,45 @@ class AssessmentWorkflowTests(unittest.TestCase):
             "planning", "planning", "completed"
         ])
         self.assertEqual(self.store.get_assessment_events(workflow.run_id), tuple(events))
+
+    def test_workflow_persists_catalog_matched_exploit_opportunity(self) -> None:
+        run = DiscoveryRun(
+            "lab", "nmap", ("nmap",), str(Path(self.directory.name) / "scan.xml"),
+            "completed", "started", "finished",
+        )
+        host = Host(
+            ip_address("192.168.56.10"),
+            "up",
+            services=(Service(
+                port=22, protocol="tcp", state="open", product="OpenSSH", version="8.2p1"
+            ),),
+        )
+        definition = ExploitDefinition(
+            exploit_id="catalog:workflow-test",
+            source="test-catalog",
+            module_type="exploit",
+            module_name="multi/ssh/test_module",
+            name="Workflow test exploit metadata",
+            product_aliases=("OpenSSH",),
+            affected_versions=("8.2p1",),
+        )
+        with (
+            patch("msfauto.core.orchestrator.run_nmap", return_value=(run, (host,))),
+            patch("msfauto.core.orchestrator.enumerate_services", return_value=()),
+            patch("msfauto.core.orchestrator.load_package_mappings", return_value=()),
+            patch("msfauto.core.orchestrator.load_exploit_catalog", return_value=(definition,)),
+        ):
+            workflow, _ = self.application.run_assessment()
+
+        opportunities = self.store.get_exploit_opportunities("lab")
+        self.assertEqual(workflow.status, "completed")
+        self.assertEqual(len(opportunities), 1)
+        self.assertEqual(opportunities[0].status, "identified")
+        self.assertEqual(opportunities[0].target, "192.168.56.10")
+        self.assertTrue(any(
+            event.stage == "exploit_intelligence" and "1 opportunity" in event.message
+            for event in self.store.get_assessment_events(workflow.run_id)
+        ))
 
     def test_run_plan_rejects_missing_or_mismatched_run(self) -> None:
         plan = AssessmentPlan("lab", ())
