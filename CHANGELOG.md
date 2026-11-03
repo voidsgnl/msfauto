@@ -4,6 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### OSV vulnerability intelligence ingestion
+- Added an OSV.dev API client for package name + ecosystem + version queries using the documented `/v1/query` endpoint.
+- Normalized returned advisory IDs, CVE/GHSA aliases, severity, references, affected version lists, and original OSV range metadata.
+- Added explicit product aliases for mapping known OS package names to service fingerprints; package ecosystem identity is never guessed from a service banner.
+- Added persistent advisory registry storage and tests for request payloads, package filtering, provider failures, normalization, and persistence. CI verification is pending.
+
+
 ### Vulnerability assessment foundation
 - Added normalized advisory and vulnerability-candidate records with source attribution, affected versions, prerequisites, references, and evidence requirements.
 - Added strict product/CPE identity and exact version matching against discovered open services, with exact version matches represented as candidates and missing/ambiguous versions retained as unverified.
