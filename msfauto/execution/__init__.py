@@ -20,6 +20,11 @@ from .lifecycle import (
     recover_interrupted_dispatches,
     request_exploit_cancellation,
 )
+from .reconciliation import (
+    ExploitPollResult,
+    ExploitReconciliationError,
+    MetasploitExploitReconciler,
+)
 from .manager import (
     CheckRequest,
     CheckResult,
@@ -48,9 +53,12 @@ __all__ = [
     "ExploitExecution",
     "ExploitExecutionError",
     "ExploitExecutionEvent",
+    "ExploitPollResult",
+    "ExploitReconciliationError",
     "JobError",
     "JobManager",
     "MetasploitExploitDispatcher",
+    "MetasploitExploitReconciler",
     "MetasploitSafeAdapter",
     "begin_exploit_dispatch",
     "finish_exploit_execution",
