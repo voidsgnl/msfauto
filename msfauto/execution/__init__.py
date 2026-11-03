@@ -1,4 +1,20 @@
-"""Policy-bounded job execution."""
+"""Execution adapters and durable lifecycle primitives."""
+
+from .lifecycle import (
+    EXECUTION_STATES,
+    TERMINAL_STATES,
+    ExploitExecution,
+    ExploitExecutionError,
+    ExploitExecutionEvent,
+    begin_exploit_dispatch,
+    finish_exploit_execution,
+    mark_dispatch_uncertain,
+    mark_exploit_running,
+    prepare_exploit_execution,
+    recover_interrupted_dispatches,
+    reconcile_uncertain_execution,
+    request_exploit_cancellation,
+)
 from .manager import (
     CheckRequest,
     CheckResult,
@@ -7,21 +23,34 @@ from .manager import (
     JobManager,
 )
 from .metasploit import SAFE_AUXILIARY_MODULES, MetasploitSafeAdapter
-from .lifecycle import (\n    EXECUTION_STATES,\n    TERMINAL_STATES,\n    ExploitExecution,\n    ExploitExecutionError,\n    ExploitExecutionEvent,\n    begin_exploit_dispatch,\n    finish_exploit_execution,\n    mark_dispatch_uncertain,\n    mark_exploit_running,\n    prepare_exploit_execution,\n    recover_interrupted_dispatches,\n    reconcile_uncertain_execution,\n    request_exploit_cancellation,\n)\nfrom .output import (
+from .output import (
     MAX_ADAPTER_OUTPUT_BYTES,
     AdapterOutputError,
     sanitize_adapter_output,
 )
 
 __all__ = [
-    "EXECUTION_STATES",\n    "MAX_ADAPTER_OUTPUT_BYTES",
+    "EXECUTION_STATES",
+    "MAX_ADAPTER_OUTPUT_BYTES",
     "SAFE_AUXILIARY_MODULES",
-    "AdapterOutputError",\n    "ExploitExecution",\n    "ExploitExecutionError",\n    "ExploitExecutionEvent",\n    "TERMINAL_STATES",\n    "begin_exploit_dispatch",\n    "finish_exploit_execution",\n    "mark_dispatch_uncertain",\n    "mark_exploit_running",\n    "prepare_exploit_execution",\n    "recover_interrupted_dispatches",\n    "reconcile_uncertain_execution",\n    "request_exploit_cancellation",
+    "TERMINAL_STATES",
+    "AdapterOutputError",
     "CheckRequest",
     "CheckResult",
     "DeterministicSafeAdapter",
+    "ExploitExecution",
+    "ExploitExecutionError",
+    "ExploitExecutionEvent",
     "JobError",
     "JobManager",
     "MetasploitSafeAdapter",
+    "begin_exploit_dispatch",
+    "finish_exploit_execution",
+    "mark_dispatch_uncertain",
+    "mark_exploit_running",
+    "prepare_exploit_execution",
+    "recover_interrupted_dispatches",
+    "reconcile_uncertain_execution",
+    "request_exploit_cancellation",
     "sanitize_adapter_output",
 ]
