@@ -145,11 +145,11 @@ class Dashboard(App[None]):
                 id="context",
             )
             with Horizontal(id="toolbar"):
-                yield Button("Discover  [D]", id="discover", variant="success")
-                yield Button("Targets  [T]", id="targets")
-                yield Button("Plan  [P]", id="plan")
-                yield Button("Scope  [S]", id="scope")
-                yield Button("Exit  [Q]", id="exit", variant="error")
+                yield Button("Discover  (D)", id="discover", variant="success")
+                yield Button("Targets  (T)", id="targets")
+                yield Button("Plan  (P)", id="plan")
+                yield Button("Scope  (S)", id="scope")
+                yield Button("Exit  (Q)", id="exit", variant="error")
             yield Static(
                 "[bold #9ce4d6]READY[/bold #9ce4d6]  Workspace loaded. "
                 "Choose an action or use the keyboard shortcuts.",
