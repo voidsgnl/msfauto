@@ -4,7 +4,6 @@ from dataclasses import dataclass
 
 from msfauto.execution.lifecycle import (
     ExploitExecution,
-    ExploitExecutionError,
     finish_exploit_execution,
 )
 from msfauto.integrations.metasploit import MetasploitClient, MetasploitError
@@ -120,17 +119,14 @@ class MetasploitExploitReconciler:
             terminal_state = "cancelled"
             summary = "Metasploit reports that module execution was cancelled."
 
-        try:
-            updated = finish_exploit_execution(
-                self.store,
-                execution_id,
-                terminal_state,
-                actor=actor,
-                detail=f"Framework job reconciliation: {status}.",
-                outcome_summary=summary,
-            )
-        except ExploitExecutionError:
-            raise
+        updated = finish_exploit_execution(
+            self.store,
+            execution_id,
+            terminal_state,
+            actor=actor,
+            detail=f"Framework job reconciliation: {status}.",
+            outcome_summary=summary,
+        )
         return ExploitPollResult(
             execution=updated,
             framework_status=status,
