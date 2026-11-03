@@ -4,6 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Independent exploit outcome assessment
+- Added append-only target outcome assessments separate from Metasploit framework execution state, with `confirmed`, `not_confirmed`, and `inconclusive` verdicts.
+- Conclusive assessments require evidence tied to the exact execution workspace and target; framework-only evidence is rejected as independent verification.
+- Recorded verifier, method, actor, rationale, timestamp, and evidence provenance. This records analyst/module-specific conclusions; it does not infer exploit success or perform generic target probes.
+- Added tests for evidence requirements, provenance restrictions, target binding, inconclusive assessments, and persistence.
+
+
 ### Metasploit exploit job reconciliation
 - Added validated Metasploit active-job listing and a separate reconciler for persisted running/cancelling exploit executions.
 - Polling checks active job IDs first, then queries UUID-specific module results when the job is no longer listed.
