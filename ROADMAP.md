@@ -62,7 +62,7 @@ These foundations do **not** mean the platform already provides a complete vulne
 
 ## Current handoff — 2026-11-03
 
-### Latest implementation milestone: HTTP/HTTPS, SSH, FTP, SMB2, and TLS-only inspection
+### Latest implementation milestone: vulnerability assessment foundation (initial slice)
 - Nmap discovery now requests service/version detection with -sV --version-light, still constrained by the workspace target and port scope.
 - Parsed service records retain product/version, Nmap probe method and confidence, extra information, TLS tunnel metadata, CPE identifiers, source, and observation timestamp.
 - SQLite schema upgrades add these fields in place; legacy service rows receive conservative unknown/zero defaults and remain readable.
@@ -72,7 +72,9 @@ These foundations do **not** mean the platform already provides a complete vulne
 - FTP enumeration captures the server greeting and a bounded FEAT response; FEAT is optional, so a valid greeting remains useful when the command is unsupported.
 - SMB enumeration sends an unauthenticated SMB2 NEGOTIATE request only (no session setup or file operations) and records the selected dialect, security mode, server GUID, capabilities, and negotiated size limits.
 - FTP and SMB2 adapter tests use local fake servers. CI run #217 passed on Python 3.10, 3.12, and 3.14 (77 tests; Ruff passed).
-- Added a local TLS server fixture and tests for certificate fingerprint capture and TLS-vs-HTTP dispatch. CI verification for this milestone is pending.
+- Added a local TLS server fixture and tests for certificate fingerprint capture and TLS-vs-HTTP dispatch. GitHub Actions run #231 passed on Python 3.10, 3.12, and 3.14: 79 tests passed; Ruff passed on all three versions.
+- Added normalized vulnerability advisory and candidate domain records, exact product/version matching, source/evidence provenance, confidence limits, and workspace-scoped candidate persistence. Product/version matches remain candidates or unverified hypotheses; they cannot become confirmed findings from banner evidence alone.
+- Added unit coverage for exact matches, missing/nonmatching versions, unrelated products, closed services, provenance, confirmation guardrails, and persistence. CI verification for this initial assessment slice is pending.
 - Added append-only, workspace-scoped service observation persistence and integrated enumeration as an assessment stage after discovery.
 - Added local fake-server tests for HTTP and SSH plus scope/port filtering tests. CI run #217 passed on Python 3.10, 3.12, and 3.14 (77 tests; Ruff passed).
 
@@ -83,7 +85,7 @@ These foundations do **not** mean the platform already provides a complete vulne
 - The previous roadmap also underrepresented exploitation. Exploitation and separately authorized post-exploitation assessment are now explicit core capabilities.
 - After each meaningful implementation milestone, update this roadmap and `CHANGELOG.md`; update `README.md` and architecture/workflow docs when product behavior or direction changes.
 - Record test and CI status accurately. Do not claim local tests passed unless actually run.
-- Latest service-fingerprint milestone: CI run #196 passed on commit 1ef0a086509cb88ad7ff2dc51613e2352c7af676; the test commit reported 69 passing tests. The subsequent HTTP/HTTPS and SSH enumeration milestone passed CI on commit `af791bad8975ff0e4cf4889bf1f59e02f0d44f14` with 75 tests and Ruff passing. FTP and SMB2 enumeration are implemented. CI run #217 passed on commit `65785106823f4f2e2c80376e48cab15e86b86e7e`: 77 tests passed and Ruff passed on Python 3.10, 3.12, and 3.14. TLS-only inspection has been implemented; its CI result is pending.
+- Latest service-fingerprint milestone: CI run #196 passed on commit 1ef0a086509cb88ad7ff2dc51613e2352c7af676; the test commit reported 69 passing tests. The subsequent HTTP/HTTPS and SSH enumeration milestone passed CI on commit `af791bad8975ff0e4cf4889bf1f59e02f0d44f14` with 75 tests and Ruff passing. FTP and SMB2 enumeration are implemented. CI run #217 passed on commit `65785106823f4f2e2c80376e48cab15e86b86e7e`: 77 tests passed and Ruff passed on Python 3.10, 3.12, and 3.14. TLS-only inspection passed CI run #231 on Python 3.10, 3.12, and 3.14 (79 tests; Ruff clean). The initial vulnerability assessment foundation is implemented; its CI result is pending.
 
 ## Immediate next milestone: make the assessment engine useful
 
@@ -98,10 +100,12 @@ The next implementation work should improve actual assessment capability, not ad
    - Keep per-service timeouts, output limits, concurrency bounds, and scope/port checks.
 
 2. **Vulnerability assessment foundation**
-   - Build a capability/knowledge model that maps observed products, versions, configurations, and behaviors to candidate checks.
-   - Distinguish confirmed observations, candidate weaknesses, and unverified hypotheses.
-   - Track prerequisites, evidence requirements, confidence, and assessment coverage.
-   - Avoid declaring a vulnerability solely from a banner or a version string.
+   - [x] Add normalized advisory and candidate domain records with source provenance, affected-version metadata, prerequisites, references, and evidence requirements.
+   - [x] Match observed service products and exact versions to advisory records; retain missing or nonmatching versions as unverified hypotheses.
+   - [x] Persist workspace-scoped candidates with evidence references, rationale, and bounded confidence.
+   - [ ] Add a maintained vulnerability knowledge source/feed and CPE normalization.
+   - [ ] Add configuration/behavior-based checks, coverage accounting, and independent validation.
+   - Never declare a vulnerability solely from a banner or a version string.
 
 3. **Exploit intelligence and execution architecture**
    - Introduce a first-class exploit catalog/registry, separate from passive checks.
@@ -159,10 +163,12 @@ The next implementation work should improve actual assessment capability, not ad
 - [x] Add FTP enumeration and a local fake-server test.
 
 ### Phase 2 — Vulnerability assessment
-- [ ] Establish a vulnerability knowledge and check registry.
-- [ ] Map service/product/configuration observations to candidate weaknesses.
-- [ ] Model prerequisites, evidence, confidence, and coverage.
-- [ ] Distinguish detected, suspected, unverified, confirmed, and disproven results.
+- [x] Establish initial advisory and candidate domain records with source attribution.
+- [x] Map exact product/version observations to candidate advisories; retain ambiguous matches as unverified.
+- [x] Persist candidate status, evidence references, rationale, and confidence by workspace.
+- [ ] Integrate a maintained vulnerability knowledge source/feed and normalize CPE identifiers.
+- [ ] Add configuration/behavior checks, prerequisites evaluation, and assessment coverage.
+- [ ] Distinguish candidate, unverified, confirmed, and disproven results through independent validation.
 - [ ] Add prioritization based on technical relevance and evidence, not severity labels alone.
 
 ### Phase 3 — Exploit intelligence and execution
