@@ -125,32 +125,31 @@ class EnumerationTests(unittest.TestCase):
 
     def test_tls_probe_records_certificate_and_handshake_metadata(self):
         fixture_dir = Path(__file__).parent / "fixtures"
-        with tempfile.TemporaryDirectory() as directory:
-            context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-            context.load_cert_chain(
-                fixture_dir / "tls-cert.pem",
-                fixture_dir / "tls-key.pem",
-            )
-            listener = socket.socket()
-            listener.bind(("127.0.0.1", 0))
-            listener.listen(1)
-            port = listener.getsockname()[1]
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(
+            fixture_dir / "tls-cert.pem",
+            fixture_dir / "tls-key.pem",
+        )
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
 
-            def serve():
-                conn, _ = listener.accept()
-                with conn:
-                    with context.wrap_socket(conn, server_side=True):
-                        pass
-                listener.close()
+        def serve():
+            conn, _ = listener.accept()
+            with conn:
+                with context.wrap_socket(conn, server_side=True):
+                    pass
+            listener.close()
 
-            thread = threading.Thread(target=serve, daemon=True)
-            thread.start()
-            try:
-                service = Service(port, "tcp", "open", name="ldaps", tunnel="ssl")
-                observations = _tls_probe("lab", "127.0.0.1", service, 1.0)
-            finally:
-                thread.join(timeout=1)
-                listener.close()
+        thread = threading.Thread(target=serve, daemon=True)
+        thread.start()
+        try:
+            service = Service(port, "tcp", "open", name="ldaps", tunnel="ssl")
+            observations = _tls_probe("lab", "127.0.0.1", service, 1.0)
+        finally:
+            thread.join(timeout=1)
+            listener.close()
 
         self.assertEqual(observations[0].status, "completed")
         attributes = observations[0].attributes
