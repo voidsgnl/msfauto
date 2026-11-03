@@ -354,9 +354,22 @@ class WorkspaceStore:
                     execution_id TEXT PRIMARY KEY,
                     workspace TEXT NOT NULL,
                     state TEXT NOT NULL,
+                    authorization_id TEXT NOT NULL DEFAULT '',
                     record_json TEXT NOT NULL
                 )
                 """
+            )
+            execution_columns = {
+                row["name"]
+                for row in connection.execute("PRAGMA table_info(exploit_executions)")
+            }
+            if "authorization_id" not in execution_columns:
+                connection.execute(
+                    "ALTER TABLE exploit_executions ADD COLUMN authorization_id TEXT NOT NULL DEFAULT ''"
+                )
+            connection.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_exploit_execution_authorization "
+                "ON exploit_executions(authorization_id) WHERE authorization_id <> ''"
             )
             connection.execute(
                 """
@@ -1308,10 +1321,12 @@ class WorkspaceStore:
         """Create an execution record and its initial event atomically."""
         with self._connect() as connection:
             connection.execute(
-                "INSERT INTO exploit_executions(execution_id, workspace, state, record_json) "
-                "VALUES (?, ?, ?, ?)",
+                "INSERT INTO exploit_executions("
+                "execution_id, workspace, state, authorization_id, record_json"
+                ") VALUES (?, ?, ?, ?, ?)",
                 (
                     record.execution_id, record.workspace, record.state,
+                    record.authorization_id,
                     json.dumps(asdict(record), sort_keys=True),
                 ),
             )
