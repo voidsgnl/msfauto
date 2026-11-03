@@ -11,7 +11,13 @@ from .assessment.planner import build_plan
 from .core import AssessmentApplication
 from .discovery import DiscoveryError, parse_nmap_xml
 from .evidence import EvidenceCollector
-from .execution import CheckRequest, JobError, JobManager
+from .execution import CheckRequest, JobError, JobManager, MetasploitSafeAdapter
+from .integrations.metasploit import (
+    MetasploitClient,
+    MetasploitConfig,
+    MetasploitError,
+    MsgpackHttpTransport,
+)
 from .reporting import ReportError, write_report
 from .scope import PROFILES, ScopeError, build_policy
 from .storage import WorkspaceStore
@@ -76,7 +82,13 @@ def run_discovery(store: WorkspaceStore, workspace: Workspace) -> int:
     print("No active checks were dispatched.")
     return 0
 
-def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int, workers: int) -> int:
+def run_safe_checks(
+    store: WorkspaceStore,
+    workspace: Workspace,
+    max_checks: int,
+    workers: int,
+    use_metasploit: bool = False,
+) -> int:
     plan = store.get_plan(workspace.name)
     if plan is None:
         plan = build_plan(
@@ -119,7 +131,40 @@ def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int
         print("No recommendations were approved; no checks were dispatched.")
         return 0
 
-    manager = JobManager(workspace.policy, max_workers=workers, approval_store=store)
+    adapter = None
+    if use_metasploit:
+        username = os.environ.get("MSFAUTO_METASPLOIT_USERNAME", "")
+        password = os.environ.get("MSFAUTO_METASPLOIT_PASSWORD", "")
+        if not username or not password:
+            print(
+                "Metasploit mode requires MSFAUTO_METASPLOIT_USERNAME and "
+                "MSFAUTO_METASPLOIT_PASSWORD."
+            )
+            return 2
+        config = MetasploitConfig(
+            url=os.environ.get(
+                "MSFAUTO_METASPLOIT_URL",
+                "http://127.0.0.1:55553/api/1.0",
+            ),
+            timeout=10.0,
+        )
+        try:
+            client = MetasploitClient(
+                MsgpackHttpTransport(config),
+                username=username,
+                password=password,
+            )
+        except MetasploitError as exc:
+            print(f"Metasploit connection failed: {exc}")
+            return 2
+        adapter = MetasploitSafeAdapter(client)
+
+    manager = JobManager(
+        workspace.policy,
+        max_workers=workers,
+        adapter=adapter,
+        approval_store=store,
+    )
     evidence_collector = EvidenceCollector(store)
     job_ids: list[str] = []
     try:
@@ -155,7 +200,7 @@ def run_safe_checks(store: WorkspaceStore, workspace: Workspace, max_checks: int
                 print(f"Skipping recommendation due to scope or validation error: {exc}")
         counts: Counter[str] = Counter()
         for job_id in job_ids:
-            job = manager.wait(job_id, timeout=5)
+            job = manager.wait(job_id, timeout=65 if use_metasploit else 5)
             counts[job.status] += 1
             store.save_job(job)
             events = manager.events(job_id)
@@ -242,6 +287,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--discover", action="store_true", help="Run the saved-scope discovery and read-only planning workflow.")
     parser.add_argument("--show-plan", action="store_true", help="Build and print a read-only assessment plan.")
     parser.add_argument("--run-safe-checks", action="store_true", help="Run bounded non-invasive checks from the plan.")
+    parser.add_argument(
+        "--metasploit",
+        action="store_true",
+        help="Use the allowlisted Metasploit RPC adapter with --run-safe-checks.",
+    )
     parser.add_argument("--max-checks", type=int, default=10, help="Maximum recommendations to run with --run-safe-checks.")
     parser.add_argument("--check-workers", type=int, default=2, help="Concurrent workers for --run-safe-checks.")
     parser.add_argument("--report", choices=("json", "markdown"), help="Export a workspace assessment report.")
@@ -302,6 +352,9 @@ def main() -> int:
             return 1
         display_plan(store, workspace)
         return 0
+    if args.metasploit and not args.run_safe_checks:
+        print("--metasploit requires --run-safe-checks.")
+        return 2
     if args.run_safe_checks:
         workspace = store.get(args.workspace)
         if workspace is None:
@@ -313,7 +366,9 @@ def main() -> int:
         if args.check_workers < 1:
             print("--check-workers must be at least 1.")
             return 2
-        return run_safe_checks(store, workspace, args.max_checks, args.check_workers)
+        return run_safe_checks(
+            store, workspace, args.max_checks, args.check_workers, args.metasploit
+        )
     if args.tui:
         workspace = store.get(args.workspace)
         if workspace is None:
