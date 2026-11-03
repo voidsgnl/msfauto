@@ -18,6 +18,7 @@ The current MVP provides foundations for:
 - Explainable dry-run plans with deterministic service matching.
 - A bounded job manager with scope checks, cancellation, concurrency limits, and structured events.
 - Bounded safe-check adapter execution and persisted results.
+- An explicit Metasploit RPC execution path for a fixed allowlist of passive service-version checks; all other modules remain unsupported by this adapter.
 - A guided Textual interface with discovery, target browsing, target details, scope review, and read-only plan display.
 - A persisted discovery-to-planning workflow with progress events and recorded failure states.
 - Per-recommendation approval decisions persisted in SQLite; safe checks require an exact `APPROVE` confirmation and approver identifier.
@@ -66,12 +67,26 @@ python -m msfauto.cli --workspace lab --discover
 python -m msfauto.cli --workspace lab --import-nmap scan.xml
 python -m msfauto.cli --workspace lab --show-plan
 python -m msfauto.cli --workspace lab --run-safe-checks --max-checks 10 --check-workers 2
+python -m msfauto.cli --workspace lab --run-safe-checks --metasploit --max-checks 10 --check-workers 2
 python -m msfauto.cli --workspace lab --show-scope
 python -m msfauto.cli --workspace lab --report json
 python -m msfauto.cli --workspace lab --report markdown --report-output ./assessment-report.md
 ```
 
 The default workspace database is stored at `~/.msfauto/workspaces.sqlite3`. Set `MSFAUTO_HOME` to use another local directory.
+
+### Metasploit RPC checks
+
+The `--metasploit` flag opts into real Metasploit RPC execution. Configure the connection before running it:
+
+```bash
+export MSFAUTO_METASPLOIT_URL="http://127.0.0.1:55553/api/1.0"
+export MSFAUTO_METASPLOIT_USERNAME="your-rpc-user"
+export MSFAUTO_METASPLOIT_PASSWORD="your-rpc-password"
+python -m msfauto.cli --workspace lab --run-safe-checks --metasploit
+```
+
+The URL defaults to the local `msfrpcd` endpoint shown above. MSFAuto currently permits only a fixed set of passive FTP, HTTP, MySQL, PostgreSQL, SMB, SSH, SSL, and Telnet version-identification modules. It checks the live Metasploit module stance before dispatch, passes only the approved target and port, polls the returned run UUID, and stops jobs that exceed the 60-second execution limit. The existing persisted approval and scope checks still run before dispatch. Other modules—including modules merely named `scanner/*`—are reported as unsupported and are not executed. The default `--run-safe-checks` path remains deterministic unless `--metasploit` is explicitly supplied.
 
 The MVP accepts IP addresses and CIDR networks. It does not resolve or scan arbitrary hostnames.
 
