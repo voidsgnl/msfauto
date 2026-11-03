@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from .base import utc_now
 
+from .base import utc_now
 
 FINDING_SEVERITIES = {"info", "low", "medium", "high", "critical"}
 FINDING_STATUSES = {"potential", "confirmed", "unverified", "false_positive"}
