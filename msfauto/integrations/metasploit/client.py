@@ -80,6 +80,16 @@ class MetasploitClient:
         request_arguments = ((self.token,) if self.token else ()) + arguments
         return self.transport.request(method, request_arguments)
 
+    def exploit_modules(self) -> list[str]:
+        """Return the connected framework's exploit module reference names."""
+        response = self._request("module.exploits")
+        modules = response.get("modules", [])
+        if not isinstance(modules, list) or any(
+            not isinstance(module, str) or not module.strip() for module in modules
+        ):
+            raise MetasploitError("Metasploit RPC returned invalid exploit catalog data.")
+        return list(dict.fromkeys(modules))
+
     def search_modules(self, query: str) -> list[dict[str, Any]]:
         if not query.strip():
             raise MetasploitError("Module search query cannot be empty.")
