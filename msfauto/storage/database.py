@@ -287,6 +287,26 @@ class WorkspaceStore:
             )
             connection.execute(
                 """
+                CREATE TABLE IF NOT EXISTS vulnerability_advisories (
+                    advisory_id TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    vendor TEXT NOT NULL,
+                    product TEXT NOT NULL,
+                    affected_versions_json TEXT NOT NULL,
+                    severity TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    references_json TEXT NOT NULL,
+                    prerequisites_json TEXT NOT NULL,
+                    evidence_requirements_json TEXT NOT NULL,
+                    package_name TEXT NOT NULL,
+                    ecosystem TEXT NOT NULL,
+                    product_aliases_json TEXT NOT NULL,
+                    matched_versions_json TEXT NOT NULL,
+                    affected_ranges_json TEXT NOT NULL,
+                    aliases_json TEXT NOT NULL,
+                    PRIMARY KEY(advisory_id, source, package_name, ecosystem)
+                )
+,
                 CREATE TABLE IF NOT EXISTS vulnerability_candidates (
                     candidate_id TEXT PRIMARY KEY, workspace TEXT NOT NULL,
                     target TEXT NOT NULL, port INTEGER NOT NULL, protocol TEXT NOT NULL,
@@ -530,6 +550,73 @@ class WorkspaceStore:
             evidence_refs=tuple(json.loads(row["evidence_refs_json"])),
             rationale=row["rationale"], created_at=row["created_at"],
         ) for row in rows)
+
+    def save_vulnerability_advisories(
+        self, advisories: tuple
+    ) -> None:
+        """Upsert normalized advisory intelligence with original source attribution."""
+        with self._connect() as connection:
+            for item in advisories:
+                connection.execute(
+                    """
+                    INSERT INTO vulnerability_advisories(
+                        advisory_id, source, vendor, product, affected_versions_json,
+                        severity, description, references_json, prerequisites_json,
+                        evidence_requirements_json, package_name, ecosystem,
+                        product_aliases_json, matched_versions_json,
+                        affected_ranges_json, aliases_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(advisory_id, source, package_name, ecosystem) DO UPDATE SET
+                        vendor = excluded.vendor, product = excluded.product,
+                        affected_versions_json = excluded.affected_versions_json,
+                        severity = excluded.severity, description = excluded.description,
+                        references_json = excluded.references_json,
+                        prerequisites_json = excluded.prerequisites_json,
+                        evidence_requirements_json = excluded.evidence_requirements_json,
+                        product_aliases_json = excluded.product_aliases_json,
+                        matched_versions_json = excluded.matched_versions_json,
+                        affected_ranges_json = excluded.affected_ranges_json,
+                        aliases_json = excluded.aliases_json
+                    """,
+                    (
+                        item.advisory_id, item.source, item.vendor, item.product,
+                        json.dumps(item.affected_versions), item.severity, item.description,
+                        json.dumps(item.references), json.dumps(item.prerequisites),
+                        json.dumps(item.evidence_requirements), item.package_name,
+                        item.ecosystem, json.dumps(item.product_aliases),
+                        json.dumps(item.matched_versions), json.dumps(item.affected_ranges),
+                        json.dumps(item.aliases),
+                    ),
+                )
+
+    def get_vulnerability_advisories(
+        self, package_name: str | None = None, ecosystem: str | None = None
+    ) -> tuple:
+        query = "SELECT * FROM vulnerability_advisories WHERE 1 = 1"
+        parameters: list[str] = []
+        if package_name is not None:
+            query += " AND package_name = ?"
+            parameters.append(package_name)
+        if ecosystem is not None:
+            query += " AND ecosystem = ?"
+            parameters.append(ecosystem)
+        query += " ORDER BY advisory_id, source"
+        with self._connect() as connection:
+            rows = connection.execute(query, tuple(parameters)).fetchall()
+        from .models import VulnerabilityAdvisory
+
+        json_fields = (
+            "affected_versions", "references", "prerequisites",
+            "evidence_requirements", "product_aliases", "matched_versions",
+            "affected_ranges", "aliases",
+        )
+        result = []
+        for row in rows:
+            values = dict(row)
+            for field in json_fields:
+                values[field] = tuple(json.loads(values.pop(f"{field}_json")))
+            result.append(VulnerabilityAdvisory(**values))
+        return tuple(result)
 
     def save_discovery_run(self, run: DiscoveryRun) -> None:
         with self._connect() as connection:
