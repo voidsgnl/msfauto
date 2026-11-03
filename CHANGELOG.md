@@ -4,6 +4,14 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Controlled Metasploit exploit dispatch
+- Added a separate dispatcher that accepts only a persisted `prepared` execution ID and resolves the exact target, port, module, authorization, and workspace from storage.
+- Requires an active synchronized exploit catalog entry and live Metasploit confirmation of the exploit module type and option metadata.
+- Initial support is restricted to TCP modules exposing `RHOSTS` and `RPORT`; the adapter supplies only those persisted target values and rejects additional required options.
+- Added a single-attempt `module.execute` RPC path. Confirmed acknowledgements persist the job ID/UUID; ambiguous errors transition to `dispatch_uncertain` and are never retried automatically.
+- Existing passive-check allowlist and execution path remain unchanged. No live exploit was run during implementation.
+- Added fake-RPC coverage for dispatch preflight, target-only options, catalog enforcement, unsupported options, acknowledged dispatch, and uncertain/non-retry behavior. CI verification is pending.
+
 ### Durable exploit execution lifecycle
 - Added durable execution records and append-only transition events, separate from passive-check jobs.
 - Added strict lifecycle states for preparation, dispatch intent, uncertain dispatch, running, cancellation, and terminal outcomes.
