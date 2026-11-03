@@ -1,6 +1,6 @@
 # MSFAuto Roadmap
 
-MSFAuto is evolving toward a Wifite-inspired, terminal-first guided assessment experience. The operator should be able to start one workflow, follow discovery results, select targets, review recommendations, approve permitted actions, and inspect evidence without manually coordinating every underlying tool.
+MSFAuto is evolving toward a terminal-native, keyboard-driven assessment console. The operator should be able to start one workflow, follow discovery results, select targets, review recommendations, approve permitted actions, and inspect evidence without manually coordinating every underlying tool.
 
 The roadmap preserves working foundations and prioritizes a dependable, explainable workflow over feature accumulation.
 
@@ -40,17 +40,18 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Correct README statements about implemented and planned functionality
 - [x] Add repository hygiene rules and remove tracked Python bytecode caches
 
-## Phase 1: Wifite-inspired interface — initial implementation
+## Phase 1: Terminal-native interface
 
 - [x] Establish `python -m msfauto` as the primary interactive entry point
 - [x] Replace the informational dashboard with a workflow-oriented screen
+- [x] Establish a terminal-native visual identity, compact action bar, activity feedback, target table, and detail panel
 - [x] Keep workspace and authorized scope visible
 - [x] Add target list and target detail display
 - [x] Connect discovery and plan display through application services
 - [x] Keep discovery work off the Textual event loop
 - [ ] Add explicit progress events and cancellation for long-running discovery
 - [ ] Add assessment history, jobs, findings, and report views
-- [ ] Add Textual interaction tests and accessibility/terminal-size checks
+- [ ] Add broader Textual interaction tests and accessibility/terminal-size checks
 
 ## Phase 2: Workflow orchestrator
 
