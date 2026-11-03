@@ -4,6 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Metasploit MessagePack response compatibility
+- Normalize MessagePack binary-encoded UTF-8 keys and values into Python strings before interpreting RPC responses, including authentication tokens and nested metadata.
+- Preserve non-UTF-8 binary values rather than corrupting them.
+- Normalize error responses before extracting the framework error message.
+- Added regression coverage for byte-encoded authentication, module results, and RPC errors.
+
+
 ### Independent exploit outcome assessment
 - Added append-only target outcome assessments separate from Metasploit framework execution state, with `confirmed`, `not_confirmed`, and `inconclusive` verdicts.
 - Conclusive assessments require evidence tied to the exact execution workspace and target; framework-only evidence is rejected as independent verification.
