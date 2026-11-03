@@ -58,11 +58,11 @@ Supporting platform capabilities:
 - [x] Assessment-run records, events, and immutable run-specific plan snapshots.
 - [x] CI coverage for Python 3.10, 3.12, and 3.14.
 
-OSV workflow integration is now active when explicit mappings are configured, but this does **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The current Metasploit execution adapter supports only its fixed passive-check allowlist; arbitrary exploit modules are not executable through the current workflow.
+OSV workflow integration is now active when explicit mappings are configured, but this does **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The current Metasploit execution adapter supports only its fixed passive-check allowlist; arbitrary exploit modules are not executable through the current workflow. Exploit catalog matching now identifies and persists candidate opportunities, but explicit review/approval, execution lifecycle, dispatch reconciliation, and session handling remain unimplemented.
 
 ## Current handoff — 2026-11-03
 
-### Latest implementation milestone: OSV assessment workflow integration
+### Latest implementation milestone: exploit intelligence catalog and matching
 - Nmap discovery now requests service/version detection with -sV --version-light, still constrained by the workspace target and port scope.
 - Parsed service records retain product/version, Nmap probe method and confidence, extra information, TLS tunnel metadata, CPE identifiers, source, and observation timestamp.
 - SQLite schema upgrades add these fields in place; legacy service rows receive conservative unknown/zero defaults and remain readable.
@@ -114,8 +114,11 @@ The next implementation work should improve actual assessment capability, not ad
    - Never declare a vulnerability solely from a banner or a version string.
 
 3. **Exploit intelligence and execution architecture**
-   - Introduce a first-class exploit catalog/registry, separate from passive checks.
-   - Represent affected products/versions, prerequisites, required options, target compatibility, expected outcome, risk, and supporting references.
+   - [x] Introduce a first-class exploit catalog/registry, separate from passive checks.
+   - [x] Represent source attribution, affected products/versions, prerequisites, required options, target compatibility metadata, risk, and supporting references.
+   - [x] Match exact product aliases and versions, with optional links to known vulnerability candidate IDs; persist workspace-scoped opportunities.
+   - Add maintained catalog synchronization/import adapters and version-range semantics with source-specific tests.
+   - Represent expected outcomes and richer target compatibility metadata as catalog sources are integrated.
    - Add explicit exploit review and action-specific authorization before dispatch.
    - Build an execution lifecycle that records preparation, dispatch, running, completion, failure, timeout, cancellation, and uncertain dispatch state.
    - Start with controlled lab validation and a small, testable integration slice; do not expose arbitrary module execution as a shortcut.
