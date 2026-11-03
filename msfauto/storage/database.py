@@ -329,6 +329,16 @@ class WorkspaceStore:
             )
             connection.execute(
                 """
+                CREATE TABLE IF NOT EXISTS exploit_reviews (
+                    review_id TEXT PRIMARY KEY,
+                    workspace TEXT NOT NULL,
+                    opportunity_id TEXT NOT NULL,
+                    review_json TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
                 CREATE TABLE IF NOT EXISTS exploit_authorizations (
                     authorization_id TEXT PRIMARY KEY,
                     workspace TEXT NOT NULL,
@@ -1178,6 +1188,38 @@ class WorkspaceStore:
             for row in rows
         )
 
+
+    def save_exploit_review(self, review) -> None:
+        """Persist an explicit human decision for one exact exploit opportunity."""
+        with self._connect() as connection:
+            connection.execute(
+                "INSERT INTO exploit_reviews(review_id, workspace, opportunity_id, review_json) "
+                "VALUES (?, ?, ?, ?)",
+                (
+                    review.review_id, review.workspace, review.opportunity_id,
+                    json.dumps(asdict(review), sort_keys=True),
+                ),
+            )
+
+    def get_exploit_review(self, review_id: str):
+        from ..exploitation.authorization import ExploitReview
+
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT review_json FROM exploit_reviews WHERE review_id = ?",
+                (review_id,),
+            ).fetchone()
+        return ExploitReview(**json.loads(row["review_json"])) if row else None
+
+    def get_exploit_reviews(self, workspace: str):
+        from ..exploitation.authorization import ExploitReview
+
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT review_json FROM exploit_reviews WHERE workspace = ? ORDER BY rowid",
+                (workspace,),
+            ).fetchall()
+        return tuple(ExploitReview(**json.loads(row["review_json"])) for row in rows)
 
     def save_exploit_authorization(self, authorization) -> None:
         """Persist a short-lived authorization bound to one exploit opportunity."""
