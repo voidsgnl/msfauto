@@ -8,7 +8,7 @@ from msfauto.core import AssessmentApplication, WorkflowError
 from msfauto.exploitation import ExploitDefinition
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
-from msfauto.storage.models import AssessmentPlan, DiscoveryRun, Host, Service, Workspace
+from msfauto.storage.models import (\n    AssessmentPlan,\n    DiscoveryRun,\n    Host,\n    Service,\n    Workspace,\n)
 
 
 class AssessmentWorkflowTests(unittest.TestCase):
