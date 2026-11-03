@@ -5,6 +5,7 @@ import hashlib
 import http.client
 import socket
 import ssl
+import struct
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -64,6 +65,89 @@ def _is_ftp(service: Service) -> bool:
     return service.protocol.lower() == "tcp" and (
         "ftp" in label or service.port in {20, 21}
     )
+
+
+def _is_smb(service: Service) -> bool:
+    label = f"{service.name} {service.product}".lower()
+    return service.protocol.lower() == "tcp" and (
+        "smb" in label or service.port == 445
+    )
+
+
+def _recv_exact(sock: socket.socket, size: int) -> bytes:
+    data = bytearray()
+    while len(data) < size:
+        chunk = sock.recv(size - len(data))
+        if not chunk:
+            raise ConnectionError("SMB peer closed the connection")
+        data.extend(chunk)
+    return bytes(data)
+
+
+def _smb_probe(
+    workspace: str, target: str, service: Service, timeout: float
+) -> tuple[ServiceObservation, ...]:
+    # SMB2 NEGOTIATE only: no session setup, credentials, or file operations.
+    header = struct.pack(
+        "<4sHHHHHHIIQIIQ16s",
+        b"\\xfeSMB", 64, 0, 0, 0, 0, 1, 0, 0, 0, 0xFEFF, 0, 0,
+        bytes(16),
+    )
+    body = struct.pack(
+        "<HHHHI16sIHH",
+        36, 3, 1, 0, 0, bytes.fromhex("00112233445566778899aabbccddeeff"),
+        0, 0, 0,
+    )
+    request = header + body + struct.pack("<HHH", 0x0202, 0x0210, 0x0300)
+    framed = b"\\x00" + len(request).to_bytes(3, "big") + request
+    try:
+        with socket.create_connection((target, service.port), timeout=timeout) as sock:
+            sock.settimeout(timeout)
+            sock.sendall(framed)
+            prefix = _recv_exact(sock, 4)
+            if prefix[0] != 0:
+                raise ValueError("Unexpected SMB transport framing")
+            length = int.from_bytes(prefix[1:], "big")
+            if length < 128 or length > 65536:
+                raise ValueError("SMB response length is outside accepted bounds")
+            response = _recv_exact(sock, length)
+        if response[:4] != b"\\xfeSMB" or len(response) < 128:
+            raise ValueError("Peer did not return a valid SMB2 negotiate response")
+        status_code = struct.unpack_from("<I", response, 8)[0]
+        command = struct.unpack_from("<H", response, 12)[0]
+        structure_size = struct.unpack_from("<H", response, 64)[0]
+        if command != 0 or structure_size != 65:
+            raise ValueError("Unexpected SMB2 response command or structure")
+        security_mode, dialect = struct.unpack_from("<HH", response, 66)
+        server_guid = response[72:88].hex()
+        capabilities, max_transact, max_read, max_write = struct.unpack_from(
+            "<IIII", response, 88
+        )
+        attributes: dict[str, object] = {
+            "status_code": status_code,
+            "dialect": f"0x{dialect:04x}",
+            "security_mode": security_mode,
+            "server_guid": server_guid,
+            "capabilities": capabilities,
+            "max_transact_size": max_transact,
+            "max_read_size": max_read,
+            "max_write_size": max_write,
+        }
+        success = status_code == 0
+        return (
+            _observation(
+                workspace, target, service, "smb",
+                "completed" if success else "partial", attributes,
+                confidence=9 if success else 3,
+            ),
+        )
+    except (OSError, TimeoutError, ConnectionError, ValueError, struct.error) as exc:
+        return (
+            _observation(
+                workspace, target, service, "smb", "failed",
+                {"error_type": type(exc).__name__},
+            ),
+        )
 
 
 def _ftp_probe(
@@ -226,6 +310,8 @@ def enumerate_services(
                 tasks.append(("ssh", str(host.address), service))
             elif _is_ftp(service):
                 tasks.append(("ftp", str(host.address), service))
+            elif _is_smb(service):
+                tasks.append(("smb", str(host.address), service))
 
     results: list[ServiceObservation] = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -235,6 +321,7 @@ def enumerate_services(
                 "http": _http_probe,
                 "ssh": _ssh_probe,
                 "ftp": _ftp_probe,
+                "smb": _smb_probe,
             }[kind]
             futures.append(executor.submit(probe, workspace, target, service, timeout))
         for future in as_completed(futures):
