@@ -48,13 +48,19 @@ The current implementation has reusable capabilities, but the complete assessmen
 - The TUI currently exposes discovery, target browsing, plan display, and scope review; approval, execution, evidence/finding review, and report views are not connected to it.
 - Assessment runs and events are persisted, but there is no resume/recovery operation. A process interruption can leave a run in `running`; retry safety and duplicate-dispatch prevention are not implemented.
 
+### Verification
+
+- GitHub Actions run [#180](https://github.com/voidsgnl/msfauto/actions/runs/41651901132) completed successfully on commit `54ec73b48653d81957c79ea068fe7be315e9df50`.
+- Python 3.10, 3.12, and 3.14 jobs all passed, including the test suite and Ruff.
+- The user should pull the latest `main` and run the local test suite to verify the updated checkout and SQLite migration in their environment.
+
 ### Completed slice: run-specific plan snapshots
 
 - [x] Added a dedicated SQLite table for assessment-run plan snapshots; existing workspace-level latest-plan behavior remains intact for compatibility.
 - [x] Persisted the generated read-only plan against its originating run.
 - [x] Reject snapshots for unknown runs and workspace mismatches.
 - [x] Added workflow tests for snapshot retrieval and ownership validation.
-- [ ] Verify the implementation in CI and in the user's local checkout.
+- [x] Verify the implementation in GitHub Actions across Python 3.10, 3.12, and 3.14; local checkout verification is pending.
 
 ### Implementation implications
 
