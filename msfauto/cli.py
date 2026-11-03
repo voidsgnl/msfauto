@@ -100,6 +100,15 @@ def run_safe_checks(
     if not plan.recommendations:
         print("No recommendations are available for safe checks.")
         return 0
+    if use_metasploit and (
+        not os.environ.get("MSFAUTO_METASPLOIT_USERNAME")
+        or not os.environ.get("MSFAUTO_METASPLOIT_PASSWORD")
+    ):
+        print(
+            "Metasploit mode requires MSFAUTO_METASPLOIT_USERNAME and "
+            "MSFAUTO_METASPLOIT_PASSWORD."
+        )
+        return 2
     selected = plan.recommendations[:max_checks]
     print("Each recommendation requires a separate, recorded decision.")
     approver = input("Approver identifier: ").strip()
@@ -135,12 +144,6 @@ def run_safe_checks(
     if use_metasploit:
         username = os.environ.get("MSFAUTO_METASPLOIT_USERNAME", "")
         password = os.environ.get("MSFAUTO_METASPLOIT_PASSWORD", "")
-        if not username or not password:
-            print(
-                "Metasploit mode requires MSFAUTO_METASPLOIT_USERNAME and "
-                "MSFAUTO_METASPLOIT_PASSWORD."
-            )
-            return 2
         config = MetasploitConfig(
             url=os.environ.get(
                 "MSFAUTO_METASPLOIT_URL",
