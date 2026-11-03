@@ -4,6 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Metasploit exploit job reconciliation
+- Added validated Metasploit active-job listing and a separate reconciler for persisted running/cancelling exploit executions.
+- Polling checks active job IDs first, then queries UUID-specific module results when the job is no longer listed.
+- Only recognized completed, failed, and cancelled framework outcomes close an execution. Missing results, unknown statuses, and contradictory states remain unresolved.
+- Framework completion is not treated as proof of exploit success or security impact.
+- Added fake-RPC tests for active jobs, terminal outcomes, missing/unknown results, and uncertain-dispatch restrictions. CI verification is pending.
+
 ### Controlled Metasploit exploit dispatch
 - Added a separate dispatcher that accepts only a persisted `prepared` execution ID and resolves the exact target, port, module, authorization, and workspace from storage.
 - Requires an active synchronized exploit catalog entry and live Metasploit confirmation of the exploit module type and option metadata.
