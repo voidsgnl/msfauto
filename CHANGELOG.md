@@ -4,15 +4,18 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Verification
+- GitHub Actions run #217 passed on Python 3.10, 3.12, and 3.14: 77 tests passed and Ruff passed.
+
 ### SMB2 service enumeration
 - Added a bounded, unauthenticated SMB2 NEGOTIATE probe for discovered open TCP/445 or explicitly fingerprinted SMB services.
 - Captures the negotiated dialect, security mode, server GUID, capabilities, and negotiated message-size limits without attempting authentication or file operations.
-- Added a local fake SMB2 server test. CI and full-suite verification are pending.
+- Added a local fake SMB2 server test. Verified in CI run #217.
 
 ### FTP service enumeration
 - Added a bounded FTP adapter that records the server greeting and supported FEAT capabilities as structured service observations.
 - FTP enumeration is limited to discovered open TCP services fingerprinted as FTP or using conventional FTP ports, and inherits saved scope, timeout, and worker limits.
-- Added a local fake FTP server test for greeting and feature parsing. CI and full-suite verification are pending.
+- Added a local fake FTP server test for greeting and feature parsing. Verified in CI run #217.
 
 
 ### Service fingerprinting foundation
