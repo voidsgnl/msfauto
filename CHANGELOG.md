@@ -4,6 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Service fingerprinting foundation
+- Enabled Nmap service/version detection with -sV --version-light for discovered in-scope ports.
+- Expanded normalized service records with probe method, confidence, extra information, tunnel metadata, CPE identifiers, source, and observation timestamp.
+- Added backward-compatible SQLite column migrations for existing service records.
+- Added parser, confidence validation, persistence round-trip, legacy-schema migration, and scanner-command tests.
+
+
 ### Product direction correction
 - Reframed MSFAuto around its core purpose: reconnaissance, service enumeration, vulnerability assessment, authorized exploitation, post-exploitation assessment, validation, and analysis.
 - Promoted exploitation to a first-class assessment capability with its own catalog, matching, authorization, dispatch, and outcome lifecycle; it is not treated as a generic safe check.
