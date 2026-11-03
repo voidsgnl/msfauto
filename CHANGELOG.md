@@ -8,7 +8,7 @@ All notable changes to MSFAuto are documented here.
 - Added an OSV.dev API client for package name + ecosystem + version queries using the documented `/v1/query` endpoint.
 - Normalized returned advisory IDs, CVE/GHSA aliases, severity, references, affected version lists, and original OSV range metadata.
 - Added explicit product aliases for mapping known OS package names to service fingerprints; package ecosystem identity is never guessed from a service banner.
-- Added persistent advisory registry storage and tests for request payloads, package filtering, provider failures, normalization, and persistence. CI verification is pending.
+- Added persistent advisory registry storage and tests for request payloads, package filtering, provider failures, normalization, persistence, and OSV-to-candidate matching. CI run #259 passed on Python 3.10, 3.12, and 3.14 (92 tests; 2 subtests; Ruff passed).
 
 
 ### Vulnerability assessment foundation
