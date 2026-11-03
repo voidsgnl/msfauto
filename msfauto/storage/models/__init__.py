@@ -15,6 +15,7 @@ from .finding import Finding
 from .job import CheckJob, JobEvent
 from .service import Service
 from .target import Host
+from .vulnerability import VulnerabilityAdvisory, VulnerabilityCandidate
 from .workspace import ScopePolicy, Workspace
 
 __all__ = [
@@ -34,6 +35,8 @@ __all__ = [
     "Recommendation",
     "ScopePolicy",
     "Service",
+    "VulnerabilityAdvisory",
+    "VulnerabilityCandidate",
     "Workspace",
     "utc_now",
 ]
