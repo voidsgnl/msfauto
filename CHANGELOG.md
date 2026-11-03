@@ -10,6 +10,7 @@ All notable changes to MSFAuto are documented here.
 - Added recovery that marks interrupted dispatches uncertain, explicit operator reconciliation, optimistic concurrent-transition protection, and terminal-state enforcement.
 - Enforced one execution attempt per authorization with a database uniqueness constraint, preventing approval reuse for duplicate dispatch attempts.
 - No exploit RPC dispatch was added; uncertain attempts are never automatically retried.
+- GitHub Actions run #365 passed on Python 3.10, 3.12, and 3.14: 131 tests passed (plus 2 subtests); Ruff passed on all versions.
 
 
 ### Exploit review and action-specific authorization
