@@ -4,6 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Metasploit exploit catalog ingestion
+- Added the dedicated `module.exploits` RPC method and a metadata importer that fetches only explicitly mapped exploit modules.
+- Normalized framework rank, description, platform, architecture, target, required-option, reference, and check-support metadata into first-class exploit definitions.
+- Added mandatory explicit product aliases plus exact affected versions or advisory IDs; the importer does not infer applicability from module names or descriptions.
+- Added tests for RPC response validation, mapping validation, metadata normalization, module filtering, missing modules, and module-type rejection.
+- Imported definitions are currently returned to the caller; persistent catalog synchronization and automatic assessment-workflow integration remain future work.
+
 ### Exploit intelligence foundation
 - Added a first-class `msfauto/exploitation/` package with source-attributed exploit definitions and exact applicability matching against open service product aliases, affected versions, and explicitly linked vulnerability candidate IDs.
 - Added JSON catalog loading through `MSFAUTO_EXPLOIT_CATALOG`, stable opportunity identifiers, workspace-scoped opportunity persistence, and an `exploit_intelligence` assessment workflow stage.
