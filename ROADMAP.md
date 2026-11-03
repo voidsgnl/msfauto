@@ -69,6 +69,7 @@ OSV workflow integration is now active when explicit mappings are configured, bu
 - Authorization lifetime is bounded to a maximum of eight hours (15 minutes by default). Records are persisted per workspace; review history is append-only and authorizations can be revoked.
 - This milestone adds no exploit dispatch path. It establishes the review/authorization contract that a future dispatcher must revalidate immediately before dispatch.
 - Added tests for accepted/rejected review, review reuse against a changed target, scope changes, out-of-scope targets, safe-profile denial, expiry, persistence, and revocation.
+- GitHub Actions run #337 passed on Python 3.10, 3.12, and 3.14: 124 tests passed (plus 2 subtests); Ruff passed on all versions.
 ### Previous milestone: persistent Metasploit exploit catalog synchronization
 - Added the dedicated Metasploit RPC `module.exploits` client method with response validation and duplicate removal.
 - Added an importer that fetches detailed metadata only for explicitly mapped exploit modules and normalizes rank, description, platforms, architectures, targets, required options, references, and check support.
