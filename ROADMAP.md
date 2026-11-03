@@ -71,9 +71,9 @@ These foundations do **not** mean the platform already provides a complete vulne
 - Enumeration runs only for discovered open services whose Nmap fingerprint identifies HTTP/HTTPS, SSH, or FTP (including conventional FTP ports), and enforces saved address/port scope, bounded timeout, and bounded concurrency. Per-service failures are stored as observations rather than aborting the assessment.
 - FTP enumeration captures the server greeting and a bounded FEAT response; FEAT is optional, so a valid greeting remains useful when the command is unsupported.
 - SMB enumeration sends an unauthenticated SMB2 NEGOTIATE request only (no session setup or file operations) and records the selected dialect, security mode, server GUID, capabilities, and negotiated size limits.
-- FTP and SMB2 adapter tests use local fake servers. CI and full-suite verification for these additions are pending.
+- FTP and SMB2 adapter tests use local fake servers. CI run #217 passed on Python 3.10, 3.12, and 3.14 (77 tests; Ruff passed).
 - Added append-only, workspace-scoped service observation persistence and integrated enumeration as an assessment stage after discovery.
-- Added local fake-server tests for HTTP and SSH plus scope/port filtering tests. CI status for this new milestone is pending.
+- Added local fake-server tests for HTTP and SSH plus scope/port filtering tests. CI run #217 passed on Python 3.10, 3.12, and 3.14 (77 tests; Ruff passed).
 
 - Repository: `voidsgnl/msfauto`, working branch: `main`.
 - The local repository was replaced with a clean clone after local Git object corruption; the user reported **66 tests passing** on the recovered checkout before the most recent documentation changes.
@@ -82,7 +82,7 @@ These foundations do **not** mean the platform already provides a complete vulne
 - The previous roadmap also underrepresented exploitation. Exploitation and separately authorized post-exploitation assessment are now explicit core capabilities.
 - After each meaningful implementation milestone, update this roadmap and `CHANGELOG.md`; update `README.md` and architecture/workflow docs when product behavior or direction changes.
 - Record test and CI status accurately. Do not claim local tests passed unless actually run.
-- Latest service-fingerprint milestone: CI run #196 passed on commit 1ef0a086509cb88ad7ff2dc51613e2352c7af676; the test commit reported 69 passing tests. The subsequent HTTP/HTTPS and SSH enumeration milestone passed CI on commit `af791bad8975ff0e4cf4889bf1f59e02f0d44f14` with 75 tests and Ruff passing. FTP and SMB2 enumeration have now been added; verification is pending.
+- Latest service-fingerprint milestone: CI run #196 passed on commit 1ef0a086509cb88ad7ff2dc51613e2352c7af676; the test commit reported 69 passing tests. The subsequent HTTP/HTTPS and SSH enumeration milestone passed CI on commit `af791bad8975ff0e4cf4889bf1f59e02f0d44f14` with 75 tests and Ruff passing. FTP and SMB2 enumeration are implemented. CI run #217 passed on commit `65785106823f4f2e2c80376e48cab15e86b86e7e`: 77 tests passed and Ruff passed on Python 3.10, 3.12, and 3.14.
 
 ## Immediate next milestone: make the assessment engine useful
 
