@@ -58,7 +58,7 @@ Supporting platform capabilities:
 - [x] Assessment-run records, events, and immutable run-specific plan snapshots.
 - [x] CI coverage for Python 3.10, 3.12, and 3.14.
 
-OSV workflow integration is now active when explicit mappings are configured, but this does **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The current Metasploit execution adapter supports only its fixed passive-check allowlist; arbitrary exploit modules are not executable through the current workflow. Exploit catalog matching identifies and persists candidate opportunities. Explicit review/authorization and a durable execution state machine are implemented; actual exploit dispatch integration, framework reconciliation, and session handling remain outstanding.
+OSV workflow integration is active when explicit mappings are configured, but this does **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The Metasploit passive-check adapter still supports only its fixed allowlist. A separate exploit dispatcher now supports a narrow, catalog-bound TCP profile using only persisted RHOSTS/RPORT values after exact review/authorization and scope revalidation. Framework job polling/reconciliation, live isolated-lab validation, broader option/payload support, and session handling remain outstanding.
 
 ## Current handoff — 2026-11-04
 
@@ -81,6 +81,7 @@ OSV workflow integration is now active when explicit mappings are configured, bu
 - Recovery converts interrupted `dispatching` and `cancelling` records to `dispatch_uncertain`. Uncertain attempts cannot be dispatched again; operator reconciliation is required. A confirmed non-dispatch closes the attempt and requires a new review/authorization for another attempt.
 - Each authorization is single-use, enforced by a SQLite unique index, so one approval cannot create duplicate execution attempts.
 - Terminal states cannot be reopened.
+
 ### Previous milestone: exploit review and action-specific authorization
 - Added explicit accepted/rejected/deferred human review decisions bound to the exact workspace, opportunity, exploit module, target, port, protocol, product, and observed version.
 - Added short-lived authorization records that require an accepted review, explicit approver/rationale, dangerous-actions workspace profile, and an in-scope target/port.
