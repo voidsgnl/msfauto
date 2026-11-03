@@ -230,6 +230,17 @@ class WorkspaceStore:
                 """
             )
 
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS assessment_run_plans (
+                    run_id TEXT PRIMARY KEY,
+                    workspace TEXT NOT NULL,
+                    recommendations_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+
     def save(self, workspace: Workspace) -> None:
         policy = {
             "networks": [str(item) for item in workspace.policy.networks],
@@ -457,6 +468,61 @@ class WorkspaceStore:
             row = connection.execute(
                 "SELECT workspace, recommendations_json, created_at FROM assessment_plans WHERE workspace = ?",
                 (workspace,),
+            ).fetchone()
+        if row is None:
+            return None
+        recommendations = tuple(
+            Recommendation(**item) for item in json.loads(row["recommendations_json"])
+        )
+        return AssessmentPlan(row["workspace"], recommendations, row["created_at"])
+
+    def save_run_plan(self, run_id: str, plan: AssessmentPlan) -> None:
+        """Persist an immutable plan snapshot belonging to one assessment run."""
+        recommendations = [
+            {
+                "target": item.target,
+                "port": item.port,
+                "protocol": item.protocol,
+                "module_type": item.module_type,
+                "module_name": item.module_name,
+                "confidence": item.confidence,
+                "reason": item.reason,
+                "risk": item.risk,
+            }
+            for item in plan.recommendations
+        ]
+        with self._connect() as connection:
+            run = connection.execute(
+                "SELECT workspace FROM assessment_runs WHERE run_id = ?",
+                (run_id,),
+            ).fetchone()
+            if run is None:
+                raise ValueError(f"Assessment run not found: {run_id}")
+            if run["workspace"] != plan.workspace:
+                raise ValueError("Assessment plan workspace does not match its run.")
+            connection.execute(
+                """
+                INSERT INTO assessment_run_plans(
+                    run_id, workspace, recommendations_json, created_at
+                ) VALUES (?, ?, ?, ?)
+                """,
+                (
+                    run_id,
+                    plan.workspace,
+                    json.dumps(recommendations, sort_keys=True),
+                    plan.created_at,
+                ),
+            )
+
+    def get_run_plan(self, run_id: str) -> AssessmentPlan | None:
+        """Return the immutable plan snapshot for an assessment run."""
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT workspace, recommendations_json, created_at
+                FROM assessment_run_plans WHERE run_id = ?
+                """,
+                (run_id,),
             ).fetchone()
         if row is None:
             return None
