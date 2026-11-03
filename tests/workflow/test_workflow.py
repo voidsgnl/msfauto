@@ -36,7 +36,8 @@ class AssessmentWorkflowTests(unittest.TestCase):
         self.assertEqual(plan.workspace, "lab")
         self.assertEqual(self.store.get_run_plan(workflow.run_id), plan)
         self.assertEqual([event.stage for event in events], [
-            "discovery", "discovery", "planning", "planning", "completed"
+            "discovery", "discovery", "enumeration", "enumeration",
+            "planning", "planning", "completed"
         ])
         self.assertEqual(self.store.get_assessment_events(workflow.run_id), tuple(events))
 

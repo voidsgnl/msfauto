@@ -41,7 +41,7 @@ def _observation(
         kind=f"{protocol}_response",
         status=status,
         attributes=attributes,
-        confidence=confidence if status == "completed" else 0,
+        confidence=confidence if status in {"completed", "partial"} else 0,
         observed_at=_now(),
     )
 

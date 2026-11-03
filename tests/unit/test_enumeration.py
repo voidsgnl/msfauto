@@ -1,13 +1,18 @@
+import ipaddress
 import socket
+import tempfile
 import threading
 import unittest
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
 
 from msfauto.enumeration import enumerate_services
 from msfauto.enumeration.runner import _http_probe, _ssh_probe
 from msfauto.scope import build_policy
+from msfauto.storage import WorkspaceStore
 from msfauto.storage.models import Host, Service
+from msfauto.enumeration.models import ServiceObservation
 
 
 class _HTTPHandler(BaseHTTPRequestHandler):
@@ -62,7 +67,7 @@ class EnumerationTests(unittest.TestCase):
 
     def test_enumeration_respects_address_port_and_service_fingerprint(self):
         host = Host(
-            address=__import__("ipaddress").ip_address("127.0.0.1"),
+            address=ipaddress.ip_address("127.0.0.1"),
             status="up",
             services=(
                 Service(8080, "tcp", "open", name="http"),
@@ -92,6 +97,29 @@ class EnumerationTests(unittest.TestCase):
                 (),
             )
         probe.assert_not_called()
+
+
+    def test_observations_round_trip_through_workspace_store(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = WorkspaceStore(Path(directory) / "workspace.sqlite3")
+            observation = ServiceObservation(
+                observation_id="observation-1",
+                workspace="lab",
+                target="127.0.0.1",
+                port=443,
+                transport="tcp",
+                protocol="tls",
+                kind="tls_response",
+                status="completed",
+                attributes={"tls_version": "TLSv1.3", "cipher": "TEST"},
+                confidence=8,
+                observed_at="2026-11-03T00:00:00+00:00",
+            )
+            store.save_service_observations((observation,))
+            self.assertEqual(store.get_service_observations("lab"), (observation,))
+            self.assertEqual(
+                store.get_service_observations("another-workspace"), ()
+            )
 
     def test_invalid_worker_count_is_rejected(self):
         with self.assertRaises(ValueError):
