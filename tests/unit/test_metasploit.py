@@ -108,6 +108,33 @@ class MetasploitClientTests(unittest.TestCase):
         self.assertEqual(result["status"], "completed")
         self.assertEqual(transport.calls[-1], ("job.stop", ("token-1", "4")))
 
+    def test_job_list_normalizes_numeric_ids(self) -> None:
+        class JobsTransport(FakeTransport):
+            def request(self, method: str, arguments: tuple[Any, ...]) -> dict[str, Any]:
+                if method == "job.list":
+                    self.calls.append((method, arguments))
+                    return {"jobs": {"4": "Exploit: example", "9": "Auxiliary: scanner"}}
+                return super().request(method, arguments)
+
+        transport = JobsTransport()
+        client = MetasploitClient(transport, "user", "password")
+
+        self.assertEqual(
+            client.job_list(),
+            {4: "Exploit: example", 9: "Auxiliary: scanner"},
+        )
+        self.assertEqual(transport.calls[-1], ("job.list", ("token-1",)))
+
+    def test_job_list_rejects_invalid_framework_response(self) -> None:
+        class InvalidJobsTransport(FakeTransport):
+            def request(self, method: str, arguments: tuple[Any, ...]) -> dict[str, Any]:
+                if method == "job.list":
+                    return {"jobs": ["not", "a", "mapping"]}
+                return super().request(method, arguments)
+
+        with self.assertRaisesRegex(MetasploitError, "invalid job list"):
+            MetasploitClient(InvalidJobsTransport()).job_list()
+
     def test_module_metadata_round_trip(self) -> None:
         module = ModuleMetadata(
             workspace="lab",
