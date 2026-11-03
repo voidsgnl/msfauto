@@ -28,6 +28,11 @@ from .manager import (
     JobManager,
 )
 from .metasploit import SAFE_AUXILIARY_MODULES, MetasploitSafeAdapter
+from .outcome_validation import (
+    ExploitOutcomeValidationError,
+    ExploitOutcomeValidator,
+    TargetOutcomeAssessment,
+)
 from .output import (
     MAX_ADAPTER_OUTPUT_BYTES,
     AdapterOutputError,
@@ -44,6 +49,7 @@ __all__ = [
     "MAX_ADAPTER_OUTPUT_BYTES",
     "SAFE_AUXILIARY_MODULES",
     "TERMINAL_STATES",
+    "TargetOutcomeAssessment",
     "AdapterOutputError",
     "CheckRequest",
     "CheckResult",
@@ -53,6 +59,8 @@ __all__ = [
     "ExploitExecution",
     "ExploitExecutionError",
     "ExploitExecutionEvent",
+    "ExploitOutcomeValidationError",
+    "ExploitOutcomeValidator",
     "ExploitPollResult",
     "ExploitReconciliationError",
     "JobError",
