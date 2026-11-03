@@ -72,6 +72,7 @@ OSV workflow integration is now active when explicit mappings are configured, bu
 - Each authorization is single-use, enforced by a SQLite unique index, so one approval cannot be reused to create duplicate execution attempts.
 - Terminal states cannot be reopened. No exploit RPC dispatch was added.
 - Added lifecycle tests for durable transitions, stale scope, interrupted dispatch, uncertain reconciliation, non-retry behavior, and terminal-state enforcement.
+- GitHub Actions run #365 passed on Python 3.10, 3.12, and 3.14: 131 tests passed (plus 2 subtests); Ruff passed on all versions.
 
 ### Previous milestone: exploit review and action-specific authorization
 - Added explicit accepted/rejected/deferred human review decisions bound to the exact workspace, opportunity, exploit module, target, port, protocol, product, and observed version.
