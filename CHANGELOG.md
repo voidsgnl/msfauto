@@ -10,7 +10,8 @@ All notable changes to MSFAuto are documented here.
 - Initial support is restricted to TCP modules exposing `RHOSTS` and `RPORT`; the adapter supplies only those persisted target values and rejects additional required options.
 - Added a single-attempt `module.execute` RPC path. Confirmed acknowledgements persist the job ID/UUID; ambiguous errors transition to `dispatch_uncertain` and are never retried automatically.
 - Existing passive-check allowlist and execution path remain unchanged. No live exploit was run during implementation.
-- Added fake-RPC coverage for dispatch preflight, target-only options, catalog enforcement, unsupported options, acknowledged dispatch, and uncertain/non-retry behavior. CI verification is pending.
+- Added fake-RPC coverage for dispatch preflight, target-only options, catalog enforcement, unsupported options, acknowledged dispatch, and uncertain/non-retry behavior.
+- GitHub Actions run #391 passed on Python 3.10, 3.12, and 3.14: 137 tests passed (plus 2 subtests); Ruff passed on all versions.
 
 ### Durable exploit execution lifecycle
 - Added durable execution records and append-only transition events, separate from passive-check jobs.
