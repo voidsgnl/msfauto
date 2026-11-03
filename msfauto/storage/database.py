@@ -329,6 +329,17 @@ class WorkspaceStore:
             )
             connection.execute(
                 """
+                CREATE TABLE IF NOT EXISTS exploit_authorizations (
+                    authorization_id TEXT PRIMARY KEY,
+                    workspace TEXT NOT NULL,
+                    opportunity_id TEXT NOT NULL,
+                    authorization_json TEXT NOT NULL,
+                    revoked_at TEXT NOT NULL DEFAULT ''
+                )
+                """
+            )
+            connection.execute(
+                """
                 CREATE TABLE IF NOT EXISTS vulnerability_advisories (
                     advisory_id TEXT NOT NULL,
                     source TEXT NOT NULL,
@@ -1167,6 +1178,65 @@ class WorkspaceStore:
             for row in rows
         )
 
+
+    def save_exploit_authorization(self, authorization) -> None:
+        """Persist a short-lived authorization bound to one exploit opportunity."""
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO exploit_authorizations(
+                    authorization_id, workspace, opportunity_id, authorization_json,
+                    revoked_at
+                ) VALUES (?, ?, ?, ?, '')
+                """,
+                (
+                    authorization.authorization_id,
+                    authorization.workspace,
+                    authorization.opportunity_id,
+                    json.dumps(asdict(authorization), sort_keys=True),
+                ),
+            )
+
+    def get_exploit_authorization(self, authorization_id: str):
+        from ..exploitation.authorization import ExploitAuthorization
+
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT authorization_json, revoked_at FROM exploit_authorizations "
+                "WHERE authorization_id = ?",
+                (authorization_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        data = json.loads(row["authorization_json"])
+        data["revoked"] = bool(row["revoked_at"])
+        return ExploitAuthorization(**data)
+
+    def get_exploit_authorizations(self, workspace: str):
+        from ..exploitation.authorization import ExploitAuthorization
+
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT authorization_json, revoked_at FROM exploit_authorizations "
+                "WHERE workspace = ? ORDER BY rowid",
+                (workspace,),
+            ).fetchall()
+        records = []
+        for row in rows:
+            data = json.loads(row["authorization_json"])
+            data["revoked"] = bool(row["revoked_at"])
+            records.append(ExploitAuthorization(**data))
+        return tuple(records)
+
+    def revoke_exploit_authorization(self, authorization_id: str, revoked_at: str) -> None:
+        with self._connect() as connection:
+            cursor = connection.execute(
+                "UPDATE exploit_authorizations SET revoked_at = ? "
+                "WHERE authorization_id = ? AND revoked_at = ''",
+                (revoked_at, authorization_id),
+            )
+            if cursor.rowcount == 0:
+                raise KeyError(f"Active exploit authorization not found: {authorization_id}")
 
     def sync_exploit_catalog(
         self,
