@@ -32,6 +32,33 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - Work directly on `main`; do not create feature branches unless explicitly requested.
 - For every meaningful implementation change, update this roadmap and `CHANGELOG.md`, run the relevant tests and Ruff, and record the resulting commit and verification status here.
 
+## Verified workflow audit — 2026-11-03
+
+The current implementation has reusable capabilities, but the complete assessment lifecycle is not yet orchestrated as one run.
+
+### Confirmed integration boundaries
+
+- `AssessmentApplication.run_assessment()` persists a run and stage events, validates that scope exists, runs Nmap discovery, stores discovered hosts, builds a read-only plan, and marks the run completed or failed.
+- The orchestrator does not currently approve or execute recommendations. This separation is intentional and must remain explicit.
+- Per-action approvals and safe-check execution are initiated separately through the CLI's `--run-safe-checks` path.
+- Evidence is captured for safe-check outcomes, but evidence records are associated with a workspace and target rather than an assessment run.
+- Findings are workspace-scoped and evidence-linked, but are not associated with an assessment run.
+- Assessment plans are stored as the latest plan per workspace, not as immutable run-specific plan snapshots.
+- Reports aggregate workspace data; they do not yet identify one assessment run and its complete provenance.
+- The TUI currently exposes discovery, target browsing, plan display, and scope review; approval, execution, evidence/finding review, and report views are not connected to it.
+- Assessment runs and events are persisted, but there is no resume/recovery operation. A process interruption can leave a run in `running`; retry safety and duplicate-dispatch prevention are not implemented.
+
+### Implementation implications
+
+- [x] Audit the application-service and orchestrator boundaries.
+- [ ] Make plans immutable and addressable by assessment run.
+- [ ] Add explicit interruption/recovery semantics before supporting resume.
+- [ ] Associate downstream approvals, jobs, evidence, and reports with the originating run without weakening workspace isolation.
+- [ ] Add idempotency/dispatch tracking so a resumed workflow cannot repeat an operation whose dispatch outcome is uncertain.
+- [ ] Only then integrate approval-gated execution into the guided workflow and expose the lifecycle in the TUI.
+
+**Safety constraint:** never automatically resume or retry an operation whose dispatch state is unknown. Mark it for operator reconciliation instead. Existing scope checks, persisted action-specific approvals, adapter allowlists, timeouts, and output sanitization remain mandatory.
+
 ## Immediate next milestone: end-to-end assessment workflow
 
 **Goal:** connect the existing discovery, planning, approval, execution, evidence, findings, and reporting capabilities into one traceable operator workflow. Prioritize workflow correctness and recoverability over adding more scanners or check modules.
