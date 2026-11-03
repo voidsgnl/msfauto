@@ -8,14 +8,14 @@ All notable changes to MSFAuto are documented here.
 - Added normalized advisory and vulnerability-candidate records with source attribution, affected versions, prerequisites, references, and evidence requirements.
 - Added product/version matching against discovered open services, with exact version matches represented as candidates and missing/ambiguous versions retained as unverified.
 - Persisted workspace-scoped candidates with confidence, rationale, and evidence provenance. A service banner or version match cannot mark a vulnerability confirmed.
-- Added tests for exact and ambiguous matches, missing versions, unrelated products, closed services, provenance, confirmation guardrails, and persistence. CI run #231 passed on Python 3.10, 3.12, and 3.14 (79 tests; Ruff passed).
+- Added tests for exact and ambiguous matches, missing versions, unrelated products, closed services, provenance, confirmation guardrails, and persistence. CI verification is pending.
 
 
 ### TLS-only service inspection
 - Added a dedicated TLS handshake probe for TLS-wrapped non-HTTP services; it records negotiated protocol, cipher and strength, certificate fingerprint and size, ALPN selection, compression, and session reuse.
 - TLS inspection sends no application-layer request and does not treat an untrusted certificate as a failed handshake; trust validation is not part of this metadata-only probe.
 - Corrected service classification so TLS-wrapped services such as LDAPS are not automatically sent through the HTTP adapter.
-- Added a local TLS server fixture and tests for certificate capture and protocol dispatch. CI verification is pending.
+- Added a local TLS server fixture and tests for certificate capture and protocol dispatch. CI run #231 passed on Python 3.10, 3.12, and 3.14 (79 tests; Ruff passed).
 
 
 ### Verification
