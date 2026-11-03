@@ -24,6 +24,31 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Persisted evidence-linked findings
 - [x] Initial tests for CLI, discovery, planning, scope, jobs, approvals, evidence, findings, Metasploit metadata, and storage
 
+## Current handoff — 2026-11-03
+
+- Authoritative source: GitHub `main`; the local repository was replaced with a clean clone after local Git object corruption.
+- Recovery verification: the user confirmed the working tree is clean and reported **66 tests passing** with the reused `.venv`.
+- Latest known CI-verified commit: `76b025cf3237de37d896df759f981fb29b6428dd` (Python 3.10, 3.12, and 3.14 test/lint jobs passed).
+- Work directly on `main`; do not create feature branches unless explicitly requested.
+- For every meaningful implementation change, update this roadmap and `CHANGELOG.md`, run the relevant tests and Ruff, and record the resulting commit and verification status here.
+
+## Immediate next milestone: end-to-end assessment workflow
+
+**Goal:** connect the existing discovery, planning, approval, execution, evidence, findings, and reporting capabilities into one traceable operator workflow. Prioritize workflow correctness and recoverability over adding more scanners or check modules.
+
+- [ ] Map the current application-service and orchestrator boundaries; identify which stages are already connected and which are CLI-only or standalone.
+- [ ] Define explicit persisted stage transitions and terminal states for success, failure, cancellation, and interruption.
+- [ ] Connect scope preflight, discovery, analysis, and plan generation without bypassing existing authorization boundaries.
+- [ ] Connect operator review and per-action approval to the persisted plan; never infer approval from workflow progression.
+- [ ] Execute only supported checks whose persisted approval and scope are revalidated by the execution layer.
+- [ ] Associate execution results and evidence with the originating assessment run.
+- [ ] Present candidate findings for analyst review; never infer vulnerabilities from service banners, missing responses, or tool errors alone.
+- [ ] Generate a report from the completed assessment run, preserving workspace isolation and evidence-integrity checks.
+- [ ] Add deterministic end-to-end tests covering the successful path, rejected approval, scope mismatch, adapter failure, cancellation, and interrupted/resumed workflow behavior.
+- [ ] Verify that resuming a workflow cannot silently repeat an already-dispatched operation.
+
+**Acceptance criteria:** a deterministic, testable assessment can be followed from scope validation to report generation; every stage and decision is persisted; failures remain inspectable; approvals remain action-specific; and no execution path bypasses the existing scope, approval, timeout, or output-sanitization controls.
+
 ## Phase 0: Architecture and audit — complete
 
 - [x] Begin migration from flat modules into the supplied package architecture.
