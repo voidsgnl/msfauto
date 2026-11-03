@@ -71,6 +71,25 @@ Example entry:
 
 Matching requires an open service, an exact product alias, and either an exact affected version or a linked vulnerability candidate with an explicitly listed advisory ID. Results are persisted as identified exploit opportunities. The catalog is metadata only: it does not authorize, configure, or execute a module. Version ranges and fuzzy product matching are deliberately not inferred.
 
+
+### Importing exploit metadata from Metasploit
+
+MSFAuto can enumerate the connected framework's exploit modules through the dedicated Metasploit RPC `module.exploits` method and normalize module metadata (rank, description, platforms, architectures, targets, required options, references, and check support). Import is deliberately opt-in and restricted to modules listed in `MSFAUTO_EXPLOIT_PRODUCT_MAPPINGS`; the importer fetches detailed metadata only for those mapped modules.
+
+The mapping must explicitly identify products and at least one exact affected version or advisory ID. Module names, descriptions, platform labels, and references are not used to guess product identity or affected versions. Example:
+
+```json
+{
+  "windows/smb/example_module": {
+    "product_aliases": ["Example Server"],
+    "affected_versions": ["1.2.3"],
+    "advisory_ids": ["CVE-2026-12345"]
+  }
+}
+```
+
+Set that JSON as `MSFAUTO_EXPLOIT_PRODUCT_MAPPINGS` and call `import_metasploit_exploits(client)` from `msfauto.exploitation` using an authenticated `MetasploitClient`. The importer returns normalized catalog definitions; it does not execute modules, persist a refreshed catalog, or automatically change the assessment workflow's curated `MSFAUTO_EXPLOIT_CATALOG`. Catalog synchronization/persistence and workflow integration remain future work.
+
 **Important limitation:** the current execution adapter only supports its fixed passive-check allowlist. It does not yet provide a general exploit execution workflow, a complete vulnerability assessment engine, or post-exploitation/session management. These are planned core capabilities, not features that should be assumed to exist today.
 
 ## Interface direction
