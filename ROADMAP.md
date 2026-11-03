@@ -58,19 +58,27 @@ Supporting platform capabilities:
 - [x] Assessment-run records, events, and immutable run-specific plan snapshots.
 - [x] CI coverage for Python 3.10, 3.12, and 3.14.
 
-OSV workflow integration is active when explicit mappings are configured, but this does **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The Metasploit passive-check adapter still supports only its fixed allowlist. A separate exploit dispatcher now supports a narrow, catalog-bound TCP profile using only persisted RHOSTS/RPORT values after exact review/authorization and scope revalidation. Framework job polling/reconciliation, live isolated-lab validation, broader option/payload support, and session handling remain outstanding.
+OSV workflow integration is active when explicit mappings are configured, but this does **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The Metasploit passive-check adapter still supports only its fixed allowlist. A separate exploit dispatcher now supports a narrow, catalog-bound TCP profile using only persisted RHOSTS/RPORT values after exact review/authorization and scope revalidation. Framework job polling now reconciles UUID-specific terminal results without treating completion as proof of exploit success. Live isolated-lab validation, independent outcome validation, broader option/payload support, and session handling remain outstanding.
 
 ## Current handoff — 2026-11-04
 
-### Latest implementation milestone: controlled Metasploit exploit dispatch
+### Latest implementation milestone: Metasploit job polling and reconciliation
+- Added `MetasploitClient.job_list()` to validate and normalize the active framework job map.
+- Added `msfauto/execution/reconciliation.py` with `MetasploitExploitReconciler` and a structured `ExploitPollResult`.
+- Polling accepts only persisted `running` or `cancelling` records with both job ID and UUID references. Active jobs remain active; absent jobs are checked against the UUID-specific `module.results` endpoint.
+- Only recognized framework states (`completed`, `failed`, `cancelled`) transition to terminal lifecycle states. Missing results, unknown statuses, and contradictory running results remain unresolved and do not alter the execution record.
+- Framework completion is explicitly recorded as module execution completion, not proof of exploit success or security impact. Uncertain dispatch records remain on the separate operator-reconciliation path.
+- Added fake-RPC tests for active jobs, completed/failed/cancelled results, missing results, unknown statuses, and rejection of uncertain records.
+- CI verification is pending for this milestone.
+
+### Previous milestone: controlled Metasploit exploit dispatch
 - Added `msfauto/execution/exploit_dispatch.py`, a dedicated dispatcher that accepts only an existing `prepared` execution ID; callers cannot pass arbitrary module names, targets, ports, or option dictionaries.
-- Dispatch preflight reloads the stored opportunity and active workspace-synchronized catalog definition, confirms the exact exploit module identity, verifies live Metasploit module type, and inspects live options.
+- Dispatch preflight reloads the stored opportunity and active workspace-synchronized catalog definition, confirms exact module identity, verifies live Metasploit module type, and inspects live options.
 - The initial supported profile is deliberately narrow: TCP network exploit modules exposing both `RHOSTS` and `RPORT`, with no required options beyond those fields. The adapter supplies only the persisted authorized target and port; it does not expose payload, handler, listener, credential, or arbitrary datastore configuration.
-- The dispatcher uses the existing lifecycle transition to revalidate persisted opportunity, accepted review, authorization expiry/revocation, and current workspace scope immediately before dispatch intent is committed.
-- Added `MetasploitClient.execute_exploit()` for the exploit RPC method. The dispatcher performs one call only; a valid acknowledgement stores the framework job ID/UUID and moves to `running`.
-- Any exception after dispatch intent is persisted becomes `dispatch_uncertain` and raises `ExploitDispatchUncertain`. The adapter never retries. Preflight failures leave the execution in `prepared`.
-- Existing passive-check execution and its fixed auxiliary allowlist are unchanged. No live exploit was run as part of implementation.
-- Added fake-RPC tests for exact target-only options, catalog gating, unsupported required options, module-type rejection, acknowledged dispatch, and ambiguous RPC failure/non-retry.
+- The dispatcher revalidates persisted opportunity, accepted review, authorization expiry/revocation, and current workspace scope immediately before dispatch intent is committed.
+- Added an internal Metasploit RPC primitive for `module.execute`. The dispatcher performs one call only; a valid acknowledgement stores the framework job ID/UUID and moves to `running`.
+- Any exception after dispatch intent is persisted becomes `dispatch_uncertain`; the adapter never retries. Preflight failures leave the execution in `prepared`.
+- Existing passive-check execution and its fixed auxiliary allowlist are unchanged. No live exploit was run during implementation.
 - GitHub Actions run #391 passed on Python 3.10, 3.12, and 3.14: 137 tests passed (plus 2 subtests); Ruff passed on all versions.
 
 ### Previous milestone: durable exploit execution lifecycle
@@ -125,7 +133,9 @@ OSV workflow integration is active when explicit mappings are configured, but th
    - Represent expected outcomes and richer target compatibility metadata as catalog sources are integrated.
    - [x] Add explicit exploit review and action-specific authorization before dispatch.
    - [x] Build a durable execution lifecycle for preparation, dispatch intent, running, completion, failure, timeout, cancellation, and uncertain dispatch. Unknown outcomes remain uncertain and are never automatically retried.
-   - Next: add a controlled Metasploit dispatch adapter that can only consume a prepared lifecycle record and its exact authorization; begin with isolated lab validation and explicit module/target selection. Do not expose arbitrary module execution as a shortcut.
+   - [x] Add a controlled Metasploit dispatch adapter that consumes only prepared lifecycle records and their exact authorization; initial support is restricted to catalog-bound TCP modules using RHOSTS/RPORT.
+   - [x] Add framework job polling and UUID-specific result reconciliation; unknown or ambiguous outcomes remain unresolved and are never inferred.
+   - Next: validate dispatch and reconciliation against an isolated Metasploit lab, then implement independent exploit-outcome validation before adding session management.
 
 4. **Post-exploitation and session management**
    - Define session records and lifecycle separately from generic jobs.
@@ -149,7 +159,6 @@ OSV workflow integration is active when explicit mappings are configured, but th
    - Keep dense technical detail accessible without making the product a terminal emulator.
    - Do not begin by merely porting the current TUI screen layout.
 
-## Immediate next milestone: framework reconciliation and isolated-lab validation
+## Immediate next milestone: isolated-lab validation and independent outcome verification
 
-The narrow dispatch adapter is implemented and covered by fake-RPC tests, but has not been exercised against a live Metasploit lab. Next, validate it against an isolated lab target, then add durable framework job polling/reconciliation so `running` records can reach terminal outcomes without confusing framework completion with exploit success. Add session records only after job lifecycle and independent outcome validation are reliable. The initial dispatcher intentionally rejects modules that require payload, handler, listener, credentials, or any required option beyond RHOSTS/RPORT.
-
+The dispatcher and framework reconciler are implemented and covered by fake-RPC tests, but neither has been exercised against a live isolated Metasploit lab. Validate the supported RHOSTS/RPORT profile against a deliberately vulnerable lab target, verify job-list and UUID-result behavior on the connected Metasploit version, and capture the resulting evidence. Then add independent outcome checks so a completed framework run can be classified as successful, unsuccessful, or inconclusive based on target-side evidence. Do not equate a completed module job with exploit success. Session records and post-exploitation actions remain a later, separately authorized milestone.
