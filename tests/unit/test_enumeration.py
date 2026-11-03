@@ -1,5 +1,6 @@
 import ipaddress
 import socket
+import ssl
 import struct
 import tempfile
 import threading
@@ -10,7 +11,7 @@ from unittest.mock import patch
 
 from msfauto.enumeration import enumerate_services
 from msfauto.enumeration.models import ServiceObservation
-from msfauto.enumeration.runner import _ftp_probe, _http_probe, _smb_probe, _ssh_probe
+from msfauto.enumeration.runner import _ftp_probe, _http_probe, _smb_probe, _ssh_probe, _tls_probe
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
 from msfauto.storage.models import Host, Service
@@ -121,6 +122,61 @@ class EnumerationTests(unittest.TestCase):
             self.assertEqual(
                 store.get_service_observations("another-workspace"), ()
             )
+
+    def test_tls_probe_records_certificate_and_handshake_metadata(self):
+        fixture_dir = Path(__file__).parent / "fixtures"
+        with tempfile.TemporaryDirectory() as directory:
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            context.load_cert_chain(
+                fixture_dir / "tls-cert.pem",
+                fixture_dir / "tls-key.pem",
+            )
+            listener = socket.socket()
+            listener.bind(("127.0.0.1", 0))
+            listener.listen(1)
+            port = listener.getsockname()[1]
+
+            def serve():
+                conn, _ = listener.accept()
+                with conn:
+                    with context.wrap_socket(conn, server_side=True):
+                        pass
+                listener.close()
+
+            thread = threading.Thread(target=serve, daemon=True)
+            thread.start()
+            try:
+                service = Service(port, "tcp", "open", name="ldaps", tunnel="ssl")
+                observations = _tls_probe("lab", "127.0.0.1", service, 1.0)
+            finally:
+                thread.join(timeout=1)
+                listener.close()
+
+        self.assertEqual(observations[0].status, "completed")
+        attributes = observations[0].attributes
+        self.assertTrue(attributes["certificate_present"])
+        self.assertEqual(len(attributes["certificate_sha256"]), 64)
+        self.assertGreater(attributes["certificate_size"], 0)
+        self.assertIn(attributes["tls_version"], {"TLSv1.2", "TLSv1.3"})
+        self.assertTrue(attributes["cipher"])
+        self.assertIn("session_reused", attributes)
+
+    def test_tls_wrapped_non_http_service_is_not_misclassified_as_http(self):
+        service = Service(636, "tcp", "open", name="ldaps", tunnel="ssl")
+        host = Host(
+            address=ipaddress.ip_address("127.0.0.1"),
+            status="up",
+            services=(service,),
+        )
+        policy = build_policy(["127.0.0.1"], "636")
+        with patch(
+            "msfauto.enumeration.runner._tls_probe", return_value=()
+        ) as tls_probe, patch(
+            "msfauto.enumeration.runner._http_probe"
+        ) as http_probe:
+            enumerate_services("lab", (host,), policy)
+        tls_probe.assert_called_once()
+        http_probe.assert_not_called()
 
     def test_ftp_probe_records_greeting_and_features(self):
         listener = socket.socket()
