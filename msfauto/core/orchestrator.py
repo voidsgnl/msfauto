@@ -117,11 +117,17 @@ class AssessmentApplication:
                     "vulnerability_assessment",
                     "OSV assessment skipped: no explicit package identity mappings configured.",
                 )
-            exploit_catalog = load_exploit_catalog()
+            curated_catalog = load_exploit_catalog()
+            persisted_catalog = self.store.get_exploit_catalog(self.workspace.name)
+            catalog_by_id = {
+                item.exploit_id: item
+                for item in (*persisted_catalog, *curated_catalog)
+            }
+            exploit_catalog = tuple(catalog_by_id.values())
             if exploit_catalog:
                 transition(
                     "exploit_intelligence",
-                    "Matching discovered services and vulnerability candidates against the configured exploit catalog.",
+                    "Matching discovered services and vulnerability candidates against curated and synchronized exploit catalog entries.",
                 )
                 opportunities = match_exploits(
                     self.workspace.name,
@@ -140,7 +146,7 @@ class AssessmentApplication:
             else:
                 emit(
                     "exploit_intelligence",
-                    "Exploit matching skipped: no curated catalog configured.",
+                    "Exploit matching skipped: no curated or synchronized catalog entries are available.",
                 )
             completed = sum(item.status == "completed" for item in observations)
             failed = sum(item.status == "failed" for item in observations)
