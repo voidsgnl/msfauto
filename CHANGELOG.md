@@ -4,6 +4,10 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Roadmap and handoff
+- Recorded the clean-clone recovery state and the latest locally reported test result (66 passed).
+- Defined the next milestone: connect the existing assessment capabilities into a persisted, recoverable end-to-end workflow, with explicit acceptance criteria and safety invariants.
+
 ### Terminal interface transformation
 - Replaced the generic dashboard presentation with a compact, terminal-native assessment console.
 - Added a custom MSFAuto identity panel, persistent workspace and authorization context, compact action bar, color-coded activity feedback, target table, and structured detail panel.
