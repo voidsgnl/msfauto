@@ -124,7 +124,7 @@ class EnumerationTests(unittest.TestCase):
             )
 
     def test_tls_probe_records_certificate_and_handshake_metadata(self):
-        fixture_dir = Path(__file__).parent / "fixtures"
+        fixture_dir = Path(__file__).parents[1] / "fixtures"
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         context.load_cert_chain(
             fixture_dir / "tls-cert.pem",
