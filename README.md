@@ -120,7 +120,7 @@ Evidence is retained separately from interpreted findings. Tool errors, service 
 
 The active code is organized by responsibility: `core/` owns orchestration, `interface/` contains the current Textual prototype, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning and approval decisions, `execution/` owns approval-gated bounded checks, `evidence/` owns artifact collection and integrity verification, `findings/` owns evidence-linked assessment conclusions, `reporting/` exports reports, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models.
 
-The `enumeration/` package contains HTTP/HTTPS, SSH, and FTP adapters. SMB negotiation and deeper TLS certificate inspection are the next protocol-intelligence steps, followed by vulnerability intelligence, a first-class exploit catalog/execution engine, sessions, and validation.
+The `enumeration/` package contains HTTP/HTTPS, SSH, FTP, and unauthenticated SMB2 negotiation adapters. Deeper TLS certificate inspection is the next protocol-intelligence step, followed by vulnerability intelligence, a first-class exploit catalog/execution engine, sessions, and validation.
 
 ## Development
 
