@@ -1,5 +1,6 @@
 import ipaddress
 import socket
+import struct
 import tempfile
 import threading
 import unittest
@@ -9,7 +10,7 @@ from unittest.mock import patch
 
 from msfauto.enumeration import enumerate_services
 from msfauto.enumeration.models import ServiceObservation
-from msfauto.enumeration.runner import _ftp_probe, _http_probe, _ssh_probe
+from msfauto.enumeration.runner import _ftp_probe, _http_probe, _smb_probe, _ssh_probe
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
 from msfauto.storage.models import Host, Service
@@ -150,6 +151,51 @@ class EnumerationTests(unittest.TestCase):
         self.assertEqual(observations[0].status, "completed")
         self.assertIn("220 Test FTP ready", observations[0].attributes["welcome"])
         self.assertEqual(observations[0].attributes["features"], ["UTF8", "SIZE"])
+
+    def test_smb_probe_negotiates_without_authentication(self):
+        listener = socket.socket()
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+
+        def serve():
+            conn, _ = listener.accept()
+            with conn:
+                prefix = conn.recv(4)
+                request_size = int.from_bytes(prefix[1:], "big")
+                remaining = request_size
+                while remaining:
+                    chunk = conn.recv(remaining)
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                response = bytearray(128)
+                response[0:4] = b"\\xfeSMB"
+                struct.pack_into("<H", response, 4, 64)
+                struct.pack_into("<I", response, 8, 0)
+                struct.pack_into("<H", response, 12, 0)
+                struct.pack_into("<H", response, 64, 65)
+                struct.pack_into("<H", response, 66, 1)
+                struct.pack_into("<H", response, 68, 0x0300)
+                response[72:88] = bytes.fromhex(
+                    "00112233445566778899aabbccddeeff"
+                )
+                struct.pack_into("<IIII", response, 88, 0, 65536, 65536, 65536)
+                conn.sendall(b"\\x00" + len(response).to_bytes(3, "big") + response)
+            listener.close()
+
+        thread = threading.Thread(target=serve, daemon=True)
+        thread.start()
+        try:
+            service = Service(port, "tcp", "open", name="microsoft-ds")
+            observations = _smb_probe("lab", "127.0.0.1", service, 1.0)
+        finally:
+            thread.join(timeout=1)
+            listener.close()
+        self.assertEqual(observations[0].status, "completed")
+        self.assertEqual(observations[0].attributes["dialect"], "0x0300")
+        self.assertEqual(observations[0].attributes["max_read_size"], 65536)
 
     def test_invalid_worker_count_is_rejected(self):
         with self.assertRaises(ValueError):
