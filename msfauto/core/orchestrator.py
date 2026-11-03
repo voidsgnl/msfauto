@@ -6,6 +6,7 @@ from uuid import uuid4
 from ..assessment.planner import build_plan
 from ..discovery import DiscoveryError, run_nmap
 from ..enumeration import enumerate_services
+from ..exploitation.matcher import load_exploit_catalog, match_exploits
 from ..storage import WorkspaceStore
 from ..storage.models import (
     AssessmentEvent,
@@ -115,6 +116,31 @@ class AssessmentApplication:
                 emit(
                     "vulnerability_assessment",
                     "OSV assessment skipped: no explicit package identity mappings configured.",
+                )
+            exploit_catalog = load_exploit_catalog()
+            if exploit_catalog:
+                transition(
+                    "exploit_intelligence",
+                    "Matching discovered services and vulnerability candidates against the configured exploit catalog.",
+                )
+                opportunities = match_exploits(
+                    self.workspace.name,
+                    hosts,
+                    exploit_catalog,
+                    self.store.get_vulnerability_candidates(self.workspace.name),
+                )
+                if opportunities:
+                    self.store.save_exploit_opportunities(opportunities)
+                emit(
+                    "exploit_intelligence",
+                    f"Exploit intelligence matched {len(opportunities)} opportunity/ies "
+                    f"from {len(exploit_catalog)} catalog entry/entries. "
+                    "No module was approved or executed.",
+                )
+            else:
+                emit(
+                    "exploit_intelligence",
+                    "Exploit matching skipped: no curated catalog configured.",
                 )
             completed = sum(item.status == "completed" for item in observations)
             failed = sum(item.status == "failed" for item in observations)
