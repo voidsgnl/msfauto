@@ -2,6 +2,7 @@ from __future__ import annotations  # noqa: I001
 
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
+import sqlite3
 from uuid import uuid4
 
 from ..exploitation.authorization import (
@@ -146,13 +147,18 @@ def prepare_exploit_execution(
         created_at=timestamp,
         updated_at=timestamp,
     )
-    store.create_exploit_execution(
-        record,
-        ExploitExecutionEvent(
-            record.execution_id, timestamp, "", "prepared", actor.strip(),
-            "Execution prepared; no module has been dispatched.",
-        ),
-    )
+    try:
+        store.create_exploit_execution(
+            record,
+            ExploitExecutionEvent(
+                record.execution_id, timestamp, "", "prepared", actor.strip(),
+                "Execution prepared; no module has been dispatched.",
+            ),
+        )
+    except sqlite3.IntegrityError as exc:
+        raise ExploitExecutionError(
+            "This authorization has already been used for an execution attempt."
+        ) from exc
     return record
 
 
