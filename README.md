@@ -27,7 +27,8 @@ The repository currently provides foundations for:
 - Interactive workspace creation and startup.
 - SQLite-backed workspaces, discovery observations, append-only service enumeration observations, workspace-level plans, immutable run-specific plan snapshots, workflow runs, and events.
 - Explicit IP/CIDR scope and optional port allowlists.
-- Nmap discovery with bounded execution, XML output, and lightweight service/version detection (-sV --version-light).\n- Protocol-aware HTTP/HTTPS and SSH enumeration with bounded probes, structured observations, and TLS handshake metadata.
+- Nmap discovery with bounded execution, XML output, and lightweight service/version detection (-sV --version-light).
+- Protocol-aware HTTP/HTTPS, SSH, FTP, and SMB2 enumeration with bounded probes and structured observations; HTTPS records negotiated TLS handshake metadata.
 - Scope-enforced Nmap XML import and normalized host/service storage, including product/version, probe method/confidence, extra information, tunnel metadata, CPEs, source, and observation time.
 - Read-only Metasploit RPC module metadata, search, and option inspection.
 - Workspace-persisted module metadata and options.
