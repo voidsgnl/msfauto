@@ -59,7 +59,7 @@ Supporting platform capabilities:
 
 These foundations do **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The current Metasploit execution adapter supports only its fixed passive-check allowlist; arbitrary exploit modules are not executable through the current workflow.
 
-## Current handoff — 2026-11-03\n\n### Latest implementation milestone: Nmap service fingerprint enrichment\n- Nmap discovery now requests service/version detection with -sV --version-light, still constrained by the workspace target and port scope.\n- Parsed service records retain product/version, Nmap probe method and confidence, extra information, TLS tunnel metadata, CPE identifiers, source, and observation timestamp.\n- SQLite schema upgrades add these fields in place; legacy service rows receive conservative unknown/zero defaults and remain readable.\n- Added tests for enriched XML parsing, confidence validation, enriched persistence round-trip, legacy database migration, and version-detection command flags.\n- Remote CI status for this code change is pending until the new workflow run completes; local tests have not been run by the assistant.
+## Current handoff — 2026-11-03\n\n### Latest implementation milestone: Nmap service fingerprint enrichment\n- Nmap discovery now requests service/version detection with -sV --version-light, still constrained by the workspace target and port scope.\n- Parsed service records retain product/version, Nmap probe method and confidence, extra information, TLS tunnel metadata, CPE identifiers, source, and observation timestamp.\n- SQLite schema upgrades add these fields in place; legacy service rows receive conservative unknown/zero defaults and remain readable.\n- Added tests for enriched XML parsing, confidence validation, enriched persistence round-trip, legacy database migration, and version-detection command flags.\n- GitHub Actions run #196 passed all Python 3.10, 3.12, and 3.14 jobs after the code and documentation updates. The focused test commit reported 69 passing tests; local tests have not been run by the assistant.
 
 - Repository: `voidsgnl/msfauto`, working branch: `main`.
 - The local repository was replaced with a clean clone after local Git object corruption; the user reported **66 tests passing** on the recovered checkout before the most recent documentation changes.
@@ -67,7 +67,7 @@ These foundations do **not** mean the platform already provides a complete vulne
 - The previous roadmap incorrectly defined the product as terminal-first and treated the Textual interface as the intended experience. This has been corrected: the intended interface is graphical; the current Textual screen is a prototype to be superseded.
 - The previous roadmap also underrepresented exploitation. Exploitation and separately authorized post-exploitation assessment are now explicit core capabilities.
 - After each meaningful implementation milestone, update this roadmap and `CHANGELOG.md`; update `README.md` and architecture/workflow docs when product behavior or direction changes.
-- Record test and CI status accurately. Do not claim local tests passed unless actually run.
+- Record test and CI status accurately. Do not claim local tests passed unless actually run.\n- Latest service-fingerprint milestone: CI run #196 passed on commit 1ef0a086509cb88ad7ff2dc51613e2352c7af676; the test commit reported 69 passing tests.
 
 ## Immediate next milestone: make the assessment engine useful
 
