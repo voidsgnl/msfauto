@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from dataclasses import asdict
 from contextlib import contextmanager
 from ipaddress import ip_address
 from pathlib import Path
 
-from ..exploitation.models import ExploitOpportunity
+from ..exploitation.models import ExploitDefinition, ExploitOpportunity
 from .models import (
     ActionApproval,
     AssessmentEvent,
@@ -308,6 +309,21 @@ class WorkspaceStore:
                     rationale TEXT NOT NULL,
                     references_json TEXT NOT NULL,
                     created_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS exploit_catalog (
+                    workspace TEXT NOT NULL,
+                    exploit_id TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    module_name TEXT NOT NULL,
+                    mapping_json TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL,
+                    synced_at TEXT NOT NULL,
+                    is_active INTEGER NOT NULL DEFAULT 1,
+                    PRIMARY KEY(workspace, exploit_id)
                 )
                 """
             )
@@ -1150,3 +1166,112 @@ class WorkspaceStore:
             )
             for row in rows
         )
+
+
+    def sync_exploit_catalog(
+        self,
+        workspace: str,
+        definitions: tuple[ExploitDefinition, ...],
+        synced_at: str,
+    ) -> int:
+        """Refresh source metadata while preserving existing operator identity mappings.
+
+        Mapping changes are intentionally handled by update_exploit_catalog_mapping(),
+        not by a remote metadata refresh.
+        """
+        if not definitions:
+            return 0
+        mapping_fields = {"product_aliases", "affected_versions", "advisory_ids"}
+        with self._connect() as connection:
+            sources = {item.source for item in definitions}
+            for source in sources:
+                connection.execute(
+                    "UPDATE exploit_catalog SET is_active = 0 WHERE workspace = ? AND source = ?",
+                    (workspace, source),
+                )
+            for item in definitions:
+                data = asdict(item)
+                mapping = {
+                    key: list(data.pop(key))
+                    for key in mapping_fields
+                }
+                metadata = data
+                connection.execute(
+                    """
+                    INSERT INTO exploit_catalog(
+                        workspace, exploit_id, source, module_name,
+                        mapping_json, metadata_json, synced_at, is_active
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+                    ON CONFLICT(workspace, exploit_id) DO UPDATE SET
+                        source = excluded.source,
+                        module_name = excluded.module_name,
+                        metadata_json = excluded.metadata_json,
+                        synced_at = excluded.synced_at,
+                        is_active = 1
+                    """,
+                    (
+                        workspace,
+                        item.exploit_id,
+                        item.source,
+                        item.module_name,
+                        json.dumps(mapping),
+                        json.dumps(metadata),
+                        synced_at,
+                    ),
+                )
+        return len(definitions)
+
+    def get_exploit_catalog(
+        self, workspace: str
+    ) -> tuple[ExploitDefinition, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT * FROM exploit_catalog
+                WHERE workspace = ? AND is_active = 1
+                ORDER BY source, module_name
+                """,
+                (workspace,),
+            ).fetchall()
+        definitions = []
+        for row in rows:
+            mapping = json.loads(row["mapping_json"])
+            metadata = json.loads(row["metadata_json"])
+            definitions.append(
+                ExploitDefinition(
+                    **metadata,
+                    product_aliases=tuple(mapping["product_aliases"]),
+                    affected_versions=tuple(mapping["affected_versions"]),
+                    advisory_ids=tuple(mapping["advisory_ids"]),
+                )
+            )
+        return tuple(definitions)
+
+    def update_exploit_catalog_mapping(
+        self,
+        workspace: str,
+        exploit_id: str,
+        product_aliases: tuple[str, ...],
+        affected_versions: tuple[str, ...],
+        advisory_ids: tuple[str, ...] = (),
+    ) -> None:
+        """Explicitly update operator-controlled applicability mappings."""
+        if not product_aliases:
+            raise ValueError("At least one explicit product alias is required.")
+        if not affected_versions and not advisory_ids:
+            raise ValueError("Affected versions or advisory IDs are required.")
+        mapping = {
+            "product_aliases": list(product_aliases),
+            "affected_versions": list(affected_versions),
+            "advisory_ids": list(advisory_ids),
+        }
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE exploit_catalog SET mapping_json = ?
+                WHERE workspace = ? AND exploit_id = ? AND is_active = 1
+                """,
+                (json.dumps(mapping), workspace, exploit_id),
+            )
+            if cursor.rowcount == 0:
+                raise KeyError(f"Active exploit catalog entry not found: {exploit_id}")
