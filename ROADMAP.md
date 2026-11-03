@@ -13,6 +13,7 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Scope-enforced Nmap XML import and normalized service storage
 - [x] Bounded Nmap execution adapter
 - [x] Read-only Metasploit RPC module metadata integration
+- [x] Explicit RPC execution for allowlisted passive service-version checks, with stance validation, bounded polling, and timeout cancellation
 - [x] Module metadata and options persistence
 - [x] Explainable dry-run recommendations
 - [x] Bounded job manager with scope checks, cancellation, and concurrency limits
@@ -86,7 +87,8 @@ The roadmap preserves working foundations and prioritizes a dependable, explaina
 - [x] Cancellation and concurrency limits
 - [x] Add explicit per-action approval records
 - [x] Revalidate persisted approval and scope immediately before adapter dispatch
-- [ ] Add robust timeouts, output capture, and recoverable errors
+- [x] Add bounded execution timeouts, sanitized output capture, and structured RPC failure states for the allowlisted Metasploit adapter
+- [ ] Add recoverable job resumption and broader adapter error recovery
 - [ ] Keep high-impact actions disabled by default
 
 ## Phase 6: Sessions, evidence, and findings
