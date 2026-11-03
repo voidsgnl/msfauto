@@ -7,7 +7,6 @@ from ..assessment.planner import build_plan
 from ..discovery import DiscoveryError, run_nmap
 from ..enumeration import enumerate_services
 from ..storage import WorkspaceStore
-from ..vulnerability.workflow import assess_with_osv, load_package_mappings
 from ..storage.models import (
     AssessmentEvent,
     AssessmentPlan,
@@ -16,6 +15,7 @@ from ..storage.models import (
     Workspace,
     utc_now,
 )
+from ..vulnerability.workflow import assess_with_osv, load_package_mappings
 
 
 class WorkflowError(RuntimeError):
