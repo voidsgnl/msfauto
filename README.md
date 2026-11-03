@@ -19,7 +19,7 @@ The current MVP provides foundations for:
 - A bounded job manager with scope checks, cancellation, concurrency limits, and structured events.
 - Bounded safe-check adapter execution and persisted results.
 - An explicit Metasploit RPC execution path for a fixed allowlist of passive service-version checks; all other modules remain unsupported by this adapter.
-- A guided Textual interface with discovery, target browsing, target details, scope review, and read-only plan display.
+- A terminal-native Textual assessment console with compact workspace context, keyboard-first navigation, target tables, status feedback, selected-target details, and read-only plan display.
 - A persisted discovery-to-planning workflow with progress events and recorded failure states.
 - Per-recommendation approval decisions persisted in SQLite; safe checks require an exact `APPROVE` confirmation and approver identifier.
 - Execution-layer authorization gate that independently verifies the persisted approval, exact workspace/target/port/protocol/module/risk context, and scope both at submission and immediately before adapter dispatch.
@@ -27,7 +27,7 @@ The current MVP provides foundations for:
 - Persisted findings with severity, confidence, review status, and evidence references; evidence links are restricted to the same workspace.
 - Workspace-scoped JSON and Markdown reports covering scope, discovered assets, execution jobs, findings, and evidence integrity; common secret fields are redacted.
 
-The interface is an initial workflow-oriented release. It does not yet provide approval history beyond the latest decision per action, workflow resumption, evidence/finding views, automated evidence-to-finding correlation, HTML reports, and report views in the TUI. The execution layer now accepts bounded textual adapter output, applies best-effort secret redaction, and includes sanitized output in execution evidence. The job/check layer remains a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
+The interface is an initial terminal-native console release. It does not yet provide approval history beyond the latest decision per action, workflow resumption, evidence/finding views, automated evidence-to-finding correlation, HTML reports, and report views in the TUI. The execution layer now accepts bounded textual adapter output, applies best-effort secret redaction, and includes sanitized output in execution evidence. The job/check layer remains a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
 
 ## Planned experience
 
@@ -52,13 +52,13 @@ Install the project and its dependencies in a virtual environment, then run:
 python -m msfauto
 ```
 
-This opens the guided terminal interface. The equivalent module entry point is:
+This opens the terminal-native assessment console. It keeps the authorized workspace context visible, presents discovery results in a compact table, and provides keyboard shortcuts for the main workflow. The equivalent module entry point is:
 
 ```bash
 python -m msfauto.cli
 ```
 
-On first launch, enter authorized IP/CIDR targets and optional ports. The main interface provides Start assessment, Browse targets, Assessment plan, and Scope. Keyboard shortcuts are shown in the footer; D, T, P, S, and Q are also available.
+On first launch, enter authorized IP/CIDR targets and optional ports. The console provides Discover, Targets, Plan, and Scope actions. Keyboard shortcuts are shown in the footer: D, T, P, S, and Q.
 
 Existing command-line operations remain available:
 
