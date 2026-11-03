@@ -1,136 +1,96 @@
 # Assessment Workflow
 
-## Interaction model
+## Product workflow
 
-MSFAuto uses a guided, terminal-first workflow inspired by Wifite. The operator should not need to manually coordinate Nmap, analysis, planning, and result storage for a routine assessment.
+MSFAuto's primary workflow is an end-to-end security assessment, not a sequence of disconnected scanner commands. The intended primary interface is graphical. The current Textual console is a prototype and is not the target UI.
 
-The primary entry point is:
+The graphical experience should let an operator move between an assessment overview, assets, services, vulnerability candidates, exploit opportunities, execution/session activity, evidence, and findings while retaining clear context about the active workspace and authorized scope.
 
-```bash
-python -m msfauto
-```
+## Assessment stages
 
-The command-line interface remains available for scripting, imports, and advanced use. The interactive workflow is the primary user experience.
-
-## Main menu
-
-The main menu should remain small:
-
-```text
-MSFAuto — Automated Security Assessment
-
-Workspace: lab
-Scope:     192.168.1.0/24
-Status:    Ready
-
-[1] Start assessment
-[2] Browse targets
-[3] Assessment history
-[4] Reports and evidence
-[5] Settings
-[0] Exit
-```
-
-Scope and workspace status remain visible as context rather than becoming separate top-level destinations. Target-specific actions appear after a target is selected.
-
-## Guided assessment stages
-
-### 1. Workspace and scope
-
+### 1. Workspace and authorization scope
 - Select or create a workspace.
-- Display the authorized IP/CIDR scope and port restrictions.
-- Validate scope syntax and policy.
-- Require the operator to confirm the scope before starting a new assessment.
-- Never silently widen the saved scope.
+- Display authorized targets, exclusions, port restrictions, and permitted operation classes.
+- Validate scope and authorization before any assessment activity.
+- Never silently widen saved scope.
 
-### 2. Discovery
-
-- Check required tool availability and version.
-- Run bounded discovery using the configured discovery policy.
-- Display progress and meaningful stage messages.
-- Normalize and persist discovered hosts, ports, and services.
-- Allow import of existing Nmap XML as an alternate path.
+### 2. Reconnaissance and discovery
+- Check required tool availability and versions.
+- Discover in-scope hosts, ports, and initial services.
+- Normalize and persist observations with timestamps and source provenance.
+- Support Nmap XML import as an alternate path.
 - Handle timeouts, partial results, cancellation, and malformed imports.
 
-### 3. Target selection
+### 3. Service enumeration
+- Fingerprint identified services and gather useful product/version details.
+- Run appropriate service-specific enumeration checks.
+- Inspect relevant configuration and protocol behavior.
+- Preserve raw output as evidence and parse structured observations for later stages.
+- Clearly identify what remains unknown; do not overstate fingerprint confidence.
 
-Present discovered hosts in a compact table with address, hostname when known, open ports, service summary, and assessment status. The operator can select one target or explicitly choose a permitted multi-target workflow.
+### 4. Vulnerability assessment
+- Correlate observed products, versions, configurations, and behaviors with vulnerability knowledge.
+- Generate candidate weaknesses with supporting observations, prerequisites, confidence, and evidence gaps.
+- Distinguish detected facts, suspected weaknesses, and unverified hypotheses.
+- Do not declare a vulnerability solely from a banner or version string.
 
-### 4. Intelligence analysis
+### 5. Exploit intelligence and review
+- Match candidate exploit techniques against target observations.
+- Display affected products/versions, prerequisites, required options, compatibility, expected outcome, risk, and supporting references.
+- Explain why a technique is considered relevant and what evidence is missing.
+- Let the operator inspect, reject, defer, or authorize a specific action.
+- A candidate match must never be treated as proof of vulnerability or authorization.
 
-For each selected target:
+### 6. Exploit execution
+- Require explicit action-specific authorization and revalidate target scope immediately before dispatch.
+- Use supported integrations and bounded execution policies.
+- Record preparation, dispatch, running state, output, completion, failure, timeout, cancellation, and uncertain dispatch state.
+- Do not silently retry an operation with an uncertain dispatch outcome.
+- Clearly distinguish tool errors, failed attempts, successful execution, and verified security impact.
 
-- Summarize observed services and versions.
-- Correlate observations with relevant assessment capabilities.
-- Identify missing information and useful enumeration steps.
-- Show confidence and the evidence behind each inference.
-- Separate confirmed observations from potential weaknesses and unverified hypotheses.
+### 7. Post-exploitation assessment and sessions
+- Treat sessions as first-class records linked to the originating run, target, and operation.
+- Require separate authorization for post-exploitation assessment actions.
+- Limit activity to the approved assessment objective and preserve evidence of actions and results.
+- A session does not grant blanket permission for persistence, stealth, pivoting, or destructive activity.
 
-### 5. Assessment plan
+### 8. Validation, evidence, and findings
+- Validate suspected weaknesses and exploit outcomes using evidence-backed checks.
+- Store raw evidence separately from interpreted findings.
+- Preserve source, target, collection time, provenance, and integrity metadata.
+- Correlate observations across stages and identify confidence and limitations.
+- Findings must reference supporting evidence and remain reviewable by an analyst.
 
-Generate a plan automatically after analysis. Each recommendation should show:
+### 9. Analysis and reporting
+- Summarize assets, exposed services, assessment coverage, candidate vulnerabilities, exploit attempts, sessions, validated findings, and unresolved questions.
+- Prioritize findings using technical impact, confidence, exposure, and supporting evidence.
+- Generate reports from persisted assessment-run data with full provenance.
 
-- Target and service.
-- Purpose and expected outcome.
-- Supporting observation and rationale.
-- Tool or check required.
-- Prerequisites and required options.
-- Risk and operation class.
-- Confidence and limitations.
-- Whether approval is required.
+## Workflow state model
 
-The operator may inspect, exclude, or defer recommendations. Plan generation must not execute them.
+The lifecycle should represent at least:
+- Created and scope validated.
+- Discovering and discovery complete.
+- Enumerating and enumeration complete.
+- Assessing vulnerabilities and assessment results ready.
+- Awaiting exploit review/authorization.
+- Preparing, dispatched, running, and completed exploit attempts.
+- Awaiting separately authorized post-exploitation assessment.
+- Validating and correlating.
+- Completed, partially completed, failed, cancelled, or interrupted.
 
-### 6. Approval
-
-Before a safe check is dispatched, the CLI displays its target, port, module, risk, confidence, and rationale. The operator supplies an approver identifier and must type the exact word `APPROVE` for each recommendation. Every approval or rejection is persisted with a stable action identifier, timestamp, approver, and rationale. A decision applies only to that exact workspace/target/port/protocol/module/risk tuple; it does not authorize another recommendation. The current implementation stores the latest decision per action.
-
-### 7. Execution
-
-- Revalidate scope and policy immediately before execution.
-- Apply timeouts and concurrency limits.
-- Capture structured status, output, and errors.
-- Support cancellation where the underlying operation permits it.
-- Avoid automatic retries for operations that may have side effects unless idempotency is established.
-- Clearly distinguish completed, failed, skipped, cancelled, unsupported, and timed-out results.
-
-### 8. Findings and evidence
-
-Persist raw evidence separately from interpreted findings. The initial collector stores bounded local artifacts with source, target, collection time, metadata, and SHA-256 integrity verification. Findings are separate SQLite records with severity, confidence, status, and evidence references; references must belong to the same workspace. Supported finding states are potential, confirmed, unverified, and false positive. Execution outcomes such as failed, skipped, cancelled, and unsupported remain job outcomes, not vulnerability findings. A tool error or version-based match must not be reported as a confirmed vulnerability.
-
-### 9. Completion and reporting
-
-Show a concise summary of targets, checks, findings by status, failures, and report location. Reports should be generated from persisted assessment data and support JSON, Markdown, and HTML over time.
-
-## Workflow states
-
-Suggested assessment lifecycle:
-
-```text
-created
-  -> scope_validated
-  -> discovering
-  -> discovery_complete
-  -> analyzing
-  -> plan_ready
-  -> awaiting_approval
-  -> executing
-  -> collecting_evidence
-  -> completed
-```
-
-Terminal or recoverable states include `failed`, `cancelled`, and `partial`. The state model must preserve enough information to resume or explain an interrupted workflow.
+Dispatch uncertainty must be represented explicitly and require operator reconciliation. Do not infer that a timed-out client request means the remote operation never started.
 
 ## Interface behavior
 
-- Keep the normal path keyboard-driven and concise.
-- Show current workspace, scope, and operation state persistently.
-- Stream meaningful progress rather than flooding the screen with raw logs.
-- Make detailed command output available on demand.
-- Use consistent status labels and clear error messages.
-- Provide a reliable way to cancel or return without losing persisted work.
-- Avoid a separate informational dashboard that duplicates the workflow.
+- Use a graphical application as the primary experience.
+- Present assets, services, vulnerability candidates, exploit opportunities, execution/session activity, evidence, and findings as connected views.
+- Keep workspace and authorization context visible.
+- Show meaningful progress and actionable status, not raw log floods.
+- Make technical details, command output, and evidence accessible on demand.
+- Keep the interface independent of assessment decisions and execution enforcement; application services and execution adapters own those responsibilities.
+- The existing Textual prototype is not the design target and should not be expanded as the final UI.
 
-## Safety boundary
+## Authorization boundary
 
-Discovery results do not grant authorization. Every active operation must be covered by the workspace authorization policy and any required per-action approval. The application must not automatically launch exploit, credential attack, persistence, pivoting, destructive, or other high-impact actions.
+Discovery does not grant permission to exploit. Exploitation requires explicit action-specific authorization. Post-exploitation actions require separate authorization. Every execution path must enforce scope and authorization independently of the interface.
