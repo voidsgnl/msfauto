@@ -104,21 +104,21 @@ The review and authorization bind the workspace, opportunity, exploit ID, module
 
 These APIs establish a gate; they do not execute a module. The execution layer must revalidate authorization immediately before dispatch and must never automatically retry an operation whose dispatch outcome is uncertain.
 
-### Durable exploit execution lifecycle
+### Controlled Metasploit exploit dispatch
 
-The separate lifecycle API records an authorized attempt without broadening the existing passive-check adapter:
+The durable lifecycle now has a narrow Metasploit dispatch adapter:
 
-- `prepare_exploit_execution(store, opportunity, authorization, actor=...)` verifies that the opportunity, accepted review, authorization, and workspace scope still agree, then persists a `prepared` record.
-- `begin_exploit_dispatch(store, execution_id, opportunity, actor=...)` re-reads the stored opportunity, authorization, review, and current workspace policy immediately before moving the record to `dispatching`. This transition is committed before any future external RPC call.
-- Record confirmed framework activity with `mark_exploit_running(...)`; record terminal outcomes with `finish_exploit_execution(...)`.
-- If the RPC response is lost or dispatch cannot be confirmed, call `mark_dispatch_uncertain(...)`. Do not retry that execution.
-- `recover_interrupted_dispatches(...)` converts persisted `dispatching` or `cancelling` records to `dispatch_uncertain` after process recovery.
-- Resolve uncertainty only through an explicit operator reconciliation using `reconcile_uncertain_execution(...)`. A confirmed non-dispatch closes the attempt; another attempt requires a new review and authorization.
+- Prepare an execution with `prepare_exploit_execution(store, opportunity, authorization, actor=...)`. This verifies the persisted opportunity, accepted review, authorization, and workspace scope.
+- `MetasploitExploitDispatcher(store, client).dispatch(execution_id, actor=...)` accepts only the identifier of an existing `prepared` record. It does not accept arbitrary module names, targets, ports, or option dictionaries from the caller.
+- Before dispatch, the adapter requires the exact module to exist in the active workspace-synchronized exploit catalog, confirms the live framework module type is `exploit`, and inspects its current options.
+- The initial adapter supports only network modules exposing both `RHOSTS` and `RPORT`. It supplies exactly those two values from the persisted authorized opportunity. Modules with any other required option are rejected before dispatch; payload, handler, listener, and arbitrary datastore configuration are not exposed.
+- The lifecycle revalidates the persisted opportunity, accepted review, authorization expiry/revocation, and current scope, then persists `dispatching` before the one external RPC request.
+- A confirmed RPC acknowledgement stores the framework job ID and UUID and transitions to `running`. Any exception after dispatch intent is persisted is treated as ambiguous, transitions to `dispatch_uncertain`, and raises `ExploitDispatchUncertain`. The adapter never retries an uncertain attempt.
+- A non-prepared execution, stale or missing catalog entry, changed opportunity, invalid module type, unsupported required option, or authorization/scope failure is blocked before the exploit RPC call.
 
-Execution records and append-only transition events are stored in SQLite. State changes use an optimistic compare-and-swap update so concurrent operators cannot silently overwrite one another. A database uniqueness constraint makes each authorization single-use: it can create only one execution attempt. Terminal records cannot be reopened. This milestone provides the durable lifecycle contract only: it does not send exploit RPC requests or make arbitrary modules executable.
+The execution record and append-only transition events remain stored in SQLite. Each authorization is single-use. Process recovery and explicit operator reconciliation remain required when dispatch outcome is uncertain. The adapter does not poll results, stop jobs, create sessions, or validate security impact; those are separate follow-on capabilities. The existing passive-check allowlist and execution path remain unchanged.
 
-
-**Important limitation:** the current execution adapter only supports its fixed passive-check allowlist. It does not yet provide a general exploit execution workflow, a complete vulnerability assessment engine, or post-exploitation/session management. These are planned core capabilities, not features that should be assumed to exist today.
+**Important limitation:** exploit dispatch is now implemented for this narrow target-only option profile, but it is not a general-purpose Metasploit console. Modules requiring payload selection, handlers, local listener configuration, credentials, or additional options are deliberately unsupported. A returned job/UUID confirms framework acceptance, not exploit success or security impact. Complete vulnerability validation and post-exploitation/session management remain outstanding.
 
 ## Interface direction
 
@@ -198,7 +198,7 @@ Evidence is retained separately from interpreted findings. Tool errors, service 
 
 The active code is organized by responsibility: `core/` owns orchestration, `interface/` contains the current Textual prototype, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning and approval decisions, `execution/` owns approval-gated bounded checks, `evidence/` owns artifact collection and integrity verification, `findings/` owns evidence-linked assessment conclusions, `reporting/` exports reports, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models.
 
-The `enumeration/` package contains HTTP/HTTPS, SSH, FTP, unauthenticated SMB2 negotiation, and TLS-only handshake/certificate fingerprint adapters. The `vulnerability/` package contains evidence-aware matching, the OSV.dev client, and assessment-workflow integration. The `exploitation/` package contains a curated exploit catalog, exact applicability matching, and persisted opportunity records; it does not dispatch modules. Configure mappings with `MSFAUTO_OSV_PACKAGE_MAPPINGS` as a JSON array; each entry requires `product`, `package_name`, and `ecosystem`, with optional `product_aliases`. Example: `[{"product":"OpenSSH","package_name":"openssh-server","ecosystem":"Ubuntu:22.04"}]`. The workflow queries each distinct package/ecosystem/version once, persists advisories and candidates, and continues when an individual OSV query fails. No package identity is inferred from a service banner. Bulk feed synchronization, ecosystem-specific local range evaluation, and broader CPE/package identity coverage remain future work; the exploit catalog/execution engine remains a separate first-class subsystem.
+The `enumeration/` package contains HTTP/HTTPS, SSH, FTP, unauthenticated SMB2 negotiation, and TLS-only handshake/certificate fingerprint adapters. The `vulnerability/` package contains evidence-aware matching, the OSV.dev client, and assessment-workflow integration. The `exploitation/` package contains a curated exploit catalog, exact applicability matching, and persisted opportunity records. The separate `execution/exploit_dispatch.py` adapter handles the narrow, authorization-bound Metasploit dispatch path. Configure mappings with `MSFAUTO_OSV_PACKAGE_MAPPINGS` as a JSON array; each entry requires `product`, `package_name`, and `ecosystem`, with optional `product_aliases`. Example: `[{"product":"OpenSSH","package_name":"openssh-server","ecosystem":"Ubuntu:22.04"}]`. The workflow queries each distinct package/ecosystem/version once, persists advisories and candidates, and continues when an individual OSV query fails. No package identity is inferred from a service banner. Bulk feed synchronization, ecosystem-specific local range evaluation, and broader CPE/package identity coverage remain future work; the exploit catalog/execution engine remains a separate first-class subsystem.
 
 ## Development
 
