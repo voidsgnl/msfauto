@@ -9,7 +9,8 @@ All notable changes to MSFAuto are documented here.
 - Polling checks active job IDs first, then queries UUID-specific module results when the job is no longer listed.
 - Only recognized completed, failed, and cancelled framework outcomes close an execution. Missing results, unknown statuses, and contradictory states remain unresolved.
 - Framework completion is not treated as proof of exploit success or security impact.
-- Added fake-RPC tests for active jobs, terminal outcomes, missing/unknown results, and uncertain-dispatch restrictions. CI verification is pending.
+- Added fake-RPC tests for active jobs, terminal outcomes, missing/unknown results, and uncertain-dispatch restrictions.
+- GitHub Actions run #406 passed on Python 3.10, 3.12, and 3.14: 146 tests passed (plus 2 subtests); Ruff passed on all versions.
 
 ### Controlled Metasploit exploit dispatch
 - Added a separate dispatcher that accepts only a persisted `prepared` execution ID and resolves the exact target, port, module, authorization, and workspace from storage.
