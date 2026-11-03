@@ -36,7 +36,7 @@ def run_nmap(
     if not targets:
         raise DiscoveryError("Cannot discover without an authorized target scope.")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    command = [scanner, "-n", "-oX", str(output_path)]
+    command = [scanner, "-n", "-sV", "--version-light", "-oX", str(output_path)]
     if policy.allowed_ports:
         command.extend(["-p", ",".join(str(port) for port in policy.allowed_ports)])
     command.extend(targets)
@@ -77,13 +77,19 @@ def run_nmap(
     )
 
 
-def parse_nmap_xml(path: Path, policy: ScopePolicy) -> tuple[Host, ...]:
+def parse_nmap_xml(
+    path: Path,
+    policy: ScopePolicy,
+    source: str = "nmap",
+    observed_at: str | None = None,
+) -> tuple[Host, ...]:
     try:
         root = ET.parse(path).getroot()
     except (OSError, ET.ParseError) as exc:
         raise DiscoveryError(f"Unable to read discovery XML: {path}") from exc
 
     hosts: list[Host] = []
+    observation_time = observed_at or _utc_now()
     for host_node in root.findall("host"):
         address_node = host_node.find("address")
         if address_node is None or not address_node.get("addr"):
@@ -110,6 +116,13 @@ def parse_nmap_xml(path: Path, policy: ScopePolicy) -> tuple[Host, ...]:
                 continue
             state_node = port_node.find("state")
             service_node = port_node.find("service")
+            confidence_text = service_node.get("conf", "0") if service_node is not None else "0"
+            try:
+                confidence = int(confidence_text)
+            except ValueError as exc:
+                raise DiscoveryError("Discovery XML contains an invalid service confidence.") from exc
+            if not 0 <= confidence <= 10:
+                raise DiscoveryError("Discovery XML service confidence must be between 0 and 10.")
             services.append(
                 Service(
                     port=port,
@@ -118,6 +131,14 @@ def parse_nmap_xml(path: Path, policy: ScopePolicy) -> tuple[Host, ...]:
                     name=service_node.get("name", "") if service_node is not None else "",
                     product=service_node.get("product", "") if service_node is not None else "",
                     version=service_node.get("version", "") if service_node is not None else "",
+                    method=service_node.get("method", "unknown") if service_node is not None else "unknown",
+                    confidence=confidence,
+                    extra_info=service_node.get("extrainfo", "") if service_node is not None else "",
+                    tunnel=service_node.get("tunnel", "") if service_node is not None else "",
+                    cpes=tuple(node.text or "" for node in service_node.findall("cpe") if node.text)
+                    if service_node is not None else (),
+                    source=source,
+                    observed_at=observation_time,
                 )
             )
         hosts.append(Host(address=address, status=status, hostname=hostname, services=tuple(services)))
