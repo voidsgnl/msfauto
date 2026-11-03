@@ -62,6 +62,13 @@ OSV workflow integration is active when explicit mappings are configured, but th
 
 ## Current handoff — 2026-11-04
 
+### Latest implementation milestone: Metasploit MessagePack response compatibility
+- Diagnosed the live RPC authentication failure against the connected local Metasploit service: authentication succeeded, but the framework encoded response keys and text values as MessagePack binary strings.
+- Updated the MessagePack transport to recursively decode valid UTF-8 binary strings in map keys and values before processing responses. Non-UTF-8 binary values remain bytes.
+- Error maps are normalized before error extraction, so byte-encoded framework errors retain their useful messages.
+- Added regression tests covering byte-encoded authentication tokens, nested module-result data, and RPC error responses.
+- Local live authentication confirmed that Metasploit returns a successful token; the code fix is committed, but CI and the user's post-update live integration check are still pending.
+
 ### Latest implementation milestone: Metasploit job polling and reconciliation
 - Added `MetasploitClient.job_list()` to validate and normalize the active framework job map.
 - Added `msfauto/execution/reconciliation.py` with `MetasploitExploitReconciler` and a structured `ExploitPollResult`.
