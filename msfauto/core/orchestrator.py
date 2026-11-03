@@ -7,6 +7,7 @@ from ..assessment.planner import build_plan
 from ..discovery import DiscoveryError, run_nmap
 from ..enumeration import enumerate_services
 from ..storage import WorkspaceStore
+from ..vulnerability.workflow import assess_with_osv, load_package_mappings
 from ..storage.models import (
     AssessmentEvent,
     AssessmentPlan,
@@ -92,6 +93,29 @@ class AssessmentApplication:
                 self.workspace.name, hosts, self.workspace.policy
             )
             self.store.save_service_observations(observations)
+            mappings = load_package_mappings()
+            if mappings:
+                transition("vulnerability_assessment", "Querying OSV for explicitly mapped package identities.")
+                summary = assess_with_osv(
+                    self.workspace.name,
+                    hosts,
+                    mappings,
+                    self.store,
+                    on_event=lambda message: emit("vulnerability_assessment", message),
+                )
+                emit(
+                    "vulnerability_assessment",
+                    f"OSV assessment: {summary.mapped_services} mapped service(s), "
+                    f"{summary.unique_queries} unique query/queries, "
+                    f"{summary.successful_queries} successful, {summary.failed_queries} failed, "
+                    f"{summary.advisories} advisory record(s), "
+                    f"{len(summary.candidates)} candidate(s).",
+                )
+            else:
+                emit(
+                    "vulnerability_assessment",
+                    "OSV assessment skipped: no explicit package identity mappings configured.",
+                )
             completed = sum(item.status == "completed" for item in observations)
             failed = sum(item.status == "failed" for item in observations)
             emit(
