@@ -59,7 +59,7 @@ Supporting platform capabilities:
 
 These foundations do **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The current Metasploit execution adapter supports only its fixed passive-check allowlist; arbitrary exploit modules are not executable through the current workflow.
 
-## Current handoff — 2026-11-03
+## Current handoff — 2026-11-03\n\n### Latest implementation milestone: Nmap service fingerprint enrichment\n- Nmap discovery now requests service/version detection with -sV --version-light, still constrained by the workspace target and port scope.\n- Parsed service records retain product/version, Nmap probe method and confidence, extra information, TLS tunnel metadata, CPE identifiers, source, and observation timestamp.\n- SQLite schema upgrades add these fields in place; legacy service rows receive conservative unknown/zero defaults and remain readable.\n- Added tests for enriched XML parsing, confidence validation, enriched persistence round-trip, legacy database migration, and version-detection command flags.\n- Remote CI status for this code change is pending until the new workflow run completes; local tests have not been run by the assistant.
 
 - Repository: `voidsgnl/msfauto`, working branch: `main`.
 - The local repository was replaced with a clean clone after local Git object corruption; the user reported **66 tests passing** on the recovered checkout before the most recent documentation changes.
@@ -76,11 +76,10 @@ The next implementation work should improve actual assessment capability, not ad
 ### Work sequence
 
 1. **Service enumeration foundation**
-   - Audit current Nmap discovery and stored service observations.
-   - Identify gaps between basic port/service detection and useful service enumeration.
-   - Define normalized observations, source provenance, timestamps, and confidence.
-   - Add extensible service-specific enumeration integrations with bounded execution and explicit scope checks.
+   - Extend the Nmap fingerprint baseline with structured service-specific enumeration adapters (begin with HTTP/HTTPS and SSH).
+   - Define probe/result contracts, normalized attributes, source provenance, timestamps, and confidence.
    - Preserve raw tool output as evidence while parsing structured observations for later stages.
+   - Keep per-service timeouts, output limits, concurrency bounds, and scope/port checks.
 
 2. **Vulnerability assessment foundation**
    - Build a capability/knowledge model that maps observed products, versions, configurations, and behaviors to candidate checks.
@@ -129,10 +128,10 @@ The next implementation work should improve actual assessment capability, not ad
 ### Phase 1 — Reconnaissance and service enumeration
 - [x] Nmap discovery and XML import.
 - [x] Normalized host and service persistence.
-- [ ] Improve service fingerprinting and version identification.
+- [x] Enable bounded Nmap service/version detection (-sV --version-light).\n- [x] Preserve product, version, probe method, confidence, extra info, tunnel, CPEs, source, and observation timestamp in normalized service records.\n- [ ] Expand fingerprinting with service-specific enumeration beyond Nmap version probes.
 - [ ] Add service-specific enumeration modules and structured parsers.
-- [ ] Preserve observation provenance and confidence.
-- [ ] Add tests using representative service responses and malformed/partial results.
+- [x] Preserve observation provenance and confidence for Nmap service fingerprints.
+- [x] Add representative Nmap XML parsing, malformed-confidence, persistence round-trip, and legacy-schema migration tests.\n- [ ] Add service-specific enumeration integrations and tests for partial protocol responses.
 
 ### Phase 2 — Vulnerability assessment
 - [ ] Establish a vulnerability knowledge and check registry.
