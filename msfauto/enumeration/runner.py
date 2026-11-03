@@ -50,8 +50,13 @@ def _observation(
 
 def _is_http(service: Service) -> bool:
     label = f"{service.name} {service.product}".lower()
+    return service.protocol.lower() == "tcp" and "http" in label
+
+
+def _is_tls(service: Service) -> bool:
+    tls_ports = {443, 465, 636, 853, 989, 990, 992, 993, 995, 5061, 8443}
     return service.protocol.lower() == "tcp" and (
-        "http" in label or service.tunnel.lower() == "ssl"
+        service.tunnel.lower() == "ssl" or service.port in tls_ports
     )
 
 
@@ -145,6 +150,53 @@ def _smb_probe(
         return (
             _observation(
                 workspace, target, service, "smb", "failed",
+                {"error_type": type(exc).__name__},
+            ),
+        )
+
+
+def _tls_probe(
+    workspace: str, target: str, service: Service, timeout: float
+) -> tuple[ServiceObservation, ...]:
+    """Inspect a TLS endpoint without sending application-layer requests."""
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    try:
+        with socket.create_connection(
+            (target, service.port), timeout=timeout
+        ) as raw_socket:
+            raw_socket.settimeout(timeout)
+            with context.wrap_socket(
+                raw_socket, server_hostname=target
+            ) as tls_socket:
+                cipher = tls_socket.cipher()
+                certificate = tls_socket.getpeercert(binary_form=True) or b""
+                attributes: dict[str, object] = {
+                    "tls_version": tls_socket.version() or "",
+                    "cipher": cipher[0] if cipher else "",
+                    "cipher_protocol": cipher[1] if cipher else "",
+                    "cipher_bits": cipher[2] if cipher else 0,
+                    "certificate_present": bool(certificate),
+                    "certificate_sha256": (
+                        hashlib.sha256(certificate).hexdigest()
+                        if certificate else ""
+                    ),
+                    "certificate_size": len(certificate),
+                    "alpn_protocol": tls_socket.selected_alpn_protocol() or "",
+                    "compression": tls_socket.compression() or "",
+                    "session_reused": tls_socket.session_reused,
+                }
+        return (
+            _observation(
+                workspace, target, service, "tls", "completed", attributes,
+                confidence=9 if attributes["certificate_present"] else 5,
+            ),
+        )
+    except (OSError, ssl.SSLError, TimeoutError, ValueError) as exc:
+        return (
+            _observation(
+                workspace, target, service, "tls", "failed",
                 {"error_type": type(exc).__name__},
             ),
         )
@@ -312,6 +364,8 @@ def enumerate_services(
                 tasks.append(("ftp", str(host.address), service))
             elif _is_smb(service):
                 tasks.append(("smb", str(host.address), service))
+            elif _is_tls(service):
+                tasks.append(("tls", str(host.address), service))
 
     results: list[ServiceObservation] = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -322,6 +376,7 @@ def enumerate_services(
                 "ssh": _ssh_probe,
                 "ftp": _ftp_probe,
                 "smb": _smb_probe,
+                "tls": _tls_probe,
             }[kind]
             futures.append(executor.submit(probe, workspace, target, service, timeout))
         for future in as_completed(futures):
