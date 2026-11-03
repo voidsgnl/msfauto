@@ -42,6 +42,35 @@ The repository currently provides foundations for:
 - Workspace-scoped JSON and Markdown reports.
 - Assessment-run records, workflow events, and immutable run-specific plan snapshots.
 
+### Exploit intelligence catalog
+
+A curated catalog can be supplied through `MSFAUTO_EXPLOIT_CATALOG` as a JSON array. Each entry requires `exploit_id`, `source`, `module_type` (must be `exploit`), `module_name`, `name`, `product_aliases`, and `affected_versions`. Optional metadata includes advisory IDs, rank, platforms, architectures, target names, prerequisites, required options, references, check support, and risk.
+
+Example entry:
+
+```json
+[
+  {
+    "exploit_id": "vendor-or-catalog:unique-id",
+    "source": "maintained-catalog-name",
+    "module_type": "exploit",
+    "module_name": "platform/service/example",
+    "name": "Example exploit metadata",
+    "product_aliases": ["Example Server"],
+    "affected_versions": ["1.2.3"],
+    "advisory_ids": ["CVE-2099-1234"],
+    "rank": "excellent",
+    "prerequisites": ["Required target condition"],
+    "required_options": ["RHOSTS", "RPORT"],
+    "references": ["https://example.invalid/advisory"],
+    "check_supported": false,
+    "risk": "high"
+  }
+]
+```
+
+Matching requires an open service, an exact product alias, and either an exact affected version or a linked vulnerability candidate with an explicitly listed advisory ID. Results are persisted as identified exploit opportunities. The catalog is metadata only: it does not authorize, configure, or execute a module. Version ranges and fuzzy product matching are deliberately not inferred.
+
 **Important limitation:** the current execution adapter only supports its fixed passive-check allowlist. It does not yet provide a general exploit execution workflow, a complete vulnerability assessment engine, or post-exploitation/session management. These are planned core capabilities, not features that should be assumed to exist today.
 
 ## Interface direction
@@ -122,7 +151,7 @@ Evidence is retained separately from interpreted findings. Tool errors, service 
 
 The active code is organized by responsibility: `core/` owns orchestration, `interface/` contains the current Textual prototype, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning and approval decisions, `execution/` owns approval-gated bounded checks, `evidence/` owns artifact collection and integrity verification, `findings/` owns evidence-linked assessment conclusions, `reporting/` exports reports, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models.
 
-The `enumeration/` package contains HTTP/HTTPS, SSH, FTP, unauthenticated SMB2 negotiation, and TLS-only handshake/certificate fingerprint adapters. The `vulnerability/` package contains evidence-aware matching, the OSV.dev client, and assessment-workflow integration. Configure mappings with `MSFAUTO_OSV_PACKAGE_MAPPINGS` as a JSON array; each entry requires `product`, `package_name`, and `ecosystem`, with optional `product_aliases`. Example: `[{"product":"OpenSSH","package_name":"openssh-server","ecosystem":"Ubuntu:22.04"}]`. The workflow queries each distinct package/ecosystem/version once, persists advisories and candidates, and continues when an individual OSV query fails. No package identity is inferred from a service banner. Bulk feed synchronization, ecosystem-specific local range evaluation, and broader CPE/package identity coverage remain future work; the exploit catalog/execution engine remains a separate first-class subsystem.
+The `enumeration/` package contains HTTP/HTTPS, SSH, FTP, unauthenticated SMB2 negotiation, and TLS-only handshake/certificate fingerprint adapters. The `vulnerability/` package contains evidence-aware matching, the OSV.dev client, and assessment-workflow integration. The `exploitation/` package contains a curated exploit catalog, exact applicability matching, and persisted opportunity records; it does not dispatch modules. Configure mappings with `MSFAUTO_OSV_PACKAGE_MAPPINGS` as a JSON array; each entry requires `product`, `package_name`, and `ecosystem`, with optional `product_aliases`. Example: `[{"product":"OpenSSH","package_name":"openssh-server","ecosystem":"Ubuntu:22.04"}]`. The workflow queries each distinct package/ecosystem/version once, persists advisories and candidates, and continues when an individual OSV query fails. No package identity is inferred from a service banner. Bulk feed synchronization, ecosystem-specific local range evaluation, and broader CPE/package identity coverage remain future work; the exploit catalog/execution engine remains a separate first-class subsystem.
 
 ## Development
 
