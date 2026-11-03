@@ -89,6 +89,43 @@ class AssessmentWorkflowTests(unittest.TestCase):
             for event in self.store.get_assessment_events(workflow.run_id)
         ))
 
+    def test_workflow_uses_persisted_synchronized_catalog(self) -> None:
+        run = DiscoveryRun(
+            "lab", "nmap", ("nmap",), str(Path(self.directory.name) / "scan.xml"),
+            "completed", "started", "finished",
+        )
+        host = Host(
+            ip_address("192.168.56.11"),
+            "up",
+            services=(Service(
+                port=22, protocol="tcp", state="open", product="OpenSSH", version="8.2p1"
+            ),),
+        )
+        definition = ExploitDefinition(
+            exploit_id="metasploit:workflow-test",
+            source="metasploit-rpc",
+            module_type="exploit",
+            module_name="multi/ssh/persisted_test",
+            name="Persisted catalog test",
+            product_aliases=("OpenSSH",),
+            affected_versions=("8.2p1",),
+        )
+        self.store.sync_exploit_catalog(
+            "lab", (definition,), "2026-11-03T12:00:00+00:00"
+        )
+        with (
+            patch("msfauto.core.orchestrator.run_nmap", return_value=(run, (host,))),
+            patch("msfauto.core.orchestrator.enumerate_services", return_value=()),
+            patch("msfauto.core.orchestrator.load_package_mappings", return_value=()),
+            patch("msfauto.core.orchestrator.load_exploit_catalog", return_value=()),
+        ):
+            workflow, _ = self.application.run_assessment()
+
+        opportunities = self.store.get_exploit_opportunities("lab")
+        self.assertEqual(workflow.status, "completed")
+        self.assertEqual(len(opportunities), 1)
+        self.assertEqual(opportunities[0].exploit_id, "metasploit:workflow-test")
+
     def test_run_plan_rejects_missing_or_mismatched_run(self) -> None:
         plan = AssessmentPlan("lab", ())
 
