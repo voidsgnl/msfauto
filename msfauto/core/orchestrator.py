@@ -88,7 +88,12 @@ class AssessmentApplication:
             emit("discovery", f"Discovery completed; {len(hosts)} host(s) imported.")
             transition("planning", "Building a read-only plan from stored observations.")
             plan = self.build_assessment_plan()
-            emit("planning", f"Read-only plan generated with {len(plan.recommendations)} recommendation(s).")
+            self.store.save_run_plan(run_id, plan)
+            emit(
+                "planning",
+                f"Read-only plan generated with {len(plan.recommendations)} recommendation(s); "
+                "run-specific snapshot persisted.",
+            )
             now = utc_now()
             current = AssessmentRun(
                 run_id, self.workspace.name, "completed", "completed",
