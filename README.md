@@ -29,6 +29,7 @@ The repository currently provides foundations for:
 - Explicit IP/CIDR scope and optional port allowlists.
 - Nmap discovery with bounded execution, XML output, and lightweight service/version detection (-sV --version-light).
 - Protocol-aware HTTP/HTTPS, SSH, FTP, SMB2, and TLS-only enumeration with bounded probes and structured observations; TLS captures handshake metadata and certificate fingerprints.
+- Initial vulnerability advisory/candidate models and evidence-aware matching, plus an OSV.dev package-version query adapter and persistent advisory registry. OSV queries require an explicit package name and ecosystem; service banners are not used to guess OS package identities.
 - Scope-enforced Nmap XML import and normalized host/service storage, including product/version, probe method/confidence, extra information, tunnel metadata, CPEs, source, and observation time.
 - Read-only Metasploit RPC module metadata, search, and option inspection.
 - Workspace-persisted module metadata and options.
@@ -121,7 +122,7 @@ Evidence is retained separately from interpreted findings. Tool errors, service 
 
 The active code is organized by responsibility: `core/` owns orchestration, `interface/` contains the current Textual prototype, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning and approval decisions, `execution/` owns approval-gated bounded checks, `evidence/` owns artifact collection and integrity verification, `findings/` owns evidence-linked assessment conclusions, `reporting/` exports reports, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models.
 
-The `enumeration/` package contains HTTP/HTTPS, SSH, FTP, unauthenticated SMB2 negotiation, and TLS-only handshake/certificate fingerprint adapters. Additional HTTP technology detection is the remaining service-intelligence step before vulnerability intelligence, a first-class exploit catalog/execution engine, sessions, and validation.
+The `enumeration/` package contains HTTP/HTTPS, SSH, FTP, unauthenticated SMB2 negotiation, and TLS-only handshake/certificate fingerprint adapters. The `vulnerability/` package contains evidence-aware matching and the OSV.dev advisory ingestion client. The current OSV integration queries explicitly identified package ecosystems; it is not yet a bulk feed synchronizer or an automatically inferred service-to-package mapper. The next steps are ecosystem-aware version-range evaluation, broader CPE/package identity mapping, and assessment-workflow integration, while keeping the exploit catalog/execution engine separate.
 
 ## Development
 
