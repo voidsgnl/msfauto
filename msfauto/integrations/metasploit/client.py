@@ -161,6 +161,23 @@ class MetasploitClient:
             raise MetasploitError("Metasploit did not return a module execution UUID.")
         return job_id, run_uuid
 
+    def job_list(self) -> dict[int, str]:
+        """Return active framework jobs as numeric IDs and their descriptions."""
+        response = self._request("job.list")
+        jobs = response.get("jobs", response)
+        if not isinstance(jobs, dict):
+            raise MetasploitError("Metasploit RPC returned an invalid job list.")
+        normalized: dict[int, str] = {}
+        for raw_id, description in jobs.items():
+            try:
+                job_id = int(raw_id)
+            except (TypeError, ValueError) as exc:
+                raise MetasploitError("Metasploit RPC returned an invalid job identifier.") from exc
+            if job_id < 0 or not isinstance(description, str):
+                raise MetasploitError("Metasploit RPC returned invalid job metadata.")
+            normalized[job_id] = description
+        return normalized
+
     def module_results(self, run_uuid: str) -> dict[str, Any]:
         if not run_uuid:
             raise MetasploitError("A Metasploit module execution UUID is required.")
