@@ -114,8 +114,17 @@ def prepare_exploit_execution(
     review = store.get_exploit_review(authorization.review_id)
     if review is None or review.decision != "accepted":
         raise ExploitExecutionError("The accepted review linked to this authorization is unavailable.")
-    if review.workspace != opportunity.workspace or review.opportunity_id != opportunity.opportunity_id:
-        raise ExploitExecutionError("The stored review does not belong to this opportunity.")
+    review_identity = (
+        review.workspace, review.opportunity_id, review.exploit_id, review.module_name,
+        review.target, review.port, review.protocol, review.product, review.observed_version,
+    )
+    opportunity_identity = (
+        opportunity.workspace, opportunity.opportunity_id, opportunity.exploit_id,
+        opportunity.module_name, opportunity.target, opportunity.port,
+        opportunity.protocol, opportunity.product, opportunity.observed_version,
+    )
+    if authorization.review_id != review.review_id or review_identity != opportunity_identity:
+        raise ExploitExecutionError("The stored review does not match the authorized opportunity.")
     try:
         validate_authorization(authorization, opportunity, workspace.policy)
     except ExploitAuthorizationError as exc:
@@ -233,6 +242,20 @@ def begin_exploit_dispatch(
     authorization = store.get_exploit_authorization(record.authorization_id)
     if authorization is None:
         raise ExploitExecutionError("Persisted authorization is unavailable.")
+    review = store.get_exploit_review(record.review_id)
+    if review is None or review.decision != "accepted":
+        raise ExploitExecutionError("The accepted review is no longer available.")
+    review_identity = (
+        review.workspace, review.opportunity_id, review.exploit_id, review.module_name,
+        review.target, review.port, review.protocol, review.product, review.observed_version,
+    )
+    opportunity_identity = (
+        opportunity.workspace, opportunity.opportunity_id, opportunity.exploit_id,
+        opportunity.module_name, opportunity.target, opportunity.port,
+        opportunity.protocol, opportunity.product, opportunity.observed_version,
+    )
+    if authorization.review_id != review.review_id or review_identity != opportunity_identity:
+        raise ExploitExecutionError("The stored review no longer matches the authorized opportunity.")
     try:
         validate_authorization(authorization, opportunity, workspace.policy)
     except ExploitAuthorizationError as exc:
