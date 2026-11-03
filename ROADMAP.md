@@ -62,7 +62,7 @@ These foundations do **not** mean the platform already provides a complete vulne
 
 ## Current handoff — 2026-11-03
 
-### Latest implementation milestone: HTTP/HTTPS, SSH, FTP, and SMB2 service enumeration
+### Latest implementation milestone: HTTP/HTTPS, SSH, FTP, SMB2, and TLS-only inspection
 - Nmap discovery now requests service/version detection with -sV --version-light, still constrained by the workspace target and port scope.
 - Parsed service records retain product/version, Nmap probe method and confidence, extra information, TLS tunnel metadata, CPE identifiers, source, and observation timestamp.
 - SQLite schema upgrades add these fields in place; legacy service rows receive conservative unknown/zero defaults and remain readable.
@@ -72,6 +72,7 @@ These foundations do **not** mean the platform already provides a complete vulne
 - FTP enumeration captures the server greeting and a bounded FEAT response; FEAT is optional, so a valid greeting remains useful when the command is unsupported.
 - SMB enumeration sends an unauthenticated SMB2 NEGOTIATE request only (no session setup or file operations) and records the selected dialect, security mode, server GUID, capabilities, and negotiated size limits.
 - FTP and SMB2 adapter tests use local fake servers. CI run #217 passed on Python 3.10, 3.12, and 3.14 (77 tests; Ruff passed).
+- Added a local TLS server fixture and tests for certificate fingerprint capture and TLS-vs-HTTP dispatch. CI verification for this milestone is pending.
 - Added append-only, workspace-scoped service observation persistence and integrated enumeration as an assessment stage after discovery.
 - Added local fake-server tests for HTTP and SSH plus scope/port filtering tests. CI run #217 passed on Python 3.10, 3.12, and 3.14 (77 tests; Ruff passed).
 
@@ -82,7 +83,7 @@ These foundations do **not** mean the platform already provides a complete vulne
 - The previous roadmap also underrepresented exploitation. Exploitation and separately authorized post-exploitation assessment are now explicit core capabilities.
 - After each meaningful implementation milestone, update this roadmap and `CHANGELOG.md`; update `README.md` and architecture/workflow docs when product behavior or direction changes.
 - Record test and CI status accurately. Do not claim local tests passed unless actually run.
-- Latest service-fingerprint milestone: CI run #196 passed on commit 1ef0a086509cb88ad7ff2dc51613e2352c7af676; the test commit reported 69 passing tests. The subsequent HTTP/HTTPS and SSH enumeration milestone passed CI on commit `af791bad8975ff0e4cf4889bf1f59e02f0d44f14` with 75 tests and Ruff passing. FTP and SMB2 enumeration are implemented. CI run #217 passed on commit `65785106823f4f2e2c80376e48cab15e86b86e7e`: 77 tests passed and Ruff passed on Python 3.10, 3.12, and 3.14.
+- Latest service-fingerprint milestone: CI run #196 passed on commit 1ef0a086509cb88ad7ff2dc51613e2352c7af676; the test commit reported 69 passing tests. The subsequent HTTP/HTTPS and SSH enumeration milestone passed CI on commit `af791bad8975ff0e4cf4889bf1f59e02f0d44f14` with 75 tests and Ruff passing. FTP and SMB2 enumeration are implemented. CI run #217 passed on commit `65785106823f4f2e2c80376e48cab15e86b86e7e`: 77 tests passed and Ruff passed on Python 3.10, 3.12, and 3.14. TLS-only inspection has been implemented; its CI result is pending.
 
 ## Immediate next milestone: make the assessment engine useful
 
@@ -91,7 +92,7 @@ The next implementation work should improve actual assessment capability, not ad
 ### Work sequence
 
 1. **Service enumeration foundation**
-   - Extend the Nmap fingerprint baseline with structured service-specific enumeration adapters (HTTP/HTTPS, SSH, FTP, and SMB2 negotiation are implemented; deeper TLS inspection remains).
+   - Extend the Nmap fingerprint baseline with structured service-specific enumeration adapters (HTTP/HTTPS, SSH, FTP, SMB2 negotiation, and TLS-only handshake inspection are implemented; HTTP technology detection remains).
    - Define probe/result contracts, normalized attributes, source provenance, timestamps, and confidence.
    - Preserve raw tool output as evidence while parsing structured observations for later stages.
    - Keep per-service timeouts, output limits, concurrency bounds, and scope/port checks.
@@ -146,14 +147,14 @@ The next implementation work should improve actual assessment capability, not ad
 - [x] Enable bounded Nmap service/version detection (-sV --version-light).
 - [x] Preserve product, version, probe method, confidence, extra info, tunnel, CPEs, source, and observation timestamp in normalized service records.
 - [x] Add HTTP/HTTPS and SSH service-specific enumeration beyond Nmap version probes.
-- [ ] Expand protocol coverage to TLS-only and additional HTTP technology detection.
+- [ ] Expand protocol coverage to additional HTTP technology detection.
 - [x] Add bounded FTP greeting and FEAT enumeration with structured observations.
 - [x] Add unauthenticated SMB2 NEGOTIATE enumeration for TCP/445 and explicitly fingerprinted SMB services.
 - [x] Add HTTP/HTTPS and SSH enumeration modules and structured observations.
 - [x] Preserve observation provenance and confidence for Nmap service fingerprints.
 - [x] Add representative Nmap XML parsing, malformed-confidence, persistence round-trip, and legacy-schema migration tests.
 - [x] Add HTTP and SSH adapter tests, including partial SSH banners and scope filtering.
-- [ ] Add TLS-only certificate inspection and deeper TLS metadata collection.
+- [x] Add TLS-only certificate fingerprint inspection and deeper handshake metadata collection.
 - [x] Add SMB2 negotiation enumeration and a local fake-server test.
 - [x] Add FTP enumeration and a local fake-server test.
 
