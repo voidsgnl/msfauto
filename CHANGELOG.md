@@ -4,6 +4,16 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Assessment run provenance
+- Added immutable, run-specific SQLite snapshots of generated assessment plans while preserving the existing workspace-level latest-plan API.
+- Validated that a snapshot belongs to an existing assessment run in the same workspace.
+- Added workflow tests for run-plan retrieval and rejection of missing or cross-workspace run references.
+
+### Assessment workflow audit
+- Audited the current application-service, orchestrator, CLI, storage, and reporting boundaries.
+- Documented that approval, safe-check execution, evidence, findings, and reporting remain separate from the discovery-and-planning run.
+- Recorded the missing run-level provenance and interruption-recovery safeguards as prerequisites to end-to-end orchestration.
+
 ### Assessment workflow audit
 - Audited the current application-service, orchestrator, CLI, storage, and reporting boundaries.
 - Documented that approval, safe-check execution, evidence, findings, and reporting remain separate from the discovery-and-planning run.
