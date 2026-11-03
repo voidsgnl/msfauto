@@ -49,6 +49,59 @@ class MetasploitClientTests(unittest.TestCase):
         with self.assertRaisesRegex(MetasploitError, "no token"):
             MetasploitClient(NoTokenTransport(), "user", "password")
 
+    def test_auxiliary_execution_uses_flat_options_and_returns_run_identifiers(self) -> None:
+        class ExecutionTransport(FakeTransport):
+            def request(self, method: str, arguments: tuple[str, ...]) -> dict[str, Any]:
+                self.calls.append((method, arguments))
+                if method == "module.execute":
+                    return {"job_id": 4, "uuid": "run-uuid"}
+                return super().request(method, arguments)
+
+        transport = ExecutionTransport()
+        client = MetasploitClient(transport, "user", "password")
+
+        job_id, run_uuid = client.execute_auxiliary(
+            "scanner/ssh/ssh_version",
+            {"RHOSTS": "192.0.2.10", "RPORT": 2222},
+        )
+
+        self.assertEqual((job_id, run_uuid), (4, "run-uuid"))
+        self.assertEqual(
+            transport.calls[-1],
+            (
+                "module.execute",
+                (
+                    "token-1",
+                    "auxiliary",
+                    "scanner/ssh/ssh_version",
+                    {"RHOSTS": "192.0.2.10", "RPORT": 2222},
+                ),
+            ),
+        )
+
+    def test_execution_requires_valid_identifiers(self) -> None:
+        class InvalidExecutionTransport(FakeTransport):
+            def request(self, method: str, arguments: tuple[str, ...]) -> dict[str, Any]:
+                if method == "auth.login":
+                    return {"token": "token-1"}
+                if method == "module.execute":
+                    return {"job_id": "not-an-integer"}
+                return {}
+
+        client = MetasploitClient(InvalidExecutionTransport(), "user", "password")
+        with self.assertRaisesRegex(MetasploitError, "valid job identifier"):
+            client.execute_auxiliary("scanner/ssh/ssh_version", {"RPORT": 22})
+
+    def test_module_results_and_stop_job_use_authenticated_rpc(self) -> None:
+        transport = FakeTransport()
+        client = MetasploitClient(transport, "user", "password")
+
+        result = client.module_results("run-uuid")
+        client.stop_job(4)
+
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(transport.calls[-1], ("job.stop", ("token-1", "4")))
+
     def test_module_metadata_round_trip(self) -> None:
         module = ModuleMetadata(
             workspace="lab",
