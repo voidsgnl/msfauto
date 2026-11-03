@@ -12,7 +12,7 @@ class FakeTransport:
     def __init__(self) -> None:
         self.calls: list[tuple[str, tuple[str, ...]]] = []
 
-    def request(self, method: str, arguments: tuple[str, ...]) -> dict[str, Any]:
+    def request(self, method: str, arguments: tuple[Any, ...]) -> dict[str, Any]:
         self.calls.append((method, arguments))
         if method == "auth.login":
             return {"token": "token-1"}
@@ -20,6 +20,12 @@ class FakeTransport:
             return {"modules": [{"type": "auxiliary", "name": "scanner/example"}]}
         if method == "module.options":
             return {"options": {"RHOSTS": {"required": True}}}
+        if method == "module.execute":
+            return {"job_id": 4, "uuid": "run-uuid"}
+        if method == "module.results":
+            return {"status": "completed", "result": None}
+        if method == "job.stop":
+            return {"result": "success"}
         return {"name": "example", "description": "safe metadata"}
 
 
