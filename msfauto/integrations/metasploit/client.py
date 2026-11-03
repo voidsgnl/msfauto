@@ -61,7 +61,7 @@ class MsgpackHttpTransport:
 
 
 class MetasploitClient:
-    """Metasploit MessagePack RPC client for metadata and bounded auxiliary checks."""
+    """Metasploit MessagePack RPC client for metadata and adapter primitives."""
 
     def __init__(self, transport: RpcTransport, username: str = "", password: str = "") -> None:
         self.transport = transport
@@ -141,7 +141,7 @@ class MetasploitClient:
             raise MetasploitError("Metasploit did not return a module execution UUID.")
         return job_id, run_uuid
 
-    def execute_exploit(
+    def _execute_exploit(
         self, module_name: str, options: dict[str, str | int | float | bool | None]
     ) -> tuple[int, str]:
         """Dispatch one exploit module using a caller-constructed, scalar datastore."""
