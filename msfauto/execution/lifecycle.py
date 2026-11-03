@@ -1,8 +1,8 @@
 from __future__ import annotations  # noqa: I001
 
+import sqlite3
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
-import sqlite3
 from uuid import uuid4
 
 from ..exploitation.authorization import (
