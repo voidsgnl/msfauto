@@ -4,6 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### TLS-only service inspection
+- Added a dedicated TLS handshake probe for TLS-wrapped non-HTTP services; it records negotiated protocol, cipher and strength, certificate fingerprint and size, ALPN selection, compression, and session reuse.
+- TLS inspection sends no application-layer request and does not treat an untrusted certificate as a failed handshake; trust validation is not part of this metadata-only probe.
+- Corrected service classification so TLS-wrapped services such as LDAPS are not automatically sent through the HTTP adapter.
+- Added a local TLS server fixture and tests for certificate capture and protocol dispatch. CI verification is pending.
+
+
 ### Verification
 - GitHub Actions run #217 passed on Python 3.10, 3.12, and 3.14: 77 tests passed and Ruff passed.
 
