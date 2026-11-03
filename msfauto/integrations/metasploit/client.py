@@ -141,6 +141,26 @@ class MetasploitClient:
             raise MetasploitError("Metasploit did not return a module execution UUID.")
         return job_id, run_uuid
 
+    def execute_exploit(
+        self, module_name: str, options: dict[str, str | int | float | bool | None]
+    ) -> tuple[int, str]:
+        """Dispatch one exploit module using a caller-constructed, scalar datastore."""
+        if not module_name or module_name.startswith("exploit/"):
+            raise MetasploitError("Exploit module name must be a non-prefixed module path.")
+        if not isinstance(options, dict) or any(
+            not isinstance(value, (str, int, float, bool)) and value is not None
+            for value in options.values()
+        ):
+            raise MetasploitError("Metasploit module options must contain scalar values.")
+        response = self._request("module.execute", "exploit", module_name, options)
+        job_id = response.get("job_id")
+        run_uuid = response.get("uuid")
+        if isinstance(job_id, bool) or not isinstance(job_id, int) or job_id < 0:
+            raise MetasploitError("Metasploit did not return a valid job identifier.")
+        if not isinstance(run_uuid, str) or not run_uuid:
+            raise MetasploitError("Metasploit did not return a module execution UUID.")
+        return job_id, run_uuid
+
     def module_results(self, run_uuid: str) -> dict[str, Any]:
         if not run_uuid:
             raise MetasploitError("A Metasploit module execution UUID is required.")
