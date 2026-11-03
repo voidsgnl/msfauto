@@ -132,11 +132,11 @@ class EnumerationTests(unittest.TestCase):
         def serve():
             conn, _ = listener.accept()
             with conn:
-                conn.sendall(b"220 Test FTP ready\\r\\n")
+                conn.sendall(b"220 Test FTP ready\r\n")
                 command = conn.recv(1024)
                 if command.upper().startswith(b"FEAT"):
                     conn.sendall(
-                        b"211-Features\\r\\n UTF8\\r\\n SIZE\\r\\n211 End\\r\\n"
+                        b"211-Features\r\n UTF8\r\n SIZE\r\n211 End\r\n"
                     )
             listener.close()
 
@@ -171,7 +171,7 @@ class EnumerationTests(unittest.TestCase):
                         break
                     remaining -= len(chunk)
                 response = bytearray(128)
-                response[0:4] = b"\\xfeSMB"
+                response[0:4] = b"\xfeSMB"
                 struct.pack_into("<H", response, 4, 64)
                 struct.pack_into("<I", response, 8, 0)
                 struct.pack_into("<H", response, 12, 0)
@@ -182,7 +182,7 @@ class EnumerationTests(unittest.TestCase):
                     "00112233445566778899aabbccddeeff"
                 )
                 struct.pack_into("<IIII", response, 88, 0, 65536, 65536, 65536)
-                conn.sendall(b"\\x00" + len(response).to_bytes(3, "big") + response)
+                conn.sendall(b"\x00" + len(response).to_bytes(3, "big") + response)
             listener.close()
 
         thread = threading.Thread(target=serve, daemon=True)
