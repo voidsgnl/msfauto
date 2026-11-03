@@ -149,7 +149,7 @@ def run_safe_checks(
                 "MSFAUTO_METASPLOIT_URL",
                 "http://127.0.0.1:55553/api/1.0",
             ),
-            timeout=10.0,
+            timeout=5.0,
         )
         try:
             client = MetasploitClient(
@@ -203,7 +203,7 @@ def run_safe_checks(
                 print(f"Skipping recommendation due to scope or validation error: {exc}")
         counts: Counter[str] = Counter()
         for job_id in job_ids:
-            job = manager.wait(job_id, timeout=65 if use_metasploit else 5)
+            job = manager.wait(job_id, timeout=75 if use_metasploit else 5)
             counts[job.status] += 1
             store.save_job(job)
             events = manager.events(job_id)
