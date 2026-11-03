@@ -4,6 +4,14 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Exploit review and action-specific authorization
+- Added explicit accepted/rejected/deferred human review decisions bound to the exact workspace, opportunity, exploit module, target, service, and observed version.
+- Added short-lived, workspace-scoped exploit authorizations that require an accepted review, explicit approver/rationale, dangerous-actions profile, and in-scope target/port.
+- Authorization validation fails closed on changed opportunity identity, changed scope snapshot, expiry, or revocation; default lifetime is 15 minutes and maximum lifetime is eight hours.
+- Added persistent review history, authorization storage, and revocation support. No exploit dispatch capability was added.
+- Added tests for review gating, exact target binding, scope changes, out-of-scope rejection, safe-profile denial, expiry, persistence, and revocation.
+
+
 ### Persistent Metasploit exploit catalog synchronization
 - Added workspace-scoped SQLite persistence for imported exploit definitions, source metadata, synchronization timestamps, and active/inactive source state.
 - Added a synchronization helper and integrated active synchronized definitions into assessment runs alongside curated JSON entries.
