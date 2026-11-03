@@ -140,11 +140,37 @@ class WorkspaceStore:
                     name TEXT NOT NULL,
                     product TEXT NOT NULL,
                     version TEXT NOT NULL,
+                    method TEXT NOT NULL DEFAULT 'unknown',
+                    confidence INTEGER NOT NULL DEFAULT 0,
+                    extra_info TEXT NOT NULL DEFAULT '',
+                    tunnel TEXT NOT NULL DEFAULT '',
+                    cpes_json TEXT NOT NULL DEFAULT '[]',
+                    source TEXT NOT NULL DEFAULT 'unknown',
+                    observed_at TEXT NOT NULL DEFAULT '',
                     UNIQUE(workspace, address, port, protocol)
                 )
                 """
             )
 
+
+            service_columns = {
+                row["name"]
+                for row in connection.execute("PRAGMA table_info(discovery_services)")
+            }
+            service_migrations = {
+                "method": "TEXT NOT NULL DEFAULT 'unknown'",
+                "confidence": "INTEGER NOT NULL DEFAULT 0",
+                "extra_info": "TEXT NOT NULL DEFAULT ''",
+                "tunnel": "TEXT NOT NULL DEFAULT ''",
+                "cpes_json": "TEXT NOT NULL DEFAULT '[]'",
+                "source": "TEXT NOT NULL DEFAULT 'unknown'",
+                "observed_at": "TEXT NOT NULL DEFAULT ''",
+            }
+            for column, definition in service_migrations.items():
+                if column not in service_columns:
+                    connection.execute(
+                        f"ALTER TABLE discovery_services ADD COLUMN {column} {definition}"
+                    )
 
             connection.execute(
                 """
@@ -300,13 +326,21 @@ class WorkspaceStore:
                     connection.execute(
                         """
                         INSERT INTO discovery_services(
-                            workspace, address, port, protocol, state, name, product, version
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            workspace, address, port, protocol, state, name, product, version,
+                            method, confidence, extra_info, tunnel, cpes_json, source, observed_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT(workspace, address, port, protocol) DO UPDATE SET
                             state = excluded.state,
                             name = excluded.name,
                             product = excluded.product,
-                            version = excluded.version
+                            version = excluded.version,
+                            method = excluded.method,
+                            confidence = excluded.confidence,
+                            extra_info = excluded.extra_info,
+                            tunnel = excluded.tunnel,
+                            cpes_json = excluded.cpes_json,
+                            source = excluded.source,
+                            observed_at = excluded.observed_at
                         """,
                         (
                             workspace,
@@ -317,6 +351,13 @@ class WorkspaceStore:
                             service.name,
                             service.product,
                             service.version,
+                            service.method,
+                            service.confidence,
+                            service.extra_info,
+                            service.tunnel,
+                            json.dumps(service.cpes),
+                            service.source,
+                            service.observed_at,
                         ),
                     )
 
@@ -330,14 +371,21 @@ class WorkspaceStore:
             for row in rows:
                 service_rows = connection.execute(
                     """
-                    SELECT port, protocol, state, name, product, version
+                    SELECT port, protocol, state, name, product, version,
+                           method, confidence, extra_info, tunnel, cpes_json,
+                           source, observed_at
                     FROM discovery_services
                     WHERE workspace = ? AND address = ?
                     ORDER BY port, protocol
                     """,
                     (workspace, row["address"]),
                 ).fetchall()
-                services = tuple(Service(**dict(service_row)) for service_row in service_rows)
+                services_list = []
+                for service_row in service_rows:
+                    service_data = dict(service_row)
+                    service_data["cpes"] = tuple(json.loads(service_data.pop("cpes_json")))
+                    services_list.append(Service(**service_data))
+                services = tuple(services_list)
                 hosts.append(Host(ip_address(row["address"]), row["status"], row["hostname"], services))
         return tuple(hosts)
 
