@@ -29,7 +29,7 @@ The repository currently provides foundations for:
 - Explicit IP/CIDR scope and optional port allowlists.
 - Nmap discovery with bounded execution, XML output, and lightweight service/version detection (-sV --version-light).
 - Protocol-aware HTTP/HTTPS, SSH, FTP, SMB2, and TLS-only enumeration with bounded probes and structured observations; TLS captures handshake metadata and certificate fingerprints.
-- Initial vulnerability advisory/candidate models and evidence-aware matching, plus an OSV.dev package-version query adapter and persistent advisory registry. OSV queries require an explicit package name and ecosystem; service banners are not used to guess OS package identities.
+- Initial vulnerability advisory/candidate models and evidence-aware matching, plus OSV.dev package-version queries integrated into the assessment workflow through explicit service-product-to-package mappings. OSV advisories and candidates are persisted; provider failures are isolated and reported. Package name and ecosystem are never inferred from banners.
 - Scope-enforced Nmap XML import and normalized host/service storage, including product/version, probe method/confidence, extra information, tunnel metadata, CPEs, source, and observation time.
 - Read-only Metasploit RPC module metadata, search, and option inspection.
 - Workspace-persisted module metadata and options.
