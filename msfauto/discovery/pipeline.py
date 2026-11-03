@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
-from ipaddress import ip_address
-from pathlib import Path
 import shutil
 import subprocess
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
+from ipaddress import ip_address
+from pathlib import Path
 
 from ..storage.models import DiscoveryRun, Host, ScopePolicy, Service
 

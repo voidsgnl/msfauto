@@ -5,9 +5,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from msfauto.core import AssessmentApplication
-from msfauto.storage.models import DiscoveryRun, Host, Service, Workspace
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
+from msfauto.storage.models import DiscoveryRun, Host, Service, Workspace
 
 
 class AssessmentApplicationTests(unittest.TestCase):

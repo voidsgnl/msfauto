@@ -3,9 +3,9 @@ import unittest
 from ipaddress import ip_address
 from pathlib import Path
 
-from msfauto.storage.models import Host, ModuleMetadata, Service
 from msfauto.assessment.planner import build_plan
 from msfauto.storage import WorkspaceStore
+from msfauto.storage.models import Host, ModuleMetadata, Service
 
 
 class PlannerTests(unittest.TestCase):

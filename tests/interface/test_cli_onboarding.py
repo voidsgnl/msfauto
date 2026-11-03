@@ -3,8 +3,8 @@ import unittest
 from contextlib import redirect_stdout
 
 from msfauto.cli import display_next_steps
-from msfauto.storage.models import Workspace
 from msfauto.scope import build_policy
+from msfauto.storage.models import Workspace
 
 
 class OnboardingTests(unittest.TestCase):

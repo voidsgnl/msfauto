@@ -4,9 +4,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from msfauto.cli import run_discovery
-from msfauto.storage.models import DiscoveryRun, Workspace
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
+from msfauto.storage.models import DiscoveryRun, Workspace
 
 
 class DiscoveryCliTests(unittest.TestCase):

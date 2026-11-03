@@ -5,11 +5,10 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-
 from ..evidence import EvidenceCollector
 
 
-_SECRET_KEY = re.compile(r"(password|passwd|secret|token|credential|authorization|api[_-]?key)", re.I)
+_SECRET_KEY = re.compile(r"(password|passwd|secret|token|credential|authorization|api[_-]?key)", re.IGNORECASE)
 _SECRET_TEXT = re.compile(r"(?i)\b(password|passwd|secret|token|credential|authorization|api[_-]?key)\s*([:=])\s*([^\s,;]+)")
 
 
@@ -200,8 +199,10 @@ def _markdown(report: dict[str, Any]) -> str:
             )
     lines.extend([
         "",
-        "> Execution outcomes and service observations are not, by themselves, proof of a vulnerability. "
-        "Finding status reflects analyst review.",
+        (
+            "> Execution outcomes and service observations are not, by themselves, proof of a vulnerability. "
+            "Finding status reflects analyst review."
+        ),
         "",
     ])
     return "\n".join(lines)

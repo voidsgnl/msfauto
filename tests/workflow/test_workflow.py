@@ -4,9 +4,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from msfauto.core import AssessmentApplication, WorkflowError
-from msfauto.storage.models import DiscoveryRun, Workspace
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
+from msfauto.storage.models import DiscoveryRun, Workspace
 
 
 class AssessmentWorkflowTests(unittest.TestCase):

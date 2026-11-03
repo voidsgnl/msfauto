@@ -6,7 +6,6 @@ from msfauto.discovery import DiscoveryError, parse_nmap_xml
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
 
-
 NMAP_XML = """\
 <nmaprun>
   <host>

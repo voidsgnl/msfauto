@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Mapping
 from uuid import uuid4
 
 from ..storage.models import EvidenceRecord
