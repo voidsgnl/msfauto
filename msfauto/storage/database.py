@@ -350,6 +350,30 @@ class WorkspaceStore:
             )
             connection.execute(
                 """
+                CREATE TABLE IF NOT EXISTS exploit_executions (
+                    execution_id TEXT PRIMARY KEY,
+                    workspace TEXT NOT NULL,
+                    state TEXT NOT NULL,
+                    record_json TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS exploit_execution_events (
+                    event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    execution_id TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    from_state TEXT NOT NULL,
+                    to_state TEXT NOT NULL,
+                    actor TEXT NOT NULL,
+                    detail TEXT NOT NULL,
+                    external_reference TEXT NOT NULL DEFAULT ''
+                )
+                """
+            )
+            connection.execute(
+                """
                 CREATE TABLE IF NOT EXISTS vulnerability_advisories (
                     advisory_id TEXT NOT NULL,
                     source TEXT NOT NULL,
@@ -1279,6 +1303,110 @@ class WorkspaceStore:
             )
             if cursor.rowcount == 0:
                 raise KeyError(f"Active exploit authorization not found: {authorization_id}")
+
+    def create_exploit_execution(self, record, event) -> None:
+        """Create an execution record and its initial event atomically."""
+        with self._connect() as connection:
+            connection.execute(
+                "INSERT INTO exploit_executions(execution_id, workspace, state, record_json) "
+                "VALUES (?, ?, ?, ?)",
+                (
+                    record.execution_id, record.workspace, record.state,
+                    json.dumps(asdict(record), sort_keys=True),
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO exploit_execution_events(
+                    execution_id, timestamp, from_state, to_state, actor, detail,
+                    external_reference
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    event.execution_id, event.timestamp, event.from_state,
+                    event.to_state, event.actor, event.detail, event.external_reference,
+                ),
+            )
+
+    def get_exploit_execution(self, execution_id: str):
+        from ..execution.lifecycle import ExploitExecution
+
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT record_json FROM exploit_executions WHERE execution_id = ?",
+                (execution_id,),
+            ).fetchone()
+        return ExploitExecution(**json.loads(row["record_json"])) if row else None
+
+    def get_exploit_executions(
+        self, workspace: str = "", states: tuple[str, ...] = ()
+    ):
+        from ..execution.lifecycle import ExploitExecution
+
+        query = "SELECT record_json FROM exploit_executions"
+        clauses = []
+        parameters: list[str] = []
+        if workspace:
+            clauses.append("workspace = ?")
+            parameters.append(workspace)
+        if states:
+            placeholders = ", ".join("?" for _ in states)
+            clauses.append(f"state IN ({placeholders})")
+            parameters.extend(states)
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
+        query += " ORDER BY rowid"
+        with self._connect() as connection:
+            rows = connection.execute(query, parameters).fetchall()
+        return tuple(ExploitExecution(**json.loads(row["record_json"])) for row in rows)
+
+    def get_exploit_execution_events(self, execution_id: str):
+        from ..execution.lifecycle import ExploitExecutionEvent
+
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT execution_id, timestamp, from_state, to_state, actor, detail,
+                       external_reference
+                FROM exploit_execution_events
+                WHERE execution_id = ? ORDER BY event_id
+                """,
+                (execution_id,),
+            ).fetchall()
+        return tuple(ExploitExecutionEvent(**dict(row)) for row in rows)
+
+    def transition_exploit_execution(self, record, expected_state: str, event) -> None:
+        """Optimistically update one lifecycle state and append its event atomically."""
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE exploit_executions
+                SET state = ?, record_json = ?
+                WHERE execution_id = ? AND state = ?
+                """,
+                (
+                    record.state,
+                    json.dumps(asdict(record), sort_keys=True),
+                    record.execution_id,
+                    expected_state,
+                ),
+            )
+            if cursor.rowcount != 1:
+                raise ValueError(
+                    "Execution state changed concurrently; reload it before transitioning."
+                )
+            connection.execute(
+                """
+                INSERT INTO exploit_execution_events(
+                    execution_id, timestamp, from_state, to_state, actor, detail,
+                    external_reference
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    event.execution_id, event.timestamp, event.from_state,
+                    event.to_state, event.actor, event.detail, event.external_reference,
+                ),
+            )
 
     def sync_exploit_catalog(
         self,
