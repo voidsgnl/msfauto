@@ -82,7 +82,7 @@ These foundations do **not** mean the platform already provides a complete vulne
 - The previous roadmap also underrepresented exploitation. Exploitation and separately authorized post-exploitation assessment are now explicit core capabilities.
 - After each meaningful implementation milestone, update this roadmap and `CHANGELOG.md`; update `README.md` and architecture/workflow docs when product behavior or direction changes.
 - Record test and CI status accurately. Do not claim local tests passed unless actually run.
-- Latest service-fingerprint milestone: CI run #196 passed on commit 1ef0a086509cb88ad7ff2dc51613e2352c7af676; the test commit reported 69 passing tests. The subsequent HTTP/HTTPS and SSH enumeration milestone passed CI on commit `af791bad8975ff0e4cf4889bf1f59e02f0d44f14` with 75 tests and Ruff passing. FTP enumeration has now been added; verification is pending.
+- Latest service-fingerprint milestone: CI run #196 passed on commit 1ef0a086509cb88ad7ff2dc51613e2352c7af676; the test commit reported 69 passing tests. The subsequent HTTP/HTTPS and SSH enumeration milestone passed CI on commit `af791bad8975ff0e4cf4889bf1f59e02f0d44f14` with 75 tests and Ruff passing. FTP and SMB2 enumeration have now been added; verification is pending.
 
 ## Immediate next milestone: make the assessment engine useful
 
@@ -91,7 +91,7 @@ The next implementation work should improve actual assessment capability, not ad
 ### Work sequence
 
 1. **Service enumeration foundation**
-   - Extend the Nmap fingerprint baseline with structured service-specific enumeration adapters (HTTP/HTTPS, SSH, and FTP are implemented; SMB and deeper TLS inspection remain).
+   - Extend the Nmap fingerprint baseline with structured service-specific enumeration adapters (HTTP/HTTPS, SSH, FTP, and SMB2 negotiation are implemented; deeper TLS inspection remains).
    - Define probe/result contracts, normalized attributes, source provenance, timestamps, and confidence.
    - Preserve raw tool output as evidence while parsing structured observations for later stages.
    - Keep per-service timeouts, output limits, concurrency bounds, and scope/port checks.
