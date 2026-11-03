@@ -62,7 +62,14 @@ OSV workflow integration is now active when explicit mappings are configured, bu
 
 ## Current handoff — 2026-11-03
 
-### Latest implementation milestone: exploit intelligence catalog and matching
+### Latest implementation milestone: Metasploit exploit catalog ingestion
+- Added the dedicated Metasploit RPC `module.exploits` client method with response validation and duplicate removal.
+- Added an importer that fetches detailed metadata only for explicitly mapped exploit modules and normalizes rank, description, platforms, architectures, targets, required options, references, and check support.
+- Added mandatory operator-supplied product aliases and exact affected versions or advisory IDs. Module names and descriptions are never treated as product identity or version evidence.
+- Added tests for RPC listing, malformed responses, mapping validation, metadata normalization, filtering to mapped modules, missing modules, and non-exploit metadata.
+- The importer currently returns normalized definitions; it does not yet persist/synchronize the catalog or automatically feed Metasploit imports into the assessment workflow. The existing curated JSON catalog remains the workflow source.
+
+### Previous milestone: exploit intelligence catalog and matching
 - Nmap discovery now requests service/version detection with -sV --version-light, still constrained by the workspace target and port scope.
 - Parsed service records retain product/version, Nmap probe method and confidence, extra information, TLS tunnel metadata, CPE identifiers, source, and observation timestamp.
 - SQLite schema upgrades add these fields in place; legacy service rows receive conservative unknown/zero defaults and remain readable.
@@ -122,6 +129,8 @@ The next implementation work should improve actual assessment capability, not ad
    - [x] Introduce a first-class exploit catalog/registry, separate from passive checks.
    - [x] Represent source attribution, affected products/versions, prerequisites, required options, target compatibility metadata, risk, and supporting references.
    - [x] Match exact product aliases and versions, with optional links to known vulnerability candidate IDs; persist workspace-scoped opportunities.
+   - [x] Add a Metasploit RPC exploit-module importer with explicit product/version/advisory mappings and normalized module metadata.
+   - [ ] Persist imported catalog definitions and support explicit refresh/synchronization into the assessment workflow.
    - Add maintained catalog synchronization/import adapters and version-range semantics with source-specific tests.
    - Represent expected outcomes and richer target compatibility metadata as catalog sources are integrated.
    - Add explicit exploit review and action-specific authorization before dispatch.
@@ -186,9 +195,11 @@ The next implementation work should improve actual assessment capability, not ad
 - [ ] Add prioritization based on technical relevance and evidence, not severity labels alone.
 
 ### Phase 3 — Exploit intelligence and execution
-- [ ] Establish a first-class exploit catalog separate from passive checks.
-- [ ] Normalize exploit metadata, affected targets, prerequisites, options, and expected outcomes.
-- [ ] Match candidate exploits to observed target intelligence.
+- [x] Establish a first-class exploit catalog separate from passive checks.
+- [x] Normalize core exploit metadata, affected targets, prerequisites, required options, and references from Metasploit RPC.
+- [x] Match candidate exploits to observed target intelligence using explicit product/version/advisory mappings.
+- [x] Import mapped Metasploit exploit metadata through the dedicated RPC catalog endpoint.
+- [ ] Persist imported catalog definitions and support refresh/synchronization into assessment runs.
 - [ ] Add explicit operator review and action-specific authorization.
 - [ ] Add bounded exploit execution through supported integrations.
 - [ ] Persist dispatch state and execution outcomes; handle uncertain dispatch through operator reconciliation.
