@@ -43,6 +43,7 @@ Supporting platform capabilities:
 - [x] SQLite workspace persistence.
 - [x] Explicit IP/CIDR scope and optional port allowlists.
 - [x] Scope-enforced Nmap XML import and normalized service storage.
+- [x] Bounded HTTP/HTTPS and SSH service enumeration with append-only structured observations.
 - [x] Bounded Nmap execution adapter.
 - [x] Read-only Metasploit RPC module metadata integration.
 - [x] Explicit RPC execution for an allowlist of passive service-version checks.
@@ -59,7 +60,17 @@ Supporting platform capabilities:
 
 These foundations do **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The current Metasploit execution adapter supports only its fixed passive-check allowlist; arbitrary exploit modules are not executable through the current workflow.
 
-## Current handoff — 2026-11-03\n\n### Latest implementation milestone: HTTP/HTTPS and SSH service enumeration\n- Nmap discovery now requests service/version detection with -sV --version-light, still constrained by the workspace target and port scope.\n- Parsed service records retain product/version, Nmap probe method and confidence, extra information, TLS tunnel metadata, CPE identifiers, source, and observation timestamp.\n- SQLite schema upgrades add these fields in place; legacy service rows receive conservative unknown/zero defaults and remain readable.\n- Added tests for enriched XML parsing, confidence validation, enriched persistence round-trip, legacy database migration, and version-detection command flags.\n- Added protocol-aware HTTP/HTTPS and SSH enumeration adapters. HTTP uses a bounded HEAD request and captures status/headers; HTTPS also records negotiated TLS version, cipher, and certificate SHA-256. SSH captures the server identification banner.\n- Enumeration only runs for discovered open services whose Nmap fingerprint identifies HTTP/HTTPS or SSH, and enforces saved address/port scope, bounded timeout, and bounded concurrency. Per-service failures are stored as observations rather than aborting the assessment.\n- Added append-only, workspace-scoped service observation persistence and integrated enumeration as an assessment stage after discovery.\n- Added local fake-server tests for HTTP and SSH plus scope/port filtering tests. CI status for this new milestone is pending.
+## Current handoff — 2026-11-03
+
+### Latest implementation milestone: HTTP/HTTPS and SSH service enumeration
+- Nmap discovery now requests service/version detection with -sV --version-light, still constrained by the workspace target and port scope.
+- Parsed service records retain product/version, Nmap probe method and confidence, extra information, TLS tunnel metadata, CPE identifiers, source, and observation timestamp.
+- SQLite schema upgrades add these fields in place; legacy service rows receive conservative unknown/zero defaults and remain readable.
+- Added tests for enriched XML parsing, confidence validation, enriched persistence round-trip, legacy database migration, and version-detection command flags.
+- Added protocol-aware HTTP/HTTPS and SSH enumeration adapters. HTTP uses a bounded HEAD request and captures status/headers; HTTPS also records negotiated TLS version, cipher, and certificate SHA-256. SSH captures the server identification banner.
+- Enumeration only runs for discovered open services whose Nmap fingerprint identifies HTTP/HTTPS or SSH, and enforces saved address/port scope, bounded timeout, and bounded concurrency. Per-service failures are stored as observations rather than aborting the assessment.
+- Added append-only, workspace-scoped service observation persistence and integrated enumeration as an assessment stage after discovery.
+- Added local fake-server tests for HTTP and SSH plus scope/port filtering tests. CI status for this new milestone is pending.
 
 - Repository: `voidsgnl/msfauto`, working branch: `main`.
 - The local repository was replaced with a clean clone after local Git object corruption; the user reported **66 tests passing** on the recovered checkout before the most recent documentation changes.
@@ -67,7 +78,8 @@ These foundations do **not** mean the platform already provides a complete vulne
 - The previous roadmap incorrectly defined the product as terminal-first and treated the Textual interface as the intended experience. This has been corrected: the intended interface is graphical; the current Textual screen is a prototype to be superseded.
 - The previous roadmap also underrepresented exploitation. Exploitation and separately authorized post-exploitation assessment are now explicit core capabilities.
 - After each meaningful implementation milestone, update this roadmap and `CHANGELOG.md`; update `README.md` and architecture/workflow docs when product behavior or direction changes.
-- Record test and CI status accurately. Do not claim local tests passed unless actually run.\n- Latest service-fingerprint milestone: CI run #196 passed on commit 1ef0a086509cb88ad7ff2dc51613e2352c7af676; the test commit reported 69 passing tests.
+- Record test and CI status accurately. Do not claim local tests passed unless actually run.
+- Latest service-fingerprint milestone: CI run #196 passed on commit 1ef0a086509cb88ad7ff2dc51613e2352c7af676; the test commit reported 69 passing tests.
 
 ## Immediate next milestone: make the assessment engine useful
 
@@ -128,10 +140,15 @@ The next implementation work should improve actual assessment capability, not ad
 ### Phase 1 — Reconnaissance and service enumeration
 - [x] Nmap discovery and XML import.
 - [x] Normalized host and service persistence.
-- [x] Enable bounded Nmap service/version detection (-sV --version-light).\n- [x] Preserve product, version, probe method, confidence, extra info, tunnel, CPEs, source, and observation timestamp in normalized service records.\n- [ ] Expand fingerprinting with service-specific enumeration beyond Nmap version probes.
-- [ ] Add service-specific enumeration modules and structured parsers.
+- [x] Enable bounded Nmap service/version detection (-sV --version-light).
+- [x] Preserve product, version, probe method, confidence, extra info, tunnel, CPEs, source, and observation timestamp in normalized service records.
+- [x] Add HTTP/HTTPS and SSH service-specific enumeration beyond Nmap version probes.
+- [ ] Expand protocol coverage to TLS-only, SMB, FTP, and additional HTTP technology detection.
+- [x] Add HTTP/HTTPS and SSH enumeration modules and structured observations.
 - [x] Preserve observation provenance and confidence for Nmap service fingerprints.
-- [x] Add representative Nmap XML parsing, malformed-confidence, persistence round-trip, and legacy-schema migration tests.\n- [x] Add HTTP and SSH adapter tests, including partial SSH banners and scope filtering.\n- [ ] Add TLS/SMB/FTP enumeration integrations and protocol-specific tests.
+- [x] Add representative Nmap XML parsing, malformed-confidence, persistence round-trip, and legacy-schema migration tests.
+- [x] Add HTTP and SSH adapter tests, including partial SSH banners and scope filtering.
+- [ ] Add TLS/SMB/FTP enumeration integrations and protocol-specific tests.
 
 ### Phase 2 — Vulnerability assessment
 - [ ] Establish a vulnerability knowledge and check registry.
