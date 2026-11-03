@@ -3,6 +3,13 @@
 All notable changes to MSFAuto are documented here.
 
 ## Unreleased
+\n### Durable exploit execution lifecycle
+- Added durable execution records and append-only transition events, separate from passive-check jobs.
+- Added strict lifecycle states for preparation, dispatch intent, uncertain dispatch, running, cancellation, and terminal outcomes.
+- Revalidate persisted opportunity, accepted review, authorization, and current workspace scope before dispatch intent is recorded.
+- Added recovery that marks interrupted dispatches uncertain, explicit operator reconciliation, optimistic concurrent-transition protection, and terminal-state enforcement.
+- No exploit RPC dispatch was added; uncertain attempts are never automatically retried.
+
 
 ### Exploit review and action-specific authorization
 - Added explicit accepted/rejected/deferred human review decisions bound to the exact workspace, opportunity, exploit module, target, service, and observed version.
