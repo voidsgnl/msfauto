@@ -1237,6 +1237,11 @@ class WorkspaceStore:
         for row in rows:
             mapping = json.loads(row["mapping_json"])
             metadata = json.loads(row["metadata_json"])
+            for key in (
+                "platforms", "architectures", "targets", "prerequisites",
+                "required_options", "references",
+            ):
+                metadata[key] = tuple(metadata.get(key, ()))
             definitions.append(
                 ExploitDefinition(
                     **metadata,
