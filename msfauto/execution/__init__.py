@@ -15,7 +15,12 @@ from .lifecycle import (
     recover_interrupted_dispatches,
     request_exploit_cancellation,
 )
-from .exploit_dispatch import (\n    ExploitDispatchError,\n    ExploitDispatchUncertain,\n    MetasploitExploitDispatcher,\n)\nfrom .manager import (
+from .exploit_dispatch import (
+    ExploitDispatchError,
+    ExploitDispatchUncertain,
+    MetasploitExploitDispatcher,
+)
+from .manager import (
     CheckRequest,
     CheckResult,
     DeterministicSafeAdapter,
@@ -40,10 +45,13 @@ __all__ = [
     "DeterministicSafeAdapter",
     "ExploitExecution",
     "ExploitExecutionError",
-    "ExploitExecutionEvent",\n    "ExploitDispatchError",\n    "ExploitDispatchUncertain",
+    "ExploitExecutionEvent",
+    "ExploitDispatchError",
+    "ExploitDispatchUncertain",
     "JobError",
     "JobManager",
-    "MetasploitExploitDispatcher",\n    "MetasploitSafeAdapter",
+    "MetasploitExploitDispatcher",
+    "MetasploitSafeAdapter",
     "begin_exploit_dispatch",
     "finish_exploit_execution",
     "mark_dispatch_uncertain",
