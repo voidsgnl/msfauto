@@ -116,9 +116,23 @@ The durable lifecycle now has a narrow Metasploit dispatch adapter:
 - A confirmed RPC acknowledgement stores the framework job ID and UUID and transitions to `running`. Any exception after dispatch intent is persisted is treated as ambiguous, transitions to `dispatch_uncertain`, and raises `ExploitDispatchUncertain`. The adapter never retries an uncertain attempt.
 - A non-prepared execution, stale or missing catalog entry, changed opportunity, invalid module type, unsupported required option, or authorization/scope failure is blocked before the exploit RPC call.
 
-The execution record and append-only transition events remain stored in SQLite. Each authorization is single-use. Process recovery and explicit operator reconciliation remain required when dispatch outcome is uncertain. The adapter does not poll results, stop jobs, create sessions, or validate security impact; those are separate follow-on capabilities. The existing passive-check allowlist and execution path remain unchanged.
+The execution record and append-only transition events remain stored in SQLite. Each authorization is single-use. Process recovery and explicit operator reconciliation remain required when dispatch outcome is uncertain. The adapter does not stop jobs, create sessions, or validate security impact; those are separate follow-on capabilities. The existing passive-check allowlist and execution path remain unchanged.
 
-**Important limitation:** exploit dispatch is now implemented for this narrow target-only option profile, but it is not a general-purpose Metasploit console. Modules requiring payload selection, handlers, local listener configuration, credentials, or additional options are deliberately unsupported. A returned job/UUID confirms framework acceptance, not exploit success or security impact. Complete vulnerability validation and post-exploitation/session management remain outstanding.
+### Metasploit exploit job reconciliation
+
+The dispatcher now has a separate framework-job reconciler:
+
+- `MetasploitClient.job_list()` reads the active Metasploit job map and validates job identifiers and descriptions.
+- `MetasploitExploitReconciler(store, client).poll(execution_id, actor=...)` polls only persisted `running` or `cancelling` execution records with both a framework job ID and UUID.
+- If the job is still listed, the execution remains active and the UUID results endpoint is not queried.
+- When the job disappears, the reconciler asks `module.results` for the UUID-specific outcome. Only recognized `completed`, `failed`, or `cancelled` results can close the execution.
+- If the results endpoint is unavailable, reports an unknown status, or contradicts the active-job list, the execution remains unchanged and the poll result is marked `unresolved`. An absent job alone is never treated as success or failure.
+- A framework-reported `completed` state means only that Metasploit finished the module run. The stored outcome explicitly says exploit success and security impact are not independently verified.
+- `dispatch_uncertain` records are not pollable through this path; they require explicit operator reconciliation.
+
+Polling is an explicit one-shot operation, not an automatic retry loop. It does not stop jobs, create sessions, or perform post-exploitation validation.
+
+**Important limitation:** exploit dispatch is now implemented for this narrow target-only option profile, but it is not a general-purpose Metasploit console. Modules requiring payload selection, handlers, local listener configuration, credentials, or additional options are deliberately unsupported. A returned job/UUID confirms framework acceptance, not exploit success or security impact. Independent exploit-outcome validation and post-exploitation/session management remain outstanding.
 
 ## Interface direction
 
