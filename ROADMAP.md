@@ -62,50 +62,24 @@ OSV workflow integration is now active when explicit mappings are configured, bu
 
 ## Current handoff — 2026-11-03
 
-### Latest implementation milestone: persistent Metasploit exploit catalog synchronization
+### Latest implementation milestone: exploit review and action-specific authorization
+- Added an explicit human review record for each exploit opportunity. Review decisions are `accepted`, `rejected`, or `deferred`, and bind the exact workspace, opportunity, exploit ID, module, target, port, protocol, product, and observed version.
+- Added a separate short-lived authorization record. Authorization requires an accepted review, a non-empty approver and rationale, a workspace profile that permits dangerous actions, and a target/port inside the current saved scope.
+- Authorization binds the current scope snapshot and exact service/module identity. Validation fails closed if the opportunity changes, scope changes, the authorization expires, or it is revoked.
+- Authorization lifetime is bounded to a maximum of eight hours (15 minutes by default). Records are persisted per workspace; review history is append-only and authorizations can be revoked.
+- This milestone adds no exploit dispatch path. It establishes the review/authorization contract that a future dispatcher must revalidate immediately before dispatch.
+- Added tests for accepted/rejected review, review reuse against a changed target, scope changes, out-of-scope targets, safe-profile denial, expiry, persistence, and revocation.
+### Previous milestone: persistent Metasploit exploit catalog synchronization
 - Added the dedicated Metasploit RPC `module.exploits` client method with response validation and duplicate removal.
 - Added an importer that fetches detailed metadata only for explicitly mapped exploit modules and normalizes rank, description, platforms, architectures, targets, required options, references, and check support.
 - Added workspace-scoped SQLite persistence for imported exploit definitions, including source, module identity, metadata, active state, and last synchronization timestamp.
 - Refreshes update framework-supplied metadata while preserving operator-controlled product aliases, exact affected versions, and advisory mappings. Mapping changes require an explicit storage API call.
 - A successful non-empty source refresh deactivates entries removed from that source; an empty refresh is a no-op. The assessment workflow now merges active synchronized entries with the curated JSON catalog by exploit ID.
-- Added tests for RPC listing, malformed responses, mapping validation, metadata normalization, filtering, missing modules, non-exploit metadata, persistence round-trip, mapping preservation, explicit mapping updates, stale-entry deactivation, empty refreshes, and workflow consumption.
 - Synchronization stores metadata only. It does not approve or execute modules.
-### Previous milestone: exploit intelligence catalog and matching
-- Nmap discovery now requests service/version detection with -sV --version-light, still constrained by the workspace target and port scope.
-- Parsed service records retain product/version, Nmap probe method and confidence, extra information, TLS tunnel metadata, CPE identifiers, source, and observation timestamp.
-- SQLite schema upgrades add these fields in place; legacy service rows receive conservative unknown/zero defaults and remain readable.
-- Added tests for enriched XML parsing, confidence validation, enriched persistence round-trip, legacy database migration, and version-detection command flags.
-- Added protocol-aware HTTP/HTTPS and SSH enumeration adapters. HTTP uses a bounded HEAD request and captures status/headers; HTTPS also records negotiated TLS version, cipher, and certificate SHA-256. SSH captures the server identification banner.
-- Enumeration runs only for discovered open services whose Nmap fingerprint identifies HTTP/HTTPS, SSH, or FTP (including conventional FTP ports), and enforces saved address/port scope, bounded timeout, and bounded concurrency. Per-service failures are stored as observations rather than aborting the assessment.
-- FTP enumeration captures the server greeting and a bounded FEAT response; FEAT is optional, so a valid greeting remains useful when the command is unsupported.
-- SMB enumeration sends an unauthenticated SMB2 NEGOTIATE request only (no session setup or file operations) and records the selected dialect, security mode, server GUID, capabilities, and negotiated size limits.
-- FTP and SMB2 adapter tests use local fake servers. CI run #217 passed on Python 3.10, 3.12, and 3.14 (77 tests; Ruff passed).
-- Added a local TLS server fixture and tests for certificate fingerprint capture and TLS-vs-HTTP dispatch. GitHub Actions run #231 passed on Python 3.10, 3.12, and 3.14: 79 tests passed; Ruff passed on all three versions.
-- Added normalized vulnerability advisory and candidate domain records, strict product/CPE identity and exact version matching, source/evidence provenance, confidence limits, and workspace-scoped candidate persistence.
-- Added an OSV.dev client for exact package-ecosystem-version queries, normalizing returned advisory IDs, aliases, references, severity, affected versions, and original OSV affected-range metadata.
-- OSV package identity is explicit input (package name + ecosystem); MSFAuto does not guess an operating-system package identity from a network banner. Callers can supply product aliases to map a known package to a discovered service product. OSV query matches are recorded as source-backed matched versions.
-- Added persistent advisory registry storage and tests for request shape, package identity filtering, provider failures, metadata normalization, persistence, and end-to-end OSV-to-candidate matching. GitHub Actions run #259 passed on Python 3.10, 3.12, and 3.14: 92 tests passed (plus 2 subtests); Ruff passed on all versions. Product/version matches remain candidates or unverified hypotheses; they cannot become confirmed findings from banner evidence alone.
-- Integrated OSV into the actual assessment workflow using explicit JSON-configured service product-to-package/ecosystem mappings (`MSFAUTO_OSV_PACKAGE_MAPPINGS`). Each distinct package/ecosystem/version is queried once; advisory records are merged and persisted; candidate matches are stored per workspace. OSV provider failures are isolated per query and surfaced in workflow events without aborting discovery, enumeration, or planning. Unmapped and unversioned services are skipped rather than guessed.
-- Added tests for mapping validation, query deduplication across hosts, candidate persistence, missing-version skips, and provider-failure isolation. GitHub Actions run #274 passed on Python 3.10, 3.12, and 3.14: 96 tests passed (plus 2 subtests); Ruff passed on all versions.
-- Added the dedicated `msfauto/exploitation/` package with source-attributed exploit definitions, JSON catalog loading (`MSFAUTO_EXPLOIT_CATALOG`), and exact product/version matching with optional linkage to vulnerability candidate IDs.
-- Added deterministic workspace-scoped exploit opportunity records and SQLite persistence, plus the `exploit_intelligence` stage in the assessment workflow. Matches remain `identified`; they do not imply authorization, confirmed exploitability, or execution.
-- Added tests for catalog validation, exact/negative matching, advisory-linked matching, storage round-trip, and end-to-end assessment workflow integration. GitHub Actions run #293 passed on Python 3.10, 3.12, and 3.14: 103 tests passed (plus 2 subtests); Ruff passed on all versions.
-- Added unit coverage for exact matches, missing/nonmatching versions, unrelated products, closed services, provenance, confirmation guardrails, and persistence. CI run #244 passed on Python 3.10, 3.12, and 3.14: 87 tests passed (plus 2 subtests); Ruff passed on all versions.
-- Added append-only, workspace-scoped service observation persistence and integrated enumeration as an assessment stage after discovery.
-- Added local fake-server tests for HTTP and SSH plus scope/port filtering tests. CI run #217 passed on Python 3.10, 3.12, and 3.14 (77 tests; Ruff passed).
 
-- Repository: `voidsgnl/msfauto`, working branch: `main`.
-- The local repository was replaced with a clean clone after local Git object corruption; the user reported **66 tests passing** on the recovered checkout before the most recent documentation changes.
-- Work directly on `main`; do not create feature branches unless explicitly requested.
-- The previous roadmap incorrectly defined the product as terminal-first and treated the Textual interface as the intended experience. This has been corrected: the intended interface is graphical; the current Textual screen is a prototype to be superseded.
-- The previous roadmap also underrepresented exploitation. Exploitation and separately authorized post-exploitation assessment are now explicit core capabilities.
-- After each meaningful implementation milestone, update this roadmap and `CHANGELOG.md`; update `README.md` and architecture/workflow docs when product behavior or direction changes.
-- Record test and CI status accurately. Do not claim local tests passed unless actually run.
-- Latest service-fingerprint milestone: CI run #196 passed on commit 1ef0a086509cb88ad7ff2dc51613e2352c7af676; the test commit reported 69 passing tests. The subsequent HTTP/HTTPS and SSH enumeration milestone passed CI on commit `af791bad8975ff0e4cf4889bf1f59e02f0d44f14` with 75 tests and Ruff passing. FTP and SMB2 enumeration are implemented. CI run #217 passed on commit `65785106823f4f2e2c80376e48cab15e86b86e7e`: 77 tests passed and Ruff passed on Python 3.10, 3.12, and 3.14. TLS-only inspection passed CI run #231 on Python 3.10, 3.12, and 3.14 (79 tests; Ruff clean). The initial vulnerability assessment foundation passed CI run #244 on Python 3.10, 3.12, and 3.14 (87 tests; 2 subtests; Ruff clean). CPE 2.2 compatibility passed CI run #248 (88 tests; 2 subtests; Ruff clean). OSV ingestion and matcher integration passed CI run #259 (92 tests; 2 subtests; Ruff clean).
+## Immediate next milestone: durable exploit execution lifecycle
 
-## Immediate next milestone: make the assessment engine useful
-
-The next implementation work should improve actual assessment capability, not add more policy/reporting scaffolding or expand the Textual UI.
+The review and authorization foundation is now in place. The next work is a durable, auditable execution lifecycle that consumes these exact authorization records, revalidates current scope and service identity immediately before dispatch, and treats ambiguous RPC outcomes as uncertain rather than retryable. Do not add arbitrary exploit dispatch until this lifecycle is enforced end to end.
 
 ### Work sequence
 
@@ -135,8 +109,8 @@ The next implementation work should improve actual assessment capability, not ad
    - [x] Merge active synchronized catalog entries with curated entries in assessment runs while preserving operator-controlled mappings.
    - Add maintained catalog synchronization/import adapters and version-range semantics with source-specific tests.
    - Represent expected outcomes and richer target compatibility metadata as catalog sources are integrated.
-   - Add explicit exploit review and action-specific authorization before dispatch.
-   - Build an execution lifecycle that records preparation, dispatch, running, completion, failure, timeout, cancellation, and uncertain dispatch state.
+   - [x] Add explicit exploit review and action-specific authorization before dispatch.
+   - Build an execution lifecycle that records preparation, dispatch, running, completion, failure, timeout, cancellation, and uncertain dispatch state. Unknown dispatch outcomes must remain uncertain and must never be automatically retried.
    - Start with controlled lab validation and a small, testable integration slice; do not expose arbitrary module execution as a shortcut.
 
 4. **Post-exploitation and session management**
