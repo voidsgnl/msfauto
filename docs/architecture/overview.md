@@ -2,106 +2,106 @@
 
 ## Product direction
 
-MSFAuto is a local, terminal-first orchestrator for authorized security assessments. Its interaction model is inspired by Wifite: start the application, define or select an authorized scope, discover targets, inspect the results, choose an assessment, approve actions, and review evidence.
+MSFAuto is an automated security assessment platform. Its core job is to discover and enumerate assets, assess vulnerabilities, support authorized exploitation, assess authorized post-exploitation impact, validate results, and correlate evidence into useful security intelligence.
 
-The goal is not to reproduce Wifite's wireless-specific functionality. The goal is to adopt its focused, guided, operator-visible workflow for broader network security assessment.
+It is not merely a wrapper around Metasploit. Metasploit is one integration and execution engine among multiple assessment capabilities.
+
+The intended primary interface is a **graphical application**, not a terminal UI/TUI. The user-supplied reference informs visual language and interaction feel; it is not a literal terminal application specification and must not be copied for its terminology, commands, payloads, or workflow. The current Textual screen is a prototype, not the target interface. Keep domain and application services independent of Textual so a graphical frontend can replace it without rewriting assessment logic.
 
 ## Architectural principles
 
-1. **Workflow-first:** the normal path is a single guided assessment, not a collection of unrelated commands.
-2. **Explicit authorization:** every target and operation must remain within the active authorization policy.
-3. **Explainable automation:** recommendations include evidence, rationale, confidence, prerequisites, and risk.
-4. **Separation of concerns:** interface, orchestration, discovery, analysis, planning, execution, persistence, and reporting have distinct responsibilities.
-5. **Incremental migration:** preserve working code and tests; move responsibilities only when there is a concrete benefit.
+1. **Assessment capability first:** prioritize meaningful discovery, enumeration, vulnerability assessment, exploitation, validation, and analysis.
+2. **Explicit authorization:** every target and operation must remain within the active authorization policy; exploitation and post-exploitation require action-specific authorization.
+3. **Evidence-led conclusions:** distinguish observations, hypotheses, candidate vulnerabilities, validated findings, and execution outcomes.
+4. **Explainable automation:** recommendations include evidence, rationale, confidence, prerequisites, and expected outcome.
+5. **Separation of concerns:** interface, orchestration, domain engines, integrations, persistence, and reporting have distinct responsibilities.
 6. **Local-first:** the application runs locally and persists state in SQLite by default.
 7. **Observable execution:** long-running work exposes progress, status, output, cancellation, and recoverable errors.
+8. **Safe recovery:** never automatically retry an operation whose dispatch outcome is uncertain.
 
 ## High-level component model
 
 ```text
-Terminal Interface
-       |
-       v
-Application / Workflow Orchestrator
-       |
-       +---- Workspace and Configuration
-       +---- Scope and Authorization
-       +---- Discovery
-       +---- Intelligence and Correlation
-       +---- Assessment Planning and Approval
-       +---- Controlled Execution
-       +---- Sessions and Evidence
-       +---- Findings and Reporting
-       |
-       v
-Storage and Audit Records
+Graphical Application
+        |
+        v
+Application / Assessment Orchestrator
+        |
+        +---- Workspace and Configuration
+        +---- Scope and Authorization
+        +---- Reconnaissance / Discovery
+        +---- Service Enumeration and Fingerprinting
+        +---- Vulnerability Intelligence and Assessment
+        +---- Exploit Catalog and Matching
+        +---- Exploit Execution
+        +---- Post-exploitation Assessment / Sessions
+        +---- Validation and Correlation
+        +---- Evidence and Findings
+        +---- Reporting
+        |
+        v
+Storage, Run Provenance, and Audit Records
 
-Integrations: Nmap, Metasploit RPC, and future explicitly configured tools
+Integrations: Nmap, Metasploit RPC, service-specific tools,
+              vulnerability knowledge sources, and future adapters
 ```
 
-The interface calls application services. It must not build shell commands, call external tools directly, or bypass policy checks. The orchestrator coordinates services and records workflow state. Integrations encapsulate external tool protocols and process execution.
+The interface calls application services. It must not build shell commands, call external tools directly, or bypass policy checks. The orchestrator coordinates domain services and records workflow state. Integrations encapsulate external tool protocols and process execution.
 
-## Component responsibilities
+## Core domain boundaries
 
 | Component | Owns | Does not own |
 |---|---|---|
-| interface | Screens, navigation, prompts, progress and presentation | Assessment decisions or direct tool execution |
+| graphical interface | Screens, navigation, visualizations, prompts, progress and presentation | Assessment decisions or direct tool execution |
 | core | Application lifecycle, workflow coordination, events and state | Tool-specific protocol details |
-| configuration | Loading, defaults and validation of settings | Authorization decisions |
-| workspace | Workspace identity and lifecycle | Target discovery |
+| configuration/workspace | Settings, workspace identity and lifecycle | Authorization decisions |
 | scope | Authorized targets, exclusions, ports and operation policy | User-interface navigation |
-| discovery | Host, port and service observations; scanner imports | Vulnerability conclusions |
-| intelligence | Fingerprinting, evidence correlation, confidence and recommendations | Running intrusive actions |
-| assessment | Check selection, planning, prioritization and approvals | Bypassing execution controls |
-| integrations | Nmap and Metasploit communication, tool detection and parsing | Workflow navigation |
-| execution | Approved operation scheduling, bounds, cancellation and results | Selecting targets outside scope |
-| sessions | Session metadata and lifecycle tracking | Unapproved session creation |
+| discovery | Host, port and initial service observations | Vulnerability conclusions |
+| enumeration | Service-specific probes, fingerprints, configurations and structured observations | Exploit dispatch |
+| intelligence | Product/version intelligence, correlation, confidence and candidate weaknesses | Running intrusive actions |
+| vulnerability assessment | Check selection, prerequisites, validation logic and assessment results | Bypassing execution controls |
+| exploit catalog | Exploit metadata, affected targets, prerequisites, options and expected outcomes | Dispatching an exploit |
+| exploit execution | Authorized exploit preparation, dispatch, bounded execution and outcomes | Selecting targets outside scope or granting authorization |
+| post-exploitation/sessions | Authorized session metadata, lifecycle and bounded impact assessment | Treating session access as blanket permission |
+| validation | Independent verification and evidence-backed outcome assessment | Converting tool success into a finding without evidence |
 | evidence | Raw supporting artifacts, provenance and integrity metadata | Severity assignment |
-| findings | Normalized observations and finding status/severity | Replacing underlying evidence |
+| findings/analysis | Correlated conclusions, confidence, impact and review state | Replacing underlying evidence |
 | reporting | Rendering stored assessment data | Running new checks |
-| storage | Durable records and migrations | Policy interpretation |
+| integrations | Nmap, Metasploit, service tools, protocol clients and parsers | Workflow navigation |
+| storage | Durable records, migrations and run provenance | Policy interpretation |
 
-## Data flow
+## Assessment data flow
 
-1. A workspace loads its configuration and active scope.
-2. Scope validation checks the requested targets, ports, and operation class.
-3. Discovery adapters produce normalized host and service observations.
-4. Observations are persisted with timestamps and source provenance.
-5. Intelligence correlates observations with known service capabilities and assessment knowledge.
-6. The planner creates recommendations with rationale, confidence, risk, and prerequisites.
-7. The approval service records operator decisions for operations requiring approval.
-8. The execution manager revalidates scope and policy immediately before dispatch.
-9. Results and evidence are persisted; findings reference their supporting evidence.
-10. Reports are generated from persisted records.
+1. A workspace loads its configuration and active authorization scope.
+2. Scope validation checks requested targets, ports, and operation class.
+3. Discovery adapters produce normalized host, port, and initial service observations.
+4. Enumeration adapters gather deeper service-specific information and preserve provenance.
+5. Intelligence correlates observations with product, version, configuration, and vulnerability knowledge.
+6. Vulnerability assessment produces candidate weaknesses, required checks, confidence, and evidence gaps.
+7. The exploit catalog matches candidate techniques to target observations and evaluates prerequisites.
+8. The operator reviews the proposed action and grants explicit action-specific authorization where required.
+9. The execution manager revalidates scope and authorization immediately before dispatch.
+10. Results, sessions, and evidence are associated with the originating assessment run.
+11. Validation and correlation determine what the collected evidence supports.
+12. Findings are reviewed and reports are generated from persisted run data.
 
-## Domain model boundaries
+## Important domain distinctions
 
-Keep domain objects independent of Textual widgets and external RPC response shapes. External responses should be parsed into internal models at integration boundaries. Database records should be mapped through storage repositories rather than leaking SQLite rows into the interface.
+- A discovered open port is an observation, not a vulnerability.
+- A service banner or version match may justify further assessment, but is not by itself proof of a vulnerability.
+- A candidate exploit match is not proof that the target is vulnerable.
+- A successful tool invocation is not proof that exploitation succeeded.
+- An obtained session is evidence of access, not blanket authorization for further actions.
+- A recommendation is not a finding; a finding must reference supporting evidence and carry an explicit confidence/review state.
 
-A recommendation is not a finding. A service observation is not proof of a vulnerability. A successful tool invocation is not proof that a security issue exists.
+## Run provenance
 
-## Initial code mapping
+Every meaningful operation should be traceable to an assessment run, target, operation definition, authorization decision, dispatch attempt, result, and evidence artifact. Run-specific records must preserve workspace isolation. If dispatch state is uncertain after interruption, mark the operation for operator reconciliation; do not automatically retry it.
 
-The current repository is intentionally small. The following mapping is a migration guide, not a requirement to move every file immediately.
+## Current implementation and migration
 
-| Current module | Target responsibility |
-|---|---|
-| `msfauto/cli.py` | CLI bootstrap and interface entry |
-| `msfauto/tui.py` | Replace dashboard-only screen with workflow-oriented interface |
-| `msfauto/discovery.py` | Split discovery orchestration, Nmap adapter, and XML parsing when needed |
-| `msfauto/scope.py` | Scope policy and validation |
-| `msfauto/models.py` | Gradually split domain models by bounded context |
-| `msfauto/planner.py` | Assessment planning and recommendation logic |
-| `msfauto/jobs.py` | Controlled execution/job lifecycle |
-| `msfauto/metasploit.py` | Metasploit integration |
-| `msfauto/storage.py` | Database access and repositories |
+The repository currently has working foundations for Nmap discovery, normalized host/service storage, read-only Metasploit metadata, a limited passive-check adapter, read-only planning, bounded jobs, approvals, evidence, findings, workspace reports, and run-specific plan snapshots.
 
-## Migration constraints
+The current Textual UI is a prototype. Keep its service calls reusable, but do not treat its widgets or terminal layout as the target graphical application.
 
-- Work on the existing `main` branch; do not create a redesign branch.
-- Keep current public CLI flags working until replacements have tests and documented migration paths.
-- Preserve SQLite data and introduce schema migrations before changing persisted structures.
-- Do not create empty placeholder packages solely to match a diagram.
-- Do not add dependencies unless a specific requirement justifies them.
-- Update tests, documentation, and `CHANGELOG.md` with each meaningful migration.
-- Keep the application usable after each phase.
+Introduce future domain packages only when they contain real behavior and tests. Preserve the existing SQLite data with explicit migrations. Work directly on `main`; do not create a redesign branch unless explicitly requested.
