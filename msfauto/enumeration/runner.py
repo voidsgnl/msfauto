@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ftplib
 import hashlib
 import http.client
 import socket
@@ -56,6 +57,53 @@ def _is_http(service: Service) -> bool:
 def _is_ssh(service: Service) -> bool:
     label = f"{service.name} {service.product}".lower()
     return service.protocol.lower() == "tcp" and "ssh" in label
+
+
+def _is_ftp(service: Service) -> bool:
+    label = f"{service.name} {service.product}".lower()
+    return service.protocol.lower() == "tcp" and (
+        "ftp" in label or service.port in {20, 21}
+    )
+
+
+def _ftp_probe(
+    workspace: str, target: str, service: Service, timeout: float
+) -> tuple[ServiceObservation, ...]:
+    client = ftplib.FTP()
+    try:
+        welcome = client.connect(target, service.port, timeout=timeout)
+        attributes: dict[str, object] = {
+            "welcome": (welcome or "")[:MAX_VALUE_LENGTH],
+            "features": [],
+        }
+        try:
+            response = client.sendcmd("FEAT")
+            lines = response.splitlines()
+            attributes["features"] = [
+                line.strip()[:MAX_VALUE_LENGTH]
+                for line in lines[1:-1][:32]
+            ]
+        except ftplib.error_perm as exc:
+            # FEAT is optional; a valid greeting is still useful evidence.
+            attributes["feat_status"] = str(exc)[:MAX_VALUE_LENGTH]
+        return (
+            _observation(
+                workspace, target, service, "ftp", "completed", attributes,
+                confidence=8 if attributes["features"] else 6,
+            ),
+        )
+    except (OSError, EOFError, ftplib.Error, TimeoutError) as exc:
+        return (
+            _observation(
+                workspace, target, service, "ftp", "failed",
+                {"error_type": type(exc).__name__},
+            ),
+        )
+    finally:
+        try:
+            client.close()
+        except OSError:
+            pass
 
 
 def _http_probe(
@@ -176,12 +224,18 @@ def enumerate_services(
                 tasks.append(("http", str(host.address), service))
             elif _is_ssh(service):
                 tasks.append(("ssh", str(host.address), service))
+            elif _is_ftp(service):
+                tasks.append(("ftp", str(host.address), service))
 
     results: list[ServiceObservation] = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for kind, target, service in tasks:
-            probe = _http_probe if kind == "http" else _ssh_probe
+            probe = {
+                "http": _http_probe,
+                "ssh": _ssh_probe,
+                "ftp": _ftp_probe,
+            }[kind]
             futures.append(executor.submit(probe, workspace, target, service, timeout))
         for future in as_completed(futures):
             try:
