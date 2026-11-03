@@ -87,7 +87,7 @@ class AssessmentApplication:
             transition("discovery", "Starting bounded discovery within the saved authorization scope.")
             _, hosts = self.discover()
             emit("discovery", f"Discovery completed; {len(hosts)} host(s) imported.")
-            transition("enumeration", "Enumerating recognized HTTP/HTTPS and SSH services within scope.")
+            transition("enumeration", "Enumerating recognized HTTP/HTTPS, SSH, FTP, SMB2, and TLS services within scope.")
             observations = enumerate_services(
                 self.workspace.name, hosts, self.workspace.policy
             )
