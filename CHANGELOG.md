@@ -4,6 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Exploit intelligence foundation
+- Added a first-class `msfauto/exploitation/` package with source-attributed exploit definitions and exact applicability matching against open service product aliases, affected versions, and explicitly linked vulnerability candidate IDs.
+- Added JSON catalog loading through `MSFAUTO_EXPLOIT_CATALOG`, stable opportunity identifiers, workspace-scoped opportunity persistence, and an `exploit_intelligence` assessment workflow stage.
+- Persisted opportunities remain `identified`; matching cannot approve or dispatch modules. No exploit module execution, payload handling, or post-exploitation behavior was added. Version-range and fuzzy product matching remain unimplemented.
+- Added tests for catalog validation, exact and negative matches, advisory-linked matches, persistence round-trip, and approval-state guardrails. CI verification pending.
+
+
 ### OSV vulnerability intelligence ingestion
 - Added an OSV.dev API client for package name + ecosystem + version queries using the documented `/v1/query` endpoint.
 - Normalized returned advisory IDs, CVE/GHSA aliases, severity, references, affected version lists, and original OSV range metadata.
