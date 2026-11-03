@@ -88,7 +88,7 @@ The mapping must explicitly identify products and at least one exact affected ve
 }
 ```
 
-Set that JSON as `MSFAUTO_EXPLOIT_PRODUCT_MAPPINGS` and call `import_metasploit_exploits(client)` from `msfauto.exploitation` using an authenticated `MetasploitClient`. The importer returns normalized catalog definitions; it does not execute modules, persist a refreshed catalog, or automatically change the assessment workflow's curated `MSFAUTO_EXPLOIT_CATALOG`. Catalog synchronization/persistence and workflow integration remain future work.
+Pass that JSON as `mappings` to `sync_metasploit_exploits(client, store, workspace, mappings)` from `msfauto.exploitation`, using an authenticated `MetasploitClient` and the workspace's `WorkspaceStore`. The helper imports the mapped modules and persists them in the workspace-scoped `exploit_catalog` table. The assessment workflow merges active synchronized entries with `MSFAUTO_EXPLOIT_CATALOG` by `exploit_id`. Refreshes update framework metadata but preserve existing operator-controlled product/version/advisory mappings; change those explicitly with `WorkspaceStore.update_exploit_catalog_mapping(...)`. A successful non-empty refresh deactivates entries no longer present in that source. An empty result does not deactivate the existing catalog. No module is approved or executed by synchronization.
 
 **Important limitation:** the current execution adapter only supports its fixed passive-check allowlist. It does not yet provide a general exploit execution workflow, a complete vulnerability assessment engine, or post-exploitation/session management. These are planned core capabilities, not features that should be assumed to exist today.
 
