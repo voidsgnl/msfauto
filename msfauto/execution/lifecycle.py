@@ -1,17 +1,17 @@
-from __future__ import annotations  # noqa: I001
+from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from ..exploitation.authorization import (
+from msfauto.exploitation.authorization import (
     ExploitAuthorization,
     ExploitAuthorizationError,
     validate_authorization,
 )
-from ..exploitation.models import ExploitOpportunity
-from ..storage.database import WorkspaceStore
+from msfauto.exploitation.models import ExploitOpportunity
+from msfauto.storage.database import WorkspaceStore
 
 
 EXECUTION_STATES = frozenset({
