@@ -48,10 +48,18 @@ The current implementation has reusable capabilities, but the complete assessmen
 - The TUI currently exposes discovery, target browsing, plan display, and scope review; approval, execution, evidence/finding review, and report views are not connected to it.
 - Assessment runs and events are persisted, but there is no resume/recovery operation. A process interruption can leave a run in `running`; retry safety and duplicate-dispatch prevention are not implemented.
 
+### Completed slice: run-specific plan snapshots
+
+- [x] Added a dedicated SQLite table for assessment-run plan snapshots; existing workspace-level latest-plan behavior remains intact for compatibility.
+- [x] Persisted the generated read-only plan against its originating run.
+- [x] Reject snapshots for unknown runs and workspace mismatches.
+- [x] Added workflow tests for snapshot retrieval and ownership validation.
+- [ ] Verify the implementation in CI and in the user's local checkout.
+
 ### Implementation implications
 
 - [x] Audit the application-service and orchestrator boundaries.
-- [ ] Make plans immutable and addressable by assessment run.
+- [x] Make plans immutable and addressable by assessment run.
 - [ ] Add explicit interruption/recovery semantics before supporting resume.
 - [ ] Associate downstream approvals, jobs, evidence, and reports with the originating run without weakening workspace isolation.
 - [ ] Add idempotency/dispatch tracking so a resumed workflow cannot repeat an operation whose dispatch outcome is uncertain.
