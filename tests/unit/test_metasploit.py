@@ -1,11 +1,11 @@
+import tempfile
 import unittest
+from pathlib import Path
 from typing import Any
 
 from msfauto.integrations.metasploit import MetasploitClient, MetasploitError
-from msfauto.storage.models import ModuleMetadata
 from msfauto.storage import WorkspaceStore
-from pathlib import Path
-import tempfile
+from msfauto.storage.models import ModuleMetadata
 
 
 class FakeTransport:
