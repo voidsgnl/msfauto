@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from msfauto.enumeration import enumerate_services
 from msfauto.enumeration.models import ServiceObservation
-from msfauto.enumeration.runner import _http_probe, _ssh_probe
+from msfauto.enumeration.runner import _ftp_probe, _http_probe, _ssh_probe
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
 from msfauto.storage.models import Host, Service
@@ -120,6 +120,36 @@ class EnumerationTests(unittest.TestCase):
             self.assertEqual(
                 store.get_service_observations("another-workspace"), ()
             )
+
+    def test_ftp_probe_records_greeting_and_features(self):
+        listener = socket.socket()
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+
+        def serve():
+            conn, _ = listener.accept()
+            with conn:
+                conn.sendall(b"220 Test FTP ready\\r\\n")
+                command = conn.recv(1024)
+                if command.upper().startswith(b"FEAT"):
+                    conn.sendall(
+                        b"211-Features\\r\\n UTF8\\r\\n SIZE\\r\\n211 End\\r\\n"
+                    )
+            listener.close()
+
+        thread = threading.Thread(target=serve, daemon=True)
+        thread.start()
+        try:
+            service = Service(port, "tcp", "open", name="ftp")
+            observations = _ftp_probe("lab", "127.0.0.1", service, 1.0)
+        finally:
+            thread.join(timeout=1)
+            listener.close()
+        self.assertEqual(observations[0].status, "completed")
+        self.assertIn("220 Test FTP ready", observations[0].attributes["welcome"])
+        self.assertEqual(observations[0].attributes["features"], ["UTF8", "SIZE"])
 
     def test_invalid_worker_count_is_rejected(self):
         with self.assertRaises(ValueError):
