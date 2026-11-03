@@ -1,12 +1,28 @@
 # MSFAuto
 
-MSFAuto is a local, terminal-first orchestrator for authorized security assessment workflows. Its interaction model is inspired by Wifite: start the application, define an authorized scope, discover targets, inspect results, review an assessment plan, approve actions, and collect evidence.
+**MSFAuto is an automated security assessment platform** for discovering, enumerating, assessing, exploiting, and validating security weaknesses in explicitly authorized environments.
 
-The goal is to make complex security tooling approachable without hiding scope, policy, or the operations being requested.
+Its primary purpose is to perform useful security assessment work and produce technically meaningful results. Safety controls, evidence integrity, orchestration, and reporting support that purpose; they do not define the product.
 
-## Current implementation
+MSFAuto is not intended to be merely a graphical wrapper around Metasploit. Metasploit is one integration and execution engine within a broader platform.
 
-The current MVP provides foundations for:
+## Product capabilities
+
+The intended platform is organized around these core capabilities:
+
+- **Reconnaissance and discovery:** identify in-scope hosts, ports, and exposed services.
+- **Service enumeration and intelligence:** fingerprint services, identify versions and technologies, and gather configuration and service-specific context.
+- **Vulnerability assessment:** identify candidate weaknesses, assess prerequisites, and prioritize checks using evidence and confidence.
+- **Exploitation:** match applicable exploit techniques to target observations, review prerequisites and options, and execute explicitly authorized attempts through supported integrations.
+- **Post-exploitation assessment:** perform separately authorized, bounded assessment of achieved access, privilege context, and security impact.
+- **Validation:** verify suspected weaknesses and exploit outcomes using evidence.
+- **Analysis and correlation:** connect observations and results across assessment stages and produce meaningful findings.
+
+Supporting capabilities include assessment orchestration, authorization and approvals, session/job lifecycle management, evidence integrity, reporting, and a graphical user interface.
+
+## Current implementation status
+
+The repository currently provides foundations for:
 
 - Interactive workspace creation and startup.
 - SQLite-backed workspaces, discovery observations, workspace-level plans, immutable run-specific plan snapshots, workflow runs, and events.
@@ -17,32 +33,36 @@ The current MVP provides foundations for:
 - Workspace-persisted module metadata and options.
 - Explainable dry-run plans with deterministic service matching.
 - A bounded job manager with scope checks, cancellation, concurrency limits, and structured events.
-- Bounded safe-check adapter execution and persisted results.
-- An explicit Metasploit RPC execution path for a fixed allowlist of passive service-version checks; all other modules remain unsupported by this adapter.
-- A terminal-native Textual assessment console with compact workspace context, keyboard-first navigation, target tables, status feedback, selected-target details, and read-only plan display.
-- A persisted discovery-to-planning workflow with progress events and recorded failure states.
-- Per-recommendation approval decisions persisted in SQLite; safe checks require an exact `APPROVE` confirmation and approver identifier.
-- Execution-layer authorization gate that independently verifies the persisted approval, exact workspace/target/port/protocol/module/risk context, and scope both at submission and immediately before adapter dispatch.
-- Bounded local evidence artifact collection with SHA-256 integrity verification and SQLite metadata; safe-check outcomes and structured job events are captured automatically.
-- Persisted findings with severity, confidence, review status, and evidence references; evidence links are restricted to the same workspace.
-- Workspace-scoped JSON and Markdown reports covering scope, discovered assets, execution jobs, findings, and evidence integrity; common secret fields are redacted.
+- A limited Metasploit RPC execution path for a fixed allowlist of passive service-version checks.
+- Per-action approval records and execution-layer authorization checks.
+- Bounded local evidence collection with SHA-256 integrity verification.
+- Persisted evidence-linked findings.
+- Workspace-scoped JSON and Markdown reports.
+- Assessment-run records, workflow events, and immutable run-specific plan snapshots.
 
-The interface is an initial terminal-native console release. It does not yet provide approval history beyond the latest decision per action, workflow resumption, evidence/finding views, automated evidence-to-finding correlation, HTML reports, and report views in the TUI. The execution layer now accepts bounded textual adapter output, applies best-effort secret redaction, and includes sanitized output in execution evidence. The job/check layer remains a controlled foundation; it does not imply that arbitrary Metasploit modules are executable through MSFAuto.
+**Important limitation:** the current execution adapter only supports its fixed passive-check allowlist. It does not yet provide a general exploit execution workflow, a complete vulnerability assessment engine, or post-exploitation/session management. These are planned core capabilities, not features that should be assumed to exist today.
 
-## Planned experience
+## Interface direction
 
-The intended full workflow is:
+The intended primary experience is a **graphical application**, not a terminal UI (TUI). The user-supplied interface reference informs the visual language and interaction feel; it is not a specification to reproduce a terminal application or copy its terminology and workflow.
 
-1. Select or configure a workspace and authorized scope.
-2. Discover hosts, ports, and services.
-3. Select a discovered target.
-4. Analyze observations and generate recommendations.
-5. Review an explainable assessment plan.
-6. Approve operations according to policy.
-7. Execute supported checks with bounded resources.
-8. Collect evidence, review findings, and generate reports.
+The current Textual screen is an early prototype and should not be expanded into the final product interface. The graphical application should expose assets, services, vulnerability assessment, exploit opportunities, execution and session activity, evidence, and findings through a coherent operator workflow.
 
-See [the architecture](docs/architecture/overview.md), [assessment workflow](docs/assessment-workflow.md), [evidence and findings guide](docs/evidence-and-findings.md), [safety model](docs/security/safety-model.md), and [roadmap](ROADMAP.md).
+The CLI remains useful for scripting, automation, imports, and diagnostics.
+
+## Intended assessment lifecycle
+
+1. Select a workspace and define the authorized scope.
+2. Discover hosts, ports, and exposed services.
+3. Enumerate services and build target intelligence.
+4. Assess potential vulnerabilities and identify evidence gaps.
+5. Review candidate exploit paths, prerequisites, and expected outcomes.
+6. Explicitly authorize and execute supported exploit attempts.
+7. Where separately authorized, assess resulting access and security impact.
+8. Validate outcomes, correlate evidence, and review findings.
+9. Generate a report from the assessment run.
+
+The workflow must distinguish observations, hypotheses, candidate vulnerabilities, validated findings, and execution outcomes.
 
 ## Run from source
 
@@ -52,13 +72,13 @@ Install the project and its dependencies in a virtual environment, then run:
 python -m msfauto
 ```
 
-This opens the terminal-native assessment console. It keeps the authorized workspace context visible, presents discovery results in a compact table, and provides keyboard shortcuts for the main workflow. The equivalent module entry point is:
+The current command opens the existing Textual prototype. It is not the intended final graphical interface.
+
+The equivalent module entry point is:
 
 ```bash
 python -m msfauto.cli
 ```
-
-On first launch, enter authorized IP/CIDR targets and optional ports. The console provides Discover, Targets, Plan, and Scope actions. Keyboard shortcuts are shown in the footer: D, T, P, S, and Q.
 
 Existing command-line operations remain available:
 
@@ -75,7 +95,7 @@ python -m msfauto.cli --workspace lab --report markdown --report-output ./assess
 
 The default workspace database is stored at `~/.msfauto/workspaces.sqlite3`. Set `MSFAUTO_HOME` to use another local directory.
 
-### Metasploit RPC checks
+### Current Metasploit integration
 
 The `--metasploit` flag opts into real Metasploit RPC execution. Configure the connection before running it:
 
@@ -86,41 +106,36 @@ export MSFAUTO_METASPLOIT_PASSWORD="your-rpc-password"
 python -m msfauto.cli --workspace lab --run-safe-checks --metasploit
 ```
 
-The URL defaults to the local `msfrpcd` endpoint shown above. MSFAuto currently permits only a fixed set of passive FTP, HTTP, MySQL, PostgreSQL, SMB, SSH, SSL, and Telnet version-identification modules. It checks the live Metasploit module stance before dispatch, passes only the approved target and port, polls the returned run UUID, and stops jobs that exceed the 60-second execution limit. The existing persisted approval and scope checks still run before dispatch. Other modules—including modules merely named `scanner/*`—are reported as unsupported and are not executed. The default `--run-safe-checks` path remains deterministic unless `--metasploit` is explicitly supplied.
+The current adapter permits only a fixed set of passive FTP, HTTP, MySQL, PostgreSQL, SMB, SSH, SSL, and Telnet version-identification modules. Other modules are unsupported by this execution path. A future exploit engine must have its own explicit metadata, matching, authorization, dispatch, and outcome lifecycle; it must not be implemented by simply removing this allowlist.
 
 The MVP accepts IP addresses and CIDR networks. It does not resolve or scan arbitrary hostnames.
 
-## Safety
+## Authorization and evidence
 
-MSFAuto is intended for owned systems, isolated labs, and explicitly authorized assessments. Discovery does not grant permission to perform intrusive operations. Scope is enforced independently of the interface, and active operations require policy checks and appropriate approval.
+MSFAuto is intended for owned systems, isolated labs, and explicitly authorized assessments. Scope is enforced independently of the interface. Discovery does not authorize exploitation, and an obtained session does not authorize arbitrary post-exploitation actions. Exploit and post-exploitation operations require explicit action-specific authorization.
 
-Exploit execution, credential attacks, persistence, pivoting, and destructive actions are not part of the normal automated workflow.
+Evidence is retained separately from interpreted findings. Tool errors, service banners, and successful tool invocations are not by themselves proof of a vulnerability.
 
 ## Code layout
 
-The active code is organized by responsibility: `core/` owns orchestration, `interface/` owns the Textual UI, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning and approval decisions, `execution/` owns approval-gated bounded checks, `evidence/` owns artifact collection and integrity verification, `findings/` owns evidence-linked assessment conclusions, `reporting/` exports workspace reports, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models. Tests are grouped under `unit/`, `integration/`, `workflow/`, and `interface/`.
+The active code is organized by responsibility: `core/` owns orchestration, `interface/` contains the current Textual prototype, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning and approval decisions, `execution/` owns approval-gated bounded checks, `evidence/` owns artifact collection and integrity verification, `findings/` owns evidence-linked assessment conclusions, `reporting/` exports reports, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models.
 
-The remaining target areas—configuration, workspace lifecycle, intelligence, approval history, sessions, automatic adapter-to-evidence correlation, HTML reporting, and richer evidence/finding views—will be added as real capabilities are implemented, not as empty placeholder modules.
+Future boundaries for service enumeration, vulnerability intelligence, exploit catalog and execution, sessions, and validation should be introduced when they have concrete domain behavior—not as empty placeholder packages.
 
 ## Development
 
-Use the project setup script to create an isolated virtual environment and install the project with its development dependencies:
+Use the project setup script to create an isolated virtual environment and install development dependencies:
 
 ```bash
 ./scripts/setup_dev.sh
 source .venv/bin/activate
 ```
 
-Do not install project dependencies into Ubuntu's externally managed system Python. The setup script installs into `.venv/` and avoids PEP 668 conflicts.
-
-Run the application and checks from the activated environment:
+Run checks from the activated environment:
 
 ```bash
-python -m msfauto
 python -m pytest
 python -m ruff check .
 ```
 
-GitHub Actions runs the test suite and Ruff on pushes to `main`, pull requests, and manual workflow dispatches, using Python 3.10, 3.12, and 3.14.
-
-See [the migration plan](docs/development/migration-plan.md) for the development sequence and repository rules. Update `CHANGELOG.md` for meaningful changes.
+GitHub Actions runs tests and Ruff on Python 3.10, 3.12, and 3.14. Update `ROADMAP.md` and `CHANGELOG.md` for meaningful changes.
