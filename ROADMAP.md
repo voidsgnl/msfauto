@@ -70,7 +70,8 @@ OSV workflow integration is active when explicit mappings are configured, but th
 - Added `MetasploitClient.execute_exploit()` for the exploit RPC method. The dispatcher performs one call only; a valid acknowledgement stores the framework job ID/UUID and moves to `running`.
 - Any exception after dispatch intent is persisted becomes `dispatch_uncertain` and raises `ExploitDispatchUncertain`. The adapter never retries. Preflight failures leave the execution in `prepared`.
 - Existing passive-check execution and its fixed auxiliary allowlist are unchanged. No live exploit was run as part of implementation.
-- Added fake-RPC tests for exact target-only options, catalog gating, unsupported required options, module-type rejection, acknowledged dispatch, and ambiguous RPC failure/non-retry. CI verification is pending for this milestone.
+- Added fake-RPC tests for exact target-only options, catalog gating, unsupported required options, module-type rejection, acknowledged dispatch, and ambiguous RPC failure/non-retry.
+- GitHub Actions run #391 passed on Python 3.10, 3.12, and 3.14: 137 tests passed (plus 2 subtests); Ruff passed on all versions.
 
 ### Previous milestone: durable exploit execution lifecycle
 - Added `msfauto/execution/lifecycle.py` as a separate lifecycle domain; the existing passive-check manager and its fixed Metasploit allowlist are unchanged.
