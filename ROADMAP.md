@@ -62,13 +62,14 @@ OSV workflow integration is now active when explicit mappings are configured, bu
 
 ## Current handoff — 2026-11-03
 
-### Latest implementation milestone: Metasploit exploit catalog ingestion
+### Latest implementation milestone: persistent Metasploit exploit catalog synchronization
 - Added the dedicated Metasploit RPC `module.exploits` client method with response validation and duplicate removal.
 - Added an importer that fetches detailed metadata only for explicitly mapped exploit modules and normalizes rank, description, platforms, architectures, targets, required options, references, and check support.
-- Added mandatory operator-supplied product aliases and exact affected versions or advisory IDs. Module names and descriptions are never treated as product identity or version evidence.
-- Added tests for RPC listing, malformed responses, mapping validation, metadata normalization, filtering to mapped modules, missing modules, and non-exploit metadata.
-- The importer currently returns normalized definitions; it does not yet persist/synchronize the catalog or automatically feed Metasploit imports into the assessment workflow. The existing curated JSON catalog remains the workflow source.
-
+- Added workspace-scoped SQLite persistence for imported exploit definitions, including source, module identity, metadata, active state, and last synchronization timestamp.
+- Refreshes update framework-supplied metadata while preserving operator-controlled product aliases, exact affected versions, and advisory mappings. Mapping changes require an explicit storage API call.
+- A successful non-empty source refresh deactivates entries removed from that source; an empty refresh is a no-op. The assessment workflow now merges active synchronized entries with the curated JSON catalog by exploit ID.
+- Added tests for RPC listing, malformed responses, mapping validation, metadata normalization, filtering, missing modules, non-exploit metadata, persistence round-trip, mapping preservation, explicit mapping updates, stale-entry deactivation, empty refreshes, and workflow consumption.
+- Synchronization stores metadata only. It does not approve or execute modules.
 ### Previous milestone: exploit intelligence catalog and matching
 - Nmap discovery now requests service/version detection with -sV --version-light, still constrained by the workspace target and port scope.
 - Parsed service records retain product/version, Nmap probe method and confidence, extra information, TLS tunnel metadata, CPE identifiers, source, and observation timestamp.
@@ -130,7 +131,8 @@ The next implementation work should improve actual assessment capability, not ad
    - [x] Represent source attribution, affected products/versions, prerequisites, required options, target compatibility metadata, risk, and supporting references.
    - [x] Match exact product aliases and versions, with optional links to known vulnerability candidate IDs; persist workspace-scoped opportunities.
    - [x] Add a Metasploit RPC exploit-module importer with explicit product/version/advisory mappings and normalized module metadata.
-   - [ ] Persist imported catalog definitions and support explicit refresh/synchronization into the assessment workflow.
+   - [x] Persist imported catalog definitions with workspace isolation and explicit refresh/synchronization.
+   - [x] Merge active synchronized catalog entries with curated entries in assessment runs while preserving operator-controlled mappings.
    - Add maintained catalog synchronization/import adapters and version-range semantics with source-specific tests.
    - Represent expected outcomes and richer target compatibility metadata as catalog sources are integrated.
    - Add explicit exploit review and action-specific authorization before dispatch.
@@ -199,7 +201,8 @@ The next implementation work should improve actual assessment capability, not ad
 - [x] Normalize core exploit metadata, affected targets, prerequisites, required options, and references from Metasploit RPC.
 - [x] Match candidate exploits to observed target intelligence using explicit product/version/advisory mappings.
 - [x] Import mapped Metasploit exploit metadata through the dedicated RPC catalog endpoint.
-- [ ] Persist imported catalog definitions and support refresh/synchronization into assessment runs.
+- [x] Persist imported catalog definitions and support refresh/synchronization into assessment runs.
+- [x] Merge synchronized catalog entries into assessment runs while preserving explicit operator mappings.
 - [ ] Add explicit operator review and action-specific authorization.
 - [ ] Add bounded exploit execution through supported integrations.
 - [ ] Persist dispatch state and execution outcomes; handle uncertain dispatch through operator reconciliation.
