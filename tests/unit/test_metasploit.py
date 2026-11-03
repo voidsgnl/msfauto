@@ -10,7 +10,7 @@ from msfauto.storage.models import ModuleMetadata
 
 class FakeTransport:
     def __init__(self) -> None:
-        self.calls: list[tuple[str, tuple[str, ...]]] = []
+        self.calls: list[tuple[str, tuple[Any, ...]]] = []
 
     def request(self, method: str, arguments: tuple[Any, ...]) -> dict[str, Any]:
         self.calls.append((method, arguments))
