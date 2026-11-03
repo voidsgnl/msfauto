@@ -62,7 +62,7 @@ These foundations do **not** mean the platform already provides a complete vulne
 
 ## Current handoff — 2026-11-03
 
-### Latest implementation milestone: HTTP/HTTPS, SSH, and FTP service enumeration
+### Latest implementation milestone: HTTP/HTTPS, SSH, FTP, and SMB2 service enumeration
 - Nmap discovery now requests service/version detection with -sV --version-light, still constrained by the workspace target and port scope.
 - Parsed service records retain product/version, Nmap probe method and confidence, extra information, TLS tunnel metadata, CPE identifiers, source, and observation timestamp.
 - SQLite schema upgrades add these fields in place; legacy service rows receive conservative unknown/zero defaults and remain readable.
@@ -70,7 +70,8 @@ These foundations do **not** mean the platform already provides a complete vulne
 - Added protocol-aware HTTP/HTTPS and SSH enumeration adapters. HTTP uses a bounded HEAD request and captures status/headers; HTTPS also records negotiated TLS version, cipher, and certificate SHA-256. SSH captures the server identification banner.
 - Enumeration runs only for discovered open services whose Nmap fingerprint identifies HTTP/HTTPS, SSH, or FTP (including conventional FTP ports), and enforces saved address/port scope, bounded timeout, and bounded concurrency. Per-service failures are stored as observations rather than aborting the assessment.
 - FTP enumeration captures the server greeting and a bounded FEAT response; FEAT is optional, so a valid greeting remains useful when the command is unsupported.
-- FTP adapter tests use a local fake server. The new implementation's CI and local test status are pending verification.
+- SMB enumeration sends an unauthenticated SMB2 NEGOTIATE request only (no session setup or file operations) and records the selected dialect, security mode, server GUID, capabilities, and negotiated size limits.
+- FTP and SMB2 adapter tests use local fake servers. CI and full-suite verification for these additions are pending.
 - Added append-only, workspace-scoped service observation persistence and integrated enumeration as an assessment stage after discovery.
 - Added local fake-server tests for HTTP and SSH plus scope/port filtering tests. CI status for this new milestone is pending.
 
@@ -145,14 +146,15 @@ The next implementation work should improve actual assessment capability, not ad
 - [x] Enable bounded Nmap service/version detection (-sV --version-light).
 - [x] Preserve product, version, probe method, confidence, extra info, tunnel, CPEs, source, and observation timestamp in normalized service records.
 - [x] Add HTTP/HTTPS and SSH service-specific enumeration beyond Nmap version probes.
-- [ ] Expand protocol coverage to TLS-only, SMB, and additional HTTP technology detection.
+- [ ] Expand protocol coverage to TLS-only and additional HTTP technology detection.
 - [x] Add bounded FTP greeting and FEAT enumeration with structured observations.
+- [x] Add unauthenticated SMB2 NEGOTIATE enumeration for TCP/445 and explicitly fingerprinted SMB services.
 - [x] Add HTTP/HTTPS and SSH enumeration modules and structured observations.
 - [x] Preserve observation provenance and confidence for Nmap service fingerprints.
 - [x] Add representative Nmap XML parsing, malformed-confidence, persistence round-trip, and legacy-schema migration tests.
 - [x] Add HTTP and SSH adapter tests, including partial SSH banners and scope filtering.
 - [ ] Add TLS-only certificate inspection and deeper TLS metadata collection.
-- [ ] Add SMB negotiation enumeration and protocol-specific tests.
+- [x] Add SMB2 negotiation enumeration and a local fake-server test.
 - [x] Add FTP enumeration and a local fake-server test.
 
 ### Phase 2 — Vulnerability assessment
