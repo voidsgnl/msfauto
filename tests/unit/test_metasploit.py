@@ -1,9 +1,16 @@
+import io
 import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
-from msfauto.integrations.metasploit import MetasploitClient, MetasploitError
+from msfauto.integrations.metasploit import (
+    MetasploitClient,
+    MetasploitConfig,
+    MetasploitError,
+    MsgpackHttpTransport,
+)
 from msfauto.storage import WorkspaceStore
 from msfauto.storage.models import ModuleMetadata
 
@@ -54,6 +61,46 @@ class MetasploitClientTests(unittest.TestCase):
 
         with self.assertRaisesRegex(MetasploitError, "no token"):
             MetasploitClient(NoTokenTransport(), "user", "password")
+
+    def test_msgpack_transport_normalizes_binary_encoded_rpc_strings(self) -> None:
+        import msgpack
+
+        login_response = msgpack.packb(
+            {b"result": b"success", b"token": b"token-1"},
+            use_bin_type=True,
+        )
+        result_response = msgpack.packb(
+            {b"status": b"completed", b"details": {b"message": b"finished"}},
+            use_bin_type=True,
+        )
+        transport = MsgpackHttpTransport(MetasploitConfig())
+
+        with patch(
+            "msfauto.integrations.metasploit.client.urlopen",
+            side_effect=[io.BytesIO(login_response), io.BytesIO(result_response)],
+        ):
+            client = MetasploitClient(transport, "user", "password")
+            result = client.module_results("run-uuid")
+
+        self.assertEqual(client.token, "token-1")
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["details"]["message"], "finished")
+
+    def test_msgpack_transport_normalizes_binary_encoded_error_response(self) -> None:
+        import msgpack
+
+        error_response = msgpack.packb(
+            {b"error": True, b"error_message": b"Login Failed"},
+            use_bin_type=True,
+        )
+        transport = MsgpackHttpTransport(MetasploitConfig())
+
+        with patch(
+            "msfauto.integrations.metasploit.client.urlopen",
+            return_value=io.BytesIO(error_response),
+        ):
+            with self.assertRaisesRegex(MetasploitError, "Login Failed"):
+                transport.request("auth.login", ("user", "password"))
 
     def test_auxiliary_execution_uses_flat_options_and_returns_run_identifiers(self) -> None:
         class ExecutionTransport(FakeTransport):
