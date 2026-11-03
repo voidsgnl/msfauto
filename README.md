@@ -134,6 +134,14 @@ Polling is an explicit one-shot operation, not an automatic retry loop. It does 
 
 **Important limitation:** exploit dispatch is now implemented for this narrow target-only option profile, but it is not a general-purpose Metasploit console. Modules requiring payload selection, handlers, local listener configuration, credentials, or additional options are deliberately unsupported. A returned job/UUID confirms framework acceptance, not exploit success or security impact. Independent exploit-outcome validation and post-exploitation/session management remain outstanding.
 
+## Exploit outcome verification
+
+Metasploit framework state and target outcome are separate records. A framework-reported `completed` state means only that the module run ended; it does not establish exploit success or security impact.
+
+The current `ExploitOutcomeValidator` records append-only target outcome assessments with one of three verdicts: `confirmed`, `not_confirmed`, or `inconclusive`. Each assessment records the verifier, method, operator, rationale, timestamp, and evidence references. Conclusive verdicts require evidence stored for the exact execution workspace and target. Evidence attributed only to Metasploit is rejected as independent verification.
+
+This is an evidence-backed assessment record, not an automatic exploit-success detector. A module-specific verifier must define its expected target-side indicator and bounded verification procedure before it can produce a conclusive result. No generic target probe or live exploit validation is claimed yet.
+
 ## Interface direction
 
 The intended primary experience is a **graphical application**, not a terminal UI (TUI). The user-supplied interface reference informs the visual language and interaction feel; it is not a specification to reproduce a terminal application or copy its terminology and workflow.
