@@ -11,6 +11,25 @@ class MetasploitError(RuntimeError):
     """Raised when the local Metasploit RPC service cannot answer safely."""
 
 
+def _normalize_msgpack_value(value: Any) -> Any:
+    """Decode MessagePack binary strings used by Metasploit as UTF-8 text."""
+    if isinstance(value, bytes):
+        try:
+            return value.decode("utf-8")
+        except UnicodeDecodeError:
+            return value
+    if isinstance(value, dict):
+        return {
+            _normalize_msgpack_value(key): _normalize_msgpack_value(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_normalize_msgpack_value(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_normalize_msgpack_value(item) for item in value)
+    return value
+
+
 class RpcTransport(Protocol):
     def request(self, method: str, arguments: tuple[Any, ...]) -> dict[str, Any]:
         ...
@@ -52,6 +71,7 @@ class MsgpackHttpTransport:
             ) from exc
         except (ValueError, msgpack.exceptions.UnpackException) as exc:
             raise MetasploitError("Metasploit RPC returned an invalid MessagePack response.") from exc
+        decoded = _normalize_msgpack_value(decoded)
         if not isinstance(decoded, dict):
             raise MetasploitError("Metasploit RPC returned an invalid response.")
         if decoded.get("error"):
