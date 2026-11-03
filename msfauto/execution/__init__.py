@@ -1,5 +1,10 @@
 """Execution adapters and durable lifecycle primitives."""
 
+from .exploit_dispatch import (
+    ExploitDispatchError,
+    ExploitDispatchUncertain,
+    MetasploitExploitDispatcher,
+)
 from .lifecycle import (
     EXECUTION_STATES,
     TERMINAL_STATES,
@@ -14,11 +19,6 @@ from .lifecycle import (
     reconcile_uncertain_execution,
     recover_interrupted_dispatches,
     request_exploit_cancellation,
-)
-from .exploit_dispatch import (
-    ExploitDispatchError,
-    ExploitDispatchUncertain,
-    MetasploitExploitDispatcher,
 )
 from .manager import (
     CheckRequest,
