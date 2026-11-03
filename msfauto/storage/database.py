@@ -266,6 +266,28 @@ class WorkspaceStore:
                 )
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS service_observations (
+                    observation_id TEXT PRIMARY KEY,
+                    workspace TEXT NOT NULL,
+                    target TEXT NOT NULL,
+                    port INTEGER NOT NULL,
+                    transport TEXT NOT NULL,
+                    protocol TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    attributes_json TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    confidence INTEGER NOT NULL,
+                    observed_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_service_observations_workspace "
+                "ON service_observations(workspace, target, port, observed_at)"
+            )
 
     def save(self, workspace: Workspace) -> None:
         policy = {
@@ -388,6 +410,59 @@ class WorkspaceStore:
                 services = tuple(services_list)
                 hosts.append(Host(ip_address(row["address"]), row["status"], row["hostname"], services))
         return tuple(hosts)
+
+    def save_service_observations(self, observations: tuple) -> None:
+        """Append immutable protocol observations without overwriting Nmap fingerprints."""
+        with self._connect() as connection:
+            for item in observations:
+                connection.execute(
+                    """
+                    INSERT INTO service_observations(
+                        observation_id, workspace, target, port, transport, protocol,
+                        kind, status, attributes_json, source, confidence, observed_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        item.observation_id, item.workspace, item.target, item.port,
+                        item.transport, item.protocol, item.kind, item.status,
+                        json.dumps(item.attributes, sort_keys=True), item.source,
+                        item.confidence, item.observed_at,
+                    ),
+                )
+
+    def get_service_observations(
+        self, workspace: str, target: str | None = None
+    ) -> tuple:
+        """Return protocol observations in collection order for one workspace."""
+        query = (
+            "SELECT * FROM service_observations WHERE workspace = ?"
+        )
+        parameters: tuple = (workspace,)
+        if target is not None:
+            query += " AND target = ?"
+            parameters = (workspace, target)
+        query += " ORDER BY observed_at, observation_id"
+        with self._connect() as connection:
+            rows = connection.execute(query, parameters).fetchall()
+        from ..enumeration.models import ServiceObservation
+
+        return tuple(
+            ServiceObservation(
+                observation_id=row["observation_id"],
+                workspace=row["workspace"],
+                target=row["target"],
+                port=row["port"],
+                transport=row["transport"],
+                protocol=row["protocol"],
+                kind=row["kind"],
+                status=row["status"],
+                attributes=json.loads(row["attributes_json"]),
+                source=row["source"],
+                confidence=row["confidence"],
+                observed_at=row["observed_at"],
+            )
+            for row in rows
+        )
 
     def save_discovery_run(self, run: DiscoveryRun) -> None:
         with self._connect() as connection:

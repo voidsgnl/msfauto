@@ -1,0 +1,98 @@
+import socket
+import threading
+import unittest
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from unittest.mock import patch
+
+from msfauto.enumeration import enumerate_services
+from msfauto.enumeration.runner import _http_probe, _ssh_probe
+from msfauto.scope import build_policy
+from msfauto.storage.models import Host, Service
+
+
+class _HTTPHandler(BaseHTTPRequestHandler):
+    def do_HEAD(self):
+        self.send_response(204)
+        self.send_header("Server", "MSFAuto-Test")
+        self.send_header("X-Test", "enumeration")
+        self.end_headers()
+
+    def log_message(self, *_args):
+        pass
+
+
+class EnumerationTests(unittest.TestCase):
+    def test_http_probe_records_status_and_bounded_headers(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), _HTTPHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            service = Service(server.server_port, "tcp", "open", name="http")
+            observations = _http_probe("lab", "127.0.0.1", service, 1.0)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+        self.assertEqual(observations[0].status, "completed")
+        self.assertEqual(observations[0].attributes["method"], "HEAD")
+        self.assertEqual(observations[0].attributes["status_code"], 204)
+        self.assertIn("server", observations[0].attributes["headers"])
+
+    def test_ssh_probe_records_server_banner(self):
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+
+        def serve():
+            conn, _ = listener.accept()
+            with conn:
+                conn.sendall(b"SSH-2.0-OpenSSH_9.8\r\n")
+            listener.close()
+
+        thread = threading.Thread(target=serve, daemon=True)
+        thread.start()
+        try:
+            service = Service(port, "tcp", "open", name="ssh")
+            observations = _ssh_probe("lab", "127.0.0.1", service, 1.0)
+        finally:
+            thread.join(timeout=1)
+        self.assertEqual(observations[0].status, "completed")
+        self.assertEqual(observations[0].attributes["banner"], "SSH-2.0-OpenSSH_9.8")
+
+    def test_enumeration_respects_address_port_and_service_fingerprint(self):
+        host = Host(
+            address=__import__("ipaddress").ip_address("127.0.0.1"),
+            status="up",
+            services=(
+                Service(8080, "tcp", "open", name="http"),
+                Service(22, "tcp", "open", name="ssh"),
+                Service(9000, "tcp", "open", name="unknown"),
+                Service(8081, "tcp", "closed", name="http"),
+            ),
+        )
+        policy = build_policy(["127.0.0.1"], "8080,22")
+        with patch("msfauto.enumeration.runner._http_probe", return_value=()) as http_probe, patch(
+            "msfauto.enumeration.runner._ssh_probe", return_value=()
+        ) as ssh_probe:
+            results = enumerate_services("lab", (host,), policy)
+        self.assertEqual(results, ())
+        http_probe.assert_called_once()
+        ssh_probe.assert_called_once()
+
+    def test_out_of_scope_host_is_never_probed(self):
+        host = Host(
+            address=__import__("ipaddress").ip_address("192.0.2.10"),
+            status="up",
+            services=(Service(80, "tcp", "open", name="http"),),
+        )
+        with patch("msfauto.enumeration.runner._http_probe") as probe:
+            self.assertEqual(
+                enumerate_services("lab", (host,), build_policy(["127.0.0.1"])),
+                (),
+            )
+        probe.assert_not_called()
+
+    def test_invalid_worker_count_is_rejected(self):
+        with self.assertRaises(ValueError):
+            enumerate_services("lab", (), build_policy(["127.0.0.1"]), max_workers=99)

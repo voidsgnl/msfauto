@@ -25,9 +25,9 @@ Supporting capabilities include assessment orchestration, authorization and appr
 The repository currently provides foundations for:
 
 - Interactive workspace creation and startup.
-- SQLite-backed workspaces, discovery observations, workspace-level plans, immutable run-specific plan snapshots, workflow runs, and events.
+- SQLite-backed workspaces, discovery observations, append-only service enumeration observations, workspace-level plans, immutable run-specific plan snapshots, workflow runs, and events.
 - Explicit IP/CIDR scope and optional port allowlists.
-- Nmap discovery with bounded execution, XML output, and lightweight service/version detection (-sV --version-light).
+- Nmap discovery with bounded execution, XML output, and lightweight service/version detection (-sV --version-light).\n- Protocol-aware HTTP/HTTPS and SSH enumeration with bounded probes, structured observations, and TLS handshake metadata.
 - Scope-enforced Nmap XML import and normalized host/service storage, including product/version, probe method/confidence, extra information, tunnel metadata, CPEs, source, and observation time.
 - Read-only Metasploit RPC module metadata, search, and option inspection.
 - Workspace-persisted module metadata and options.
@@ -120,7 +120,7 @@ Evidence is retained separately from interpreted findings. Tool errors, service 
 
 The active code is organized by responsibility: `core/` owns orchestration, `interface/` contains the current Textual prototype, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning and approval decisions, `execution/` owns approval-gated bounded checks, `evidence/` owns artifact collection and integrity verification, `findings/` owns evidence-linked assessment conclusions, `reporting/` exports reports, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models.
 
-Future boundaries for service enumeration, vulnerability intelligence, exploit catalog and execution, sessions, and validation should be introduced when they have concrete domain behavior—not as empty placeholder packages.
+The `enumeration/` package now contains HTTP/HTTPS and SSH adapters. Future work should extend concrete protocol coverage and then introduce vulnerability intelligence, a first-class exploit catalog/execution engine, sessions, and validation.
 
 ## Development
 

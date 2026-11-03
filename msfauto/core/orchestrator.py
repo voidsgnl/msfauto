@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from ..assessment.planner import build_plan
 from ..discovery import DiscoveryError, run_nmap
+from ..enumeration import enumerate_services
 from ..storage import WorkspaceStore
 from ..storage.models import (
     AssessmentEvent,
@@ -86,6 +87,18 @@ class AssessmentApplication:
             transition("discovery", "Starting bounded discovery within the saved authorization scope.")
             _, hosts = self.discover()
             emit("discovery", f"Discovery completed; {len(hosts)} host(s) imported.")
+            transition("enumeration", "Enumerating recognized HTTP/HTTPS and SSH services within scope.")
+            observations = enumerate_services(
+                self.workspace.name, hosts, self.workspace.policy
+            )
+            self.store.save_service_observations(observations)
+            completed = sum(item.status == "completed" for item in observations)
+            failed = sum(item.status == "failed" for item in observations)
+            emit(
+                "enumeration",
+                f"Service enumeration recorded {len(observations)} observation(s): "
+                f"{completed} completed, {failed} failed.",
+            )
             transition("planning", "Building a read-only plan from stored observations.")
             plan = self.build_assessment_plan()
             self.store.save_run_plan(run_id, plan)
