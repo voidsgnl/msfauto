@@ -64,7 +64,7 @@ OSV workflow integration is now active when explicit mappings are configured, bu
 
 ### Latest implementation milestone: durable exploit execution lifecycle
 - Added `msfauto/execution/lifecycle.py` as a separate lifecycle domain; the existing passive-check manager and its fixed Metasploit allowlist are unchanged.
-- Added durable SQLite execution records and append-only transition events. State updates use a conditional state update to reject concurrent/stale transitions.
+- Added durable SQLite execution records and append-only transition events. State updates use a conditional state update to reject concurrent/stale transitions. A unique database constraint ensures each authorization can create only one execution attempt.
 - Lifecycle states include `prepared`, `dispatching`, `dispatch_uncertain`, `running`, `cancelling`, `completed`, `failed`, `timed_out`, and `cancelled`.
 - Preparation verifies the stored opportunity, accepted review, persisted authorization, and current workspace scope.
 - The pre-dispatch transition re-reads the opportunity, review, authorization, and current workspace policy. The `dispatching` record is persisted before a future external RPC call.
@@ -138,6 +138,10 @@ OSV workflow integration is now active when explicit mappings are configured, bu
    - Keep dense technical detail accessible without making the product a terminal emulator.
    - Do not begin by merely porting the current TUI screen layout.
 
+## Immediate next milestone: controlled Metasploit dispatch integration
+
+The authorization and durable lifecycle layers are implemented, but the lifecycle does not send RPC requests. The next milestone is a narrow adapter that accepts only a prepared execution record, reloads and validates its exact authorization and scope, verifies the module against the synchronized exploit catalog, and makes one dispatch attempt. A lost or ambiguous RPC response must transition to `dispatch_uncertain` and must never trigger an automatic retry. Start with an isolated-lab test harness before enabling real dispatch.
+
 ## Roadmap phases
 
 ### Phase 0 — Product and architecture alignment
@@ -201,8 +205,8 @@ OSV workflow integration is now active when explicit mappings are configured, bu
 ### Phase 6 — Workflow orchestration and reliability
 - [x] Persist assessment runs, workflow events, and immutable run-specific plan snapshots.
 - [ ] Associate jobs, approvals, evidence, findings, and sessions with the originating run.
-- [ ] Define explicit lifecycle transitions for failure, cancellation, interruption, and completion.
-- [ ] Add safe recovery and dispatch reconciliation; never blindly retry uncertain operations.
+- [x] Define explicit lifecycle transitions for exploit execution failure, cancellation, interruption, and completion.
+- [x] Add recovery and operator reconciliation for uncertain exploit dispatches; broader assessment-run/job recovery remains.
 - [ ] Integrate all assessment engines into one traceable workflow.
 - [ ] Add end-to-end tests across successful and failure paths.
 
