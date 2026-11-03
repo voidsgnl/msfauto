@@ -104,6 +104,20 @@ The review and authorization bind the workspace, opportunity, exploit ID, module
 
 These APIs establish a gate; they do not execute a module. The execution layer must revalidate authorization immediately before dispatch and must never automatically retry an operation whose dispatch outcome is uncertain.
 
+### Durable exploit execution lifecycle
+
+The separate lifecycle API records an authorized attempt without broadening the existing passive-check adapter:
+
+- `prepare_exploit_execution(store, opportunity, authorization, actor=...)` verifies that the opportunity, accepted review, authorization, and workspace scope still agree, then persists a `prepared` record.
+- `begin_exploit_dispatch(store, execution_id, opportunity, actor=...)` re-reads the stored opportunity, authorization, review, and current workspace policy immediately before moving the record to `dispatching`. This transition is committed before any future external RPC call.
+- Record confirmed framework activity with `mark_exploit_running(...)`; record terminal outcomes with `finish_exploit_execution(...)`.
+- If the RPC response is lost or dispatch cannot be confirmed, call `mark_dispatch_uncertain(...)`. Do not retry that execution.
+- `recover_interrupted_dispatches(...)` converts persisted `dispatching` or `cancelling` records to `dispatch_uncertain` after process recovery.
+- Resolve uncertainty only through an explicit operator reconciliation using `reconcile_uncertain_execution(...)`. A confirmed non-dispatch closes the attempt; another attempt requires a new review and authorization.
+
+Execution records and append-only transition events are stored in SQLite. State changes use an optimistic compare-and-swap update so concurrent operators cannot silently overwrite one another. Terminal records cannot be reopened. This milestone provides the durable lifecycle contract only: it does not send exploit RPC requests or make arbitrary modules executable.
+
+
 **Important limitation:** the current execution adapter only supports its fixed passive-check allowlist. It does not yet provide a general exploit execution workflow, a complete vulnerability assessment engine, or post-exploitation/session management. These are planned core capabilities, not features that should be assumed to exist today.
 
 ## Interface direction
