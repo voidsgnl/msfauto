@@ -10,6 +10,7 @@ All notable changes to MSFAuto are documented here.
 - Authorization validation fails closed on changed opportunity identity, changed scope snapshot, expiry, or revocation; default lifetime is 15 minutes and maximum lifetime is eight hours.
 - Added persistent review history, authorization storage, and revocation support. No exploit dispatch capability was added.
 - Added tests for review gating, exact target binding, scope changes, out-of-scope rejection, safe-profile denial, expiry, persistence, and revocation.
+- GitHub Actions run #337 passed on Python 3.10, 3.12, and 3.14: 124 tests passed (plus 2 subtests); Ruff passed on all versions.
 
 
 ### Persistent Metasploit exploit catalog synchronization
