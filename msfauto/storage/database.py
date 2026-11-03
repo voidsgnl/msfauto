@@ -20,6 +20,7 @@ from .models import (
     ModuleMetadata,
     Recommendation,
     Service,
+    VulnerabilityCandidate,
     Workspace,
 )
 
@@ -285,6 +286,23 @@ class WorkspaceStore:
                 """
             )
             connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS vulnerability_candidates (
+                    candidate_id TEXT PRIMARY KEY, workspace TEXT NOT NULL,
+                    target TEXT NOT NULL, port INTEGER NOT NULL, protocol TEXT NOT NULL,
+                    advisory_id TEXT NOT NULL, advisory_source TEXT NOT NULL,
+                    product TEXT NOT NULL, observed_version TEXT NOT NULL,
+                    status TEXT NOT NULL, confidence INTEGER NOT NULL,
+                    evidence_refs_json TEXT NOT NULL, rationale TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_vulnerability_candidates_workspace "
+                "ON vulnerability_candidates(workspace, target, port)"
+            )
+            connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_service_observations_workspace "
                 "ON service_observations(workspace, target, port, observed_at)"
             )
@@ -463,6 +481,55 @@ class WorkspaceStore:
             )
             for row in rows
         )
+
+    def save_vulnerability_candidates(
+        self, candidates: tuple[VulnerabilityCandidate, ...]
+    ) -> None:
+        """Persist candidate matches without promoting them to confirmed findings."""
+        with self._connect() as connection:
+            for item in candidates:
+                connection.execute(
+                    """
+                    INSERT INTO vulnerability_candidates(
+                        candidate_id, workspace, target, port, protocol, advisory_id,
+                        advisory_source, product, observed_version, status, confidence,
+                        evidence_refs_json, rationale, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(candidate_id) DO UPDATE SET
+                        advisory_source = excluded.advisory_source,
+                        product = excluded.product,
+                        observed_version = excluded.observed_version,
+                        status = excluded.status, confidence = excluded.confidence,
+                        evidence_refs_json = excluded.evidence_refs_json,
+                        rationale = excluded.rationale
+                    """,
+                    (
+                        item.candidate_id, item.workspace, item.target, item.port,
+                        item.protocol, item.advisory_id, item.advisory_source,
+                        item.product, item.observed_version, item.status,
+                        item.confidence, json.dumps(item.evidence_refs),
+                        item.rationale, item.created_at,
+                    ),
+                )
+
+    def get_vulnerability_candidates(
+        self, workspace: str
+    ) -> tuple[VulnerabilityCandidate, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM vulnerability_candidates WHERE workspace = ? "
+                "ORDER BY confidence DESC, target, port, advisory_id",
+                (workspace,),
+            ).fetchall()
+        return tuple(VulnerabilityCandidate(
+            candidate_id=row["candidate_id"], workspace=row["workspace"],
+            target=row["target"], port=row["port"], protocol=row["protocol"],
+            advisory_id=row["advisory_id"], advisory_source=row["advisory_source"],
+            product=row["product"], observed_version=row["observed_version"],
+            status=row["status"], confidence=row["confidence"],
+            evidence_refs=tuple(json.loads(row["evidence_refs_json"])),
+            rationale=row["rationale"], created_at=row["created_at"],
+        ) for row in rows)
 
     def save_discovery_run(self, run: DiscoveryRun) -> None:
         with self._connect() as connection:
