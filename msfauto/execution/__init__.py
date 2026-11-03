@@ -6,6 +6,7 @@ from .manager import (
     JobError,
     JobManager,
 )
+from .metasploit import MetasploitSafeAdapter, SAFE_AUXILIARY_MODULES
 from .output import (
     MAX_ADAPTER_OUTPUT_BYTES,
     AdapterOutputError,
@@ -20,5 +21,7 @@ __all__ = [
     "DeterministicSafeAdapter",
     "JobError",
     "JobManager",
+    "MetasploitSafeAdapter",
+    "SAFE_AUXILIARY_MODULES",
     "sanitize_adapter_output",
 ]
