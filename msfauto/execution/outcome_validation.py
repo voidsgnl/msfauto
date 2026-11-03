@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from msfauto.execution.lifecycle import ExploitExecution
 from msfauto.storage.database import WorkspaceStore
 
 
@@ -157,12 +156,9 @@ class ExploitOutcomeValidator:
                 """,
                 (execution_id,),
             ).fetchall()
-        return tuple(
-            TargetOutcomeAssessment(
-                **{
-                    **dict(row),
-                    "evidence_ids": tuple(json.loads(row["evidence_ids_json"])),
-                }
-            )
-            for row in rows
-        )
+        assessments = []
+        for row in rows:
+            data = dict(row)
+            data["evidence_ids"] = tuple(json.loads(data.pop("evidence_ids_json")))
+            assessments.append(TargetOutcomeAssessment(**data))
+        return tuple(assessments)
