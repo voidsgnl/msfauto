@@ -7,7 +7,6 @@ from time import monotonic
 from ..integrations.metasploit import MetasploitClient, MetasploitError
 from .manager import CheckRequest, CheckResult
 
-
 # These modules perform bounded service identification only. Do not broaden this
 # list based solely on a module's "scanner" path or a user-supplied module name.
 SAFE_AUXILIARY_MODULES = frozenset(
