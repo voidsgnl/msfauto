@@ -29,6 +29,8 @@ class DiscoveryRunnerTests(unittest.TestCase):
         command = run.call_args.args[0]
         self.assertEqual(command[-1], "192.168.56.0/24")
         self.assertIn("22,445", command)
+        self.assertIn("-sV", command)
+        self.assertIn("--version-light", command)
         run.assert_called_once()
 
     def test_runner_rejects_missing_scanner(self) -> None:
