@@ -9,7 +9,7 @@ The goal is to make complex security tooling approachable without hiding scope, 
 The current MVP provides foundations for:
 
 - Interactive workspace creation and startup.
-- SQLite-backed workspaces, discovery observations, assessment plans, workflow runs, and events.
+- SQLite-backed workspaces, discovery observations, workspace-level plans, immutable run-specific plan snapshots, workflow runs, and events.
 - Explicit IP/CIDR scope and optional port allowlists.
 - Nmap discovery with bounded execution and XML output.
 - Scope-enforced Nmap XML import and normalized host/service storage.
