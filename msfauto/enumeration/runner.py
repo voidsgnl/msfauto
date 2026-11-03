@@ -62,8 +62,8 @@ def _is_ssh(service: Service) -> bool:
 
 def _is_ftp(service: Service) -> bool:
     label = f"{service.name} {service.product}".lower()
-    return service.protocol.lower() == "tcp" and (
-        "ftp" in label or service.port in {20, 21}
+    return service.protocol.lower() == "tcp" and service.port != 20 and (
+        "ftp" in label or service.port == 21
     )
 
 
