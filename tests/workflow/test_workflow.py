@@ -6,7 +6,7 @@ from unittest.mock import patch
 from msfauto.core import AssessmentApplication, WorkflowError
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
-from msfauto.storage.models import DiscoveryRun, Workspace
+from msfauto.storage.models import AssessmentPlan, DiscoveryRun, Workspace
 
 
 class AssessmentWorkflowTests(unittest.TestCase):
@@ -41,8 +41,6 @@ class AssessmentWorkflowTests(unittest.TestCase):
         self.assertEqual(self.store.get_assessment_events(workflow.run_id), tuple(events))
 
     def test_run_plan_rejects_missing_or_mismatched_run(self) -> None:
-        from msfauto.storage.models import AssessmentPlan
-
         plan = AssessmentPlan("lab", ())
 
         with self.assertRaisesRegex(ValueError, "not found"):
