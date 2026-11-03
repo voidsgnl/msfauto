@@ -4,6 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Terminal interface transformation
+- Replaced the generic dashboard presentation with a compact, terminal-native assessment console.
+- Added a custom MSFAuto identity panel, persistent workspace and authorization context, compact action bar, color-coded activity feedback, target table, and structured detail panel.
+- Kept discovery, target browsing, plan generation, scope review, keyboard shortcuts, and backend service boundaries intact.
+- Used original MSFAuto terminology and copy; the visual reference informed presentation only.
+
+
 ### Metasploit execution
 - Added an explicit `--metasploit` CLI mode backed by the MessagePack RPC client.
 - Added a fixed allowlist of passive service-version modules; module names containing `scanner/` are not trusted as a safety signal.
