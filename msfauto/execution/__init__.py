@@ -8,20 +8,20 @@ from .manager import (
 )
 from .metasploit import SAFE_AUXILIARY_MODULES, MetasploitSafeAdapter
 from .output import (
-    AdapterOutputError,
     MAX_ADAPTER_OUTPUT_BYTES,
+    AdapterOutputError,
     sanitize_adapter_output,
 )
 
 __all__ = [
+    "MAX_ADAPTER_OUTPUT_BYTES",
+    "SAFE_AUXILIARY_MODULES",
     "AdapterOutputError",
     "CheckRequest",
     "CheckResult",
     "DeterministicSafeAdapter",
     "JobError",
     "JobManager",
-    "MAX_ADAPTER_OUTPUT_BYTES",
     "MetasploitSafeAdapter",
-    "SAFE_AUXILIARY_MODULES",
     "sanitize_adapter_output",
 ]
