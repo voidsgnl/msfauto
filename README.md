@@ -132,7 +132,7 @@ The dispatcher now has a separate framework-job reconciler:
 
 Polling is an explicit one-shot operation, not an automatic retry loop. It does not stop jobs, create sessions, or perform post-exploitation validation.
 
-**Important limitation:** exploit dispatch is now implemented for this narrow target-only option profile, but it is not a general-purpose Metasploit console. Modules requiring payload selection, handlers, local listener configuration, credentials, or additional options are deliberately unsupported. A returned job/UUID confirms framework acceptance, not exploit success or security impact. Independent exploit-outcome validation and post-exploitation/session management remain outstanding.
+**Important limitation:** exploit dispatch is now implemented for this narrow target-only option profile, but it is not a general-purpose Metasploit console. Modules requiring payload selection, handlers, local listener configuration, credentials, or additional options are deliberately unsupported. A returned job/UUID confirms framework acceptance, not exploit success or security impact. Independent target-outcome assessments can be recorded and reviewed separately; automated module-specific verification and post-exploitation/session management remain future work.
 
 ## Exploit outcome verification
 
