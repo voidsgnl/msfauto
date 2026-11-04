@@ -93,8 +93,29 @@ COMMANDS = {
     "quit": (),
 }
 COMMAND_WORDS = [
-    f"{root} {sub}" for root, children in COMMANDS.items() for sub in children
-] + ["help", "exit", "quit", "dashboard"]
+    "use", "show modes", "back", "help", "exit", "quit",
+    *[command for mode in MODES.values() for command in mode["commands"]],
+    *[f"{root} {sub}" for root, children in COMMANDS.items() for sub in children],
+]
+
+MODES = {
+    "discovery": {
+        "description": "Host discovery, Nmap imports, service inventory and scan comparisons.",
+        "commands": {"run": "discovery run", "scan": "discovery run", "import": "discovery import", "show": "discovery show", "history": "discovery history", "compare": "discovery compare"},
+    },
+    "exploit": {
+        "description": "Metasploit module inventory and the controlled exploit lifecycle.",
+        "commands": {"list": "exploits list", "opportunities": "exploits opportunities", "review": "exploits review", "authorize": "exploits authorize", "executions": "exploits executions", "prepare": "exploits prepare", "dispatch": "exploits dispatch", "poll": "exploits poll", "cancel": "exploits cancel", "reconcile": "exploits reconcile", "outcome": "exploits outcome"},
+    },
+    "analysis": {
+        "description": "Assessment planning, vulnerability intelligence, checks, findings and reports.",
+        "commands": {"plan": "plan", "checks": "checks", "vulnerabilities": "vulnerabilities", "findings": "findings", "report": "report", "tasks": "tasks", "dashboard": "dashboard"},
+    },
+    "workspace": {
+        "description": "Workspace selection and authorized scope configuration.",
+        "commands": {"workspace": "workspace", "scope": "scope"},
+    },
+}
 
 
 class CommandShell:
@@ -118,6 +139,7 @@ class CommandShell:
                 "dependencies to enable the enhanced prompt."
             )
         self.running = True
+        self.mode: str | None = None
         self.tasks = TaskManager()
 
     def banner(self) -> None:
@@ -156,37 +178,75 @@ class CommandShell:
         table = Table(show_header=False, box=None, padding=(0, 2), expand=False)
         table.add_column("Command", style="bright_cyan", no_wrap=True)
         table.add_column("Description", style="white")
-        groups = [
-            ("WORKSPACE", [("workspace create", "Create a workspace"), ("workspace list", "List saved workspaces"), ("workspace show", "Show current workspace"), ("workspace use", "Switch workspace")]),
-            ("SCOPE", [("scope show", "Display authorized scope"), ("scope validate", "Validate saved scope"), ("scope update", "Replace scope and port limits")]),
-            ("DISCOVERY", [("discovery run", "Run discovery, enumeration and read-only planning"), ("discovery import", "Import an Nmap XML file"), ("discovery show", "Show discovered hosts and services"), ("discovery history", "List previous scans and their status"), ("discovery compare <old-id> <new-id>", "Compare two scan snapshots")]),
-            ("PLANNING", [("plan build", "Build an assessment plan"), ("plan show", "Display the current plan")]),
-            ("SECURITY CHECKS", [("checks list", "List planned checks"), ("checks review", "Review check recommendations"), ("checks approve <#>", "Approve one exact planned check"), ("checks run", "Run approved bounded checks")]),
-            ("VULNERABILITIES", [("vulnerabilities list", "List vulnerability candidates"), ("vulnerabilities show", "Show candidate details")]),
-            ("EXPLOIT INTELLIGENCE", [
-                ("exploits list [filter]", "List exploit modules available in connected Metasploit"),
-                ("exploits opportunities", "List target-matched exploit opportunities"),
-                ("exploits review <id>", "Record an explicit opportunity review"),
-                ("exploits authorize <id>", "Authorize an accepted opportunity"),
-                ("exploits prepare <opportunity> <authorization> <actor>", "Create a durable prepared execution"),
-                ("exploits executions", "List persisted exploit execution records"),
-                ("exploits dispatch <execution> <actor>", "Dispatch one prepared execution after confirmation"),
-                ("exploits poll <execution> <actor>", "Poll a running Metasploit job"),
-                ("exploits cancel <execution> <actor> <reason>", "Request cancellation of a running job"),
-                ("exploits reconcile <execution> <state> <actor> <reason>", "Resolve an uncertain dispatch explicitly"),
-                ("exploits outcome list <execution>", "Show independent target outcome assessments"),
-                ("exploits outcome record <execution> <verdict> <verifier> <method> <evidence|-> <actor> <rationale>", "Record an evidence-backed target outcome"),
-            ]),
-            ("FINDINGS", [("findings list", "List recorded findings"), ("findings show", "Show finding details")]),
-            ("REPORTING", [("report generate", "Generate a JSON or Markdown report"), ("report show", "Show the latest report location")]),
-            ("TASKS", [("tasks list", "List recent background tasks"), ("tasks show <id>", "Show task status and pending output")]),
-            ("GENERAL", [("dashboard", "Show workspace assessment summary"), ("help", "Display this command reference"), ("exit", "Exit MSFAuto")]),
-        ]
-        for heading, commands in groups:
-            self.console.print(f"\n[bold bright_cyan]{heading}[/bold bright_cyan]")
-            for command, description in commands:
-                table.add_row(command, description)
+        if self.mode is None:
+            rows = [
+                ("use discovery", "Enter host and service discovery mode"),
+                ("use exploit", "Enter exploit and Metasploit mode"),
+                ("use analysis", "Enter assessment analysis mode"),
+                ("use workspace", "Manage workspaces and authorized scope"),
+                ("show modes", "List available operation modes"),
+                ("help", "Display root-console commands"),
+                ("exit", "Exit MSFAuto"),
+            ]
+            self.console.print("\n[bold bright_cyan]MSFAUTO ROOT CONSOLE[/bold bright_cyan]")
+        else:
+            descriptions = {
+                "discovery": [
+                    ("run", "Run discovery, enumeration and read-only planning"),
+                    ("import <nmap.xml>", "Import an Nmap XML file"),
+                    ("show", "Show discovered hosts and services"),
+                    ("history", "List scan history"),
+                    ("compare <old-id> <new-id>", "Compare two scan snapshots"),
+                ],
+                "exploit": [
+                    ("list [filter]", "List live Metasploit exploit modules"),
+                    ("opportunities", "List target-matched exploit opportunities"),
+                    ("review <id> <decision> <reviewer> <rationale>", "Review one opportunity"),
+                    ("authorize <id> <approver> <rationale>", "Authorize an accepted opportunity"),
+                    ("executions", "List exploit execution records"),
+                    ("prepare <opportunity> <authorization> <actor>", "Prepare an execution"),
+                    ("dispatch <execution> <actor>", "Dispatch after exact confirmation"),
+                    ("poll <execution> <actor>", "Poll a framework job"),
+                    ("cancel <execution> <actor> <reason>", "Request job cancellation"),
+                    ("reconcile <execution> ...", "Reconcile an uncertain dispatch"),
+                    ("outcome list|record ...", "Inspect or record target-side outcomes"),
+                ],
+                "analysis": [
+                    ("plan build|show", "Build or inspect assessment plans"),
+                    ("checks list|review|approve|run", "Review and run approved checks"),
+                    ("vulnerabilities list|show", "Inspect vulnerability candidates"),
+                    ("findings list|show", "Inspect persisted findings"),
+                    ("report generate|show", "Generate or locate reports"),
+                    ("tasks list|show", "Inspect background tasks"),
+                    ("dashboard", "Show workspace assessment summary"),
+                ],
+                "workspace": [
+                    ("workspace create|list|show|use", "Manage saved workspaces"),
+                    ("scope show|validate|update", "Inspect or update authorized scope"),
+                ],
+            }
+            self.console.print(f"\n[bold bright_cyan]{self.mode.upper()} MODE[/bold bright_cyan]")
+            rows = descriptions[self.mode]
+            rows.extend([("back", "Return to the root console"), ("help", "Display this mode's commands"), ("exit", "Exit MSFAuto")])
+        for command, description in rows:
+            table.add_row(command, description)
         self.console.print(table)
+
+    def _resolve_mode_command(self, parts: list[str]) -> tuple[str, list[str]]:
+        if self.mode is None:
+            return (" ".join(parts[:2]) if len(parts) > 1 else parts[0], parts[2:] if len(parts) > 1 else [])
+        first = parts[0].casefold()
+        if first in {"help", "back", "exit", "quit"}:
+            return first, parts[1:]
+        commands = MODES[self.mode]["commands"]
+        if first not in commands:
+            return first, parts[1:]
+        root = commands[first]
+        if root in {"plan", "checks", "vulnerabilities", "findings", "report", "tasks", "workspace", "scope"}:
+            if len(parts) < 2:
+                return root, []
+            return f"{root} {parts[1]}", parts[2:]
+        return root, parts[1:]
 
     def _rows(self, title: str, columns: tuple[str, ...], rows: list[tuple[object, ...]]) -> None:
         table = Table(title=title, header_style="bold bright_cyan", border_style="cyan")
@@ -282,11 +342,30 @@ class CommandShell:
             return True
         if not parts:
             return True
-        command = " ".join(parts[:2]) if len(parts) > 1 else parts[0]
-        args = parts[2:] if len(parts) > 1 else []
+        command, args = self._resolve_mode_command(parts)
         try:
             if command in {"exit", "quit"}:
                 self.running = False
+            elif command == "back":
+                if self.mode is None:
+                    self.console.print("[yellow]Already at the root console.[/yellow]")
+                else:
+                    self.console.print(f"[bright_cyan][*][/bright_cyan] Leaving {self.mode} mode.")
+                    self.mode = None
+            elif command == "use":
+                if self.mode is not None:
+                    self.console.print("[yellow]Use 'back' before switching operation modes.[/yellow]")
+                elif len(args) != 1 or args[0].casefold() not in MODES:
+                    self.console.print("[yellow]Usage: use <discovery|exploit|analysis|workspace>[/yellow]")
+                else:
+                    self.mode = args[0].casefold()
+                    self.console.print(f"[bright_cyan][*][/bright_cyan] Entered {self.mode} mode.")
+                    self.help()
+            elif command == "show modes":
+                self._rows("OPERATION MODES", ("MODE", "DESCRIPTION", "ACTIVE"), [
+                    (name, details["description"], "*" if name == self.mode else "")
+                    for name, details in MODES.items()
+                ])
             elif command == "help":
                 self.help()
             elif command == "workspace show":
@@ -746,7 +825,8 @@ class CommandShell:
         self.banner()
         while self.running:
             try:
-                line = self.session.prompt([("class:prompt", "msfauto > ")])
+                prompt = f"[{self.mode}] msfauto > " if self.mode else "msfauto > "
+                line = self.session.prompt([("class:prompt", prompt)])
             except (KeyboardInterrupt, EOFError):
                 self.console.print("\n[dim]Use 'exit' to close MSFAuto.[/dim]")
                 continue
