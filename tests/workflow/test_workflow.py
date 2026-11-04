@@ -44,7 +44,7 @@ class AssessmentWorkflowTests(unittest.TestCase):
         self.assertEqual(plan.workspace, "lab")
         self.assertEqual(self.store.get_run_plan(workflow.run_id), plan)
         self.assertEqual([event.stage for event in events], [
-            "discovery", "discovery", "enumeration",
+            "discovery", "discovery", "enumeration", "web_mapping",
             "vulnerability_assessment", "vulnerability_assessment",
             "exploit_intelligence", "enumeration", "planning", "planning", "completed"
         ])
