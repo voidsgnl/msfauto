@@ -1,3 +1,23 @@
+# Unified assessment workflow — current product direction
+
+MSFAuto is moving to a ZAP-style operator workflow: one `run` performs the saved-scope assessment pipeline and returns consolidated, evidence-backed results. Operators should not have to manually chain discovery, service enumeration, fingerprinting, vulnerability correlation, and exploit-intelligence commands.
+
+- [x] Expose root-level `run [--profile quick|standard|full]` as the primary assessment entry point; retain the mode-specific discovery command as an advanced alias.
+- [x] Print one consolidated post-run summary for hosts, open services, vulnerability candidates, Metasploit opportunities, and recorded findings.
+- [x] Expose root-level `findings [list|show <id-prefix>]` to inspect persisted findings and vulnerability candidates without requiring analysis mode.
+- [ ] Persist a unified assessment result model that links every finding, observation, candidate, and exploit opportunity to the same assessment-run ID.
+- [ ] Build a bounded web application mapping stage: identify origins/virtual hosts, crawl same-origin routes and assets, extract forms/parameters, and retain request/response evidence with strict depth, request-count, timeout, and response-size budgets.
+- [ ] Add passive web checks and technology-specific checks that produce structured findings only when supported by concrete evidence; never turn a banner/version match alone into a confirmed vulnerability.
+- [ ] Add bounded active checks behind explicit assessment profiles and saved-scope enforcement, with per-target request budgets, rate limits, exclusions, safe stop conditions, and auditable evidence.
+- [ ] Correlate findings with Metasploit auxiliary/check and exploit metadata; show exact prerequisites, required options, risk, and evidence gaps for each finding.
+- [ ] Add `finding <id>` detail and `exploit <finding-id>` selection that opens compatible methods and routes any execution through the existing review, authorization, prepare, and exact `DISPATCH` confirmation lifecycle.
+- [ ] Make assessment progress/cancellation stage-aware and persist partial results when a later stage fails or is cancelled.
+- [ ] Keep the current `investigate` planner as an advanced diagnostic view/internal engine aid, not the required operator workflow.
+
+**Current capability boundary:** the new root command orchestrates the existing discovery, protocol enumeration, configured OSV package mappings, exploit-catalog correlation, and read-only planning. It does not yet spider web applications or run a general passive/active vulnerability scanner. A version/advisory candidate is a lead, not a verified vulnerability; a Metasploit opportunity is not authorization to execute.
+
+---
+
 ### Current implementation focus: Metasploit-backed web investigation
 
 - [x] Add a bounded read-only discovery helper that searches Metasploit auxiliary modules using observed web technology names.
