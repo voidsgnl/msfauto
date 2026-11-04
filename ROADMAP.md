@@ -75,8 +75,8 @@ OSV workflow integration is active when explicit mappings are configured, but th
 
 ### Latest implementation milestone: complete Metasploit running references
 - Tightened the execution lifecycle invariant: an execution cannot enter `running` unless both a positive-integer Metasploit job ID and a non-empty UUID are persisted.
-- Applied the same validation to normal dispatch acknowledgements and operator reconciliation of uncertain dispatches. Invalid or incomplete references leave the record in its prior non-running state.
-- Updated lifecycle regression coverage for missing job IDs, missing UUIDs, and malformed job IDs.
+- Applied the same validation to normal dispatch acknowledgements and operator reconciliation of uncertain dispatches. Malformed acknowledgements after the one RPC attempt become `dispatch_uncertain`; they are never retried. Invalid or incomplete reconciliation references leave the record uncertain.
+- Updated lifecycle regression coverage for missing job IDs, missing UUIDs, malformed job IDs, and malformed dispatch acknowledgements.
 - This closes a mismatch where an operator could previously reconcile an uncertain dispatch with only a job ID even though the poller requires both references.
 
 ### Latest implementation milestone: live discovery cancellation and exploit console lifecycle
