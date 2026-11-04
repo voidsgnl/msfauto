@@ -14,6 +14,10 @@ All notable changes to MSFAuto are documented here.
 - Added coverage for running → cancelling → cancelled and for recovery of an interrupted cancellation. Recovery leaves the execution uncertain and retains framework references for operator reconciliation.
 - CI verification is pending.
 
+### Independent outcome verification regression coverage
+- Added workspace-binding checks alongside exact-target evidence validation.
+- Verified that multiple target-side assessments are append-only and do not alter the framework execution state.
+
 ### Live command-console task output and execution controls
 - Added a task registry for background workflows with task IDs, lifecycle status, progress-event queues, captured results/errors, and cooperative cancellation.
 - Routed interactive `discovery run` through the shared assessment application and streamed real workflow-stage events to the terminal alongside a Rich activity indicator.
