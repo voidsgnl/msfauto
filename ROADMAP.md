@@ -299,7 +299,7 @@ OSV workflow integration is active when explicit mappings are configured, but th
    - [x] Provide quick, standard (default), and full TCP discovery profiles; broad all-port discovery is opt-in.
    - [x] Keep explicit workspace port allowlists authoritative.
    - [x] Run discovered-service enumeration sequentially in the full assessment.
-   - [ ] Review the standard profile to prioritize web ports and high-value supporting services.
+   - [x] Rebalance the standard profile to prioritize web ports and high-value supporting services; keep the full scan opt-in.
    - [ ] Route services from observed protocol/tunnel evidence, not port number alone.
    - [ ] Retain Nmap behind a discovery-provider interface; evaluate Metasploit-native discovery/auxiliary capabilities where equivalent.
    - [ ] Preserve unsupported-service records with an explicit manual-inspection next action.
