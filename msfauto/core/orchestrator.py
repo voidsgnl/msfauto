@@ -35,12 +35,15 @@ class AssessmentApplication:
         self.workspace = workspace
         self.store = store
 
-    def discover(self, cancel_event: Event | None = None) -> tuple[str, tuple[Host, ...], str]:
+    def discover(
+        self, cancel_event: Event | None = None, scan_profile: str = "standard",
+    ) -> tuple[str, tuple[Host, ...], str]:
         """Run bounded discovery for the workspace's saved authorization scope."""
         output_path = self.store.path.parent / "discovery" / f"{uuid4().hex}.xml"
         run, hosts = run_nmap(
             self.workspace.name, self.workspace.policy, output_path,
             cancel_event=cancel_event,
+            scan_profile=scan_profile,
         )
         self.store.save_discovery_run(run, hosts)
         if run.status == "cancelled":
@@ -67,6 +70,7 @@ class AssessmentApplication:
         self,
         progress: Callable[[AssessmentEvent], None] | None = None,
         cancel_event: Event | None = None,
+        scan_profile: str = "standard",
     ) -> tuple[AssessmentRun, AssessmentPlan]:
         """Persist a discovery-and-planning workflow; never dispatch active checks."""
         run_id = uuid4().hex
@@ -103,13 +107,23 @@ class AssessmentApplication:
             if not self.workspace.policy.networks and not self.workspace.policy.addresses:
                 raise WorkflowError("Assessment blocked: no authorized targets are configured.")
             check_cancelled()
-            transition("discovery", "Starting bounded discovery within the saved authorization scope.")
-            _, hosts, discovery_run_id = self.discover(cancel_event)
+            transition(
+                "discovery",
+                f"Starting {scan_profile} TCP discovery within the saved authorization scope.",
+            )
+            _, hosts, discovery_run_id = self.discover(cancel_event, scan_profile)
             check_cancelled()
             emit("discovery", f"Discovery completed; {len(hosts)} host(s) imported.")
-            transition("enumeration", "Enumerating recognized HTTP/HTTPS, SSH, FTP/SMTP, SMB2, and TLS services within scope.")
+            transition(
+                "enumeration",
+                "Investigating every discovered open service individually; unsupported protocols are recorded for manual review.",
+            )
             observations = enumerate_services(
-                self.workspace.name, hosts, self.workspace.policy
+                self.workspace.name,
+                hosts,
+                self.workspace.policy,
+                max_workers=1,
+                on_progress=lambda message, level: emit("enumeration", message, level),
             )
             self.store.save_service_observations(observations, discovery_run_id)
             for item in observations:
@@ -200,7 +214,10 @@ class AssessmentApplication:
                 started, now, now,
             )
             self.store.save_assessment_run(current)
-            emit("completed", "Assessment workflow completed. No active checks were dispatched.")
+            emit(
+                "completed",
+                "Assessment completed: discovery, per-service investigation, vulnerability correlation, exploit matching, and read-only planning finished. No exploit modules were dispatched.",
+            )
             return current, plan
         except Exception as exc:
             now = utc_now()
