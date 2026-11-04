@@ -141,8 +141,8 @@ All notable changes to MSFAuto are documented here.
 - Reframed MSFAuto around its core purpose: reconnaissance, service enumeration, vulnerability assessment, authorized exploitation, post-exploitation assessment, validation, and analysis.
 - Promoted exploitation to a first-class assessment capability with its own catalog, matching, authorization, dispatch, and outcome lifecycle; it is not treated as a generic safe check.
 - Clarified that Metasploit is one integration/engine within the platform, not the platform's entire identity.
-- Corrected the intended primary interface to a graphical application. The current Textual screen is documented as a prototype, not the final UI direction.
-- Updated the roadmap, README, architecture, assessment workflow, and migration plan to align future work with assessment capability rather than expanding safety/reporting scaffolding or the TUI.
+- Corrected the intended primary interface to a terminal-only, menu-driven Textual application.
+- Updated the roadmap and product documentation to make the terminal-only interaction model explicit.
 
 ### Assessment run provenance
 - Added immutable, run-specific SQLite snapshots of generated assessment plans while preserving the existing workspace-level latest-plan API.
