@@ -69,6 +69,13 @@ class WebMapperTests(unittest.TestCase):
         self.assertFalse(any(method == "POST" for method, _ in _MapperHandler.requests))
         self.assertFalse(any(path == "/logout" for _, path in _MapperHandler.requests))
 
+    def test_rejects_invalid_hostnames_before_building_http_headers(self):
+        with self.assertRaises(ValueError):
+            map_web_application(
+                "lab", "127.0.0.1", self.server.server_port, "http",
+                hostname="bad.example\\r\\nX-Injected: yes",
+            )
+
     def test_rejects_limits_above_hard_caps(self):
         with self.assertRaises(ValueError):
             map_web_application(
