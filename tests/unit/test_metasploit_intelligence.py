@@ -50,7 +50,7 @@ def test_discovers_only_bounded_auxiliary_modules_and_fetches_requirements() -> 
     assert candidate.rank == "normal"
     assert candidate.check_supported is True
     assert candidate.required_options == ("RHOSTS",)
-    assert [call[0] for call in transport.calls].count("module.search") == 1
+    assert [call[0] for call in transport.calls].count("module.search") == 2
     assert [call[0] for call in transport.calls].count("module.info") == 1
     assert [call[0] for call in transport.calls].count("module.options") == 1
 
