@@ -82,6 +82,7 @@ from .tasks import ConsoleTask, TaskManager
 
 COMMANDS = {
     "workspace": ("create", "list", "show", "use"),
+    "run": (),
     "scope": ("show", "validate", "update"),
     "discovery": ("run", "import", "show", "history", "compare", "observations", "investigate"),
     "plan": ("build", "show"),
@@ -143,7 +144,7 @@ def _ping_target(target: str) -> str:
 
 
 COMMAND_WORDS = [
-    "use", "show modes", "back", "help", "exit", "quit",
+    "use", "show modes", "back", "help", "run", "findings", "findings list", "findings show", "exit", "quit",
     *[command for mode in MODES.values() for command in mode["commands"]],
     *[f"{root} {sub}" for root, children in COMMANDS.items() for sub in children],
 ]
@@ -216,6 +217,8 @@ class CommandShell:
                 ("use analysis", "Enter assessment analysis mode"),
                 ("use workspace", "Manage workspaces and authorized scope"),
                 ("workspace create", "Create and activate a workspace with a validated target scope"),
+                ("run [--profile quick|standard|full]", "Run the complete saved-scope assessment and show consolidated results"),
+                ("findings [list|show <id>]", "Review persisted findings and vulnerability candidates"),
                 ("show modes", "List available operation modes"),
                 ("help", "Display root-console commands"),
                 ("exit", "Exit MSFAuto"),
@@ -272,6 +275,11 @@ class CommandShell:
             first = parts[0].casefold()
             if first == "discover" and len(parts) > 1 and parts[1].casefold() == "run":
                 return "discovery run", parts[2:]
+            if first == "run":
+                return "discovery run", parts[1:]
+            if first == "findings":
+                action = parts[1].casefold() if len(parts) > 1 else "list"
+                return (f"findings {action}", parts[2:]) if action in {"list", "show"} else ("findings list", parts[1:])
             if first == "use":
                 return "use", parts[1:]
             if first == "show" and len(parts) > 1 and parts[1].casefold() == "modes":
@@ -280,6 +288,11 @@ class CommandShell:
         first = parts[0].casefold()
         if first == "discover" and len(parts) > 1 and parts[1].casefold() == "run":
             return "discovery run", parts[2:]
+        if first == "run":
+            return "discovery run", parts[1:]
+        if first == "findings":
+            action = parts[1].casefold() if len(parts) > 1 else "list"
+            return (f"findings {action}", parts[2:]) if action in {"list", "show"} else ("findings list", parts[1:])
         if first in {"help", "back", "exit", "quit"}:
             return first, parts[1:]
         commands = MODES[mode]["commands"]
