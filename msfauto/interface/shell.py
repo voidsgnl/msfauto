@@ -310,9 +310,9 @@ class CommandShell:
             observations = self.store.get_service_observations(self.workspace.name)
             rows = [
                 (
-                    item.observation_id[:12], item.target,
+                    item.observation_id[:8], item.target,
                     f"{item.port}/{item.transport}", item.protocol,
-                    item.kind, item.status, item.observed_at,
+                    item.kind[:16], item.status, item.observed_at[:10],
                 )
                 for item in observations
             ]
@@ -334,8 +334,8 @@ class CommandShell:
                 ("ID", "PORT", "PROTOCOL", "KIND", "STATUS", "OBSERVED"),
                 [
                     (
-                        item.observation_id[:12], f"{item.port}/{item.transport}",
-                        item.protocol, item.kind, item.status, item.observed_at,
+                        item.observation_id[:8], f"{item.port}/{item.transport}",
+                        item.protocol, item.kind[:16], item.status, item.observed_at[:10],
                     )
                     for item in observations
                 ],
