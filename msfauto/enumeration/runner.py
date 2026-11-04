@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from ..storage.models import Host, ScopePolicy, Service
 from .models import ServiceObservation
+from .http_fingerprint import MAX_HTML_BYTES, fingerprint_http_html
 
 DEFAULT_TIMEOUT = 3.0
 MAX_WORKERS = 8
@@ -295,6 +296,40 @@ def _http_probe(
         observations = [
             _observation(workspace, target, service, protocol, "completed", attributes)
         ]
+        # Fetch a small HTML prefix only when the endpoint advertises HTML.
+        # Redirects are not followed; the observed origin remains unambiguous.
+        response.read()
+        connection.request(
+            "GET", "/", headers={
+                "User-Agent": "MSFAuto/0.1",
+                "Range": f"bytes=0-{MAX_HTML_BYTES - 1}",
+            },
+        )
+        page = connection.getresponse()
+        page_headers = {
+            key.lower(): value[:MAX_VALUE_LENGTH]
+            for key, value in page.getheaders()[:MAX_HEADERS]
+        }
+        if page.status < 300 or page.status >= 400:
+            body = page.read(MAX_HTML_BYTES + 1)
+            truncated = len(body) > MAX_HTML_BYTES
+            page_fingerprint = fingerprint_http_html(
+                page_headers, body[:MAX_HTML_BYTES], truncated=truncated
+            )
+            if page_fingerprint is not None:
+                observations.append(
+                    _observation(
+                        workspace, target, service, "http_application",
+                        "completed", {
+                            **page_fingerprint,
+                            "status_code": page.status,
+                            "headers": page_headers,
+                            "detected_by": "bounded_html_fingerprint",
+                            "nmap_fingerprint": attributes["nmap_fingerprint"],
+                        },
+                        confidence=8 if page_fingerprint["title"] else 5,
+                    )
+                )
         if secure and isinstance(connection, http.client.HTTPSConnection):
             tls_socket = connection.sock
             if tls_socket is not None:
