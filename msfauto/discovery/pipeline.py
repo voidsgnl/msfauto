@@ -8,9 +8,13 @@ from datetime import datetime, timezone
 from ipaddress import ip_address
 from pathlib import Path
 from threading import Event
+from typing import TYPE_CHECKING
 from time import monotonic, sleep
 
 from ..storage.models import DiscoveryRun, Host, ScopePolicy, Service
+
+if TYPE_CHECKING:
+    from ..integrations.metasploit import MetasploitClient
 
 
 class DiscoveryError(ValueError):
@@ -141,6 +145,104 @@ def run_nmap(
         ),
         hosts,
     )
+
+
+
+def run_metasploit_db_nmap(
+    workspace: str,
+    policy: ScopePolicy,
+    client: MetasploitClient,
+    timeout: float = 300,
+    scan_profile: str = "standard",
+) -> tuple[DiscoveryRun, tuple[Host, ...]]:
+    """Discover through Metasploit's db_nmap and read normalized DB inventory."""
+    if timeout <= 0:
+        raise DiscoveryError("Discovery timeout must be greater than zero.")
+    targets = tuple(str(item) for item in (*policy.networks, *policy.addresses))
+    if not targets:
+        raise DiscoveryError("Cannot discover without an authorized target scope.")
+    selected_ports = _ports_for_profile(policy, scan_profile)
+    port_spec = "-" if selected_ports is None else ",".join(map(str, selected_ports))
+    command = (
+        "db_nmap", "-n", "-Pn", "-sV", "--version-light",
+        "-p-" if port_spec == "-" else f"-p {port_spec}", *targets,
+    )
+    started_at = _utc_now()
+    output = client.run_db_nmap(workspace, targets, port_spec, timeout=timeout)
+    host_records = client.database_hosts(workspace, targets)
+    service_records = client.database_services(workspace, targets)
+
+    normalized_hosts: dict[str, dict[str, object]] = {}
+    for record in host_records:
+        address_text = record.get("address")
+        if not isinstance(address_text, str):
+            continue
+        try:
+            address = ip_address(address_text)
+        except ValueError:
+            continue
+        if policy.permits_address(address):
+            normalized_hosts[str(address)] = record
+
+    services_by_host: dict[str, list[Service]] = {}
+    for record in service_records:
+        address_text = record.get("host")
+        if not isinstance(address_text, str):
+            continue
+        try:
+            address = ip_address(address_text)
+            port = int(record.get("port", 0))
+        except (ValueError, TypeError):
+            continue
+        if not policy.permits_address(address) or not policy.permits_port(port):
+            continue
+        if str(record.get("state", "")).casefold() != "open":
+            continue
+        protocol = str(record.get("proto") or "tcp")
+        info = str(record.get("info") or "")
+        services_by_host.setdefault(str(address), []).append(Service(
+            port=port,
+            protocol=protocol,
+            state="open",
+            name=str(record.get("name") or ""),
+            extra_info=info,
+            method="metasploit-db_nmap",
+            confidence=5,
+            source="metasploit-db",
+            observed_at=_utc_now(),
+        ))
+        normalized_hosts.setdefault(str(address), {"address": str(address), "state": "alive"})
+
+    hosts: list[Host] = []
+    for address_text, record in normalized_hosts.items():
+        try:
+            address = ip_address(address_text)
+        except ValueError:
+            continue
+        hosts.append(Host(
+            address=address,
+            status=str(record.get("state") or "unknown"),
+            hostname=str(record.get("name") or ""),
+            services=tuple(sorted(
+                services_by_host.get(address_text, []),
+                key=lambda service: (service.port, service.protocol),
+            )),
+        ))
+    hosts.sort(key=lambda host: str(host.address))
+    run = DiscoveryRun(
+        workspace=workspace,
+        scanner="metasploit:db_nmap",
+        command=command,
+        output_path="",
+        status="completed",
+        started_at=started_at,
+        finished_at=_utc_now(),
+        error="",
+    )
+    # Keep command output available to the caller for progress/audit diagnostics.
+    if not output.strip():
+        return run, tuple(hosts)
+    return run, tuple(hosts)
 
 
 def parse_nmap_xml(
