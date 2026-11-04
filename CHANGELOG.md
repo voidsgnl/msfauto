@@ -8,7 +8,7 @@ All notable changes to MSFAuto are documented here.
 - Added a visual/interaction specification for task lifecycle states, including queued, prepared, dispatching, running, cancelling, completed, failed, timed out, cancelled, paused, and dispatch-uncertain.
 - Defined reusable status, progress, and activity-feed components; progress must be measurable or shown as indeterminate rather than fabricated.
 - Specified elapsed-time context, accessible labels/icons, reduced-motion behavior, and explicit handling for uncertain exploit dispatches.
-- This is the graphical frontend design foundation; no graphical frontend has been implemented yet, and the Textual prototype was intentionally left unchanged.
+- Added a standalone browser-openable HTML preview of the task-state treatments. This is the graphical frontend design foundation; no graphical frontend has been implemented yet, and the Textual prototype was intentionally left unchanged.
 
 ### HTTP application fingerprinting
 - Extended HTTP enumeration with a bounded GET of the root document after the initial HEAD response; redirects are not followed.
