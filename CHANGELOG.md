@@ -17,6 +17,7 @@ All notable changes to MSFAuto are documented here.
 ### Independent outcome verification regression coverage
 - Added workspace-binding checks alongside exact-target evidence validation.
 - Verified that multiple target-side assessments are append-only and do not alter the framework execution state.
+- GitHub Actions run #535 passed on Python 3.10, 3.12, and 3.14: 170 tests passed plus 5 subtests; Ruff passed on all versions.
 
 ### Live command-console task output and execution controls
 - Added a task registry for background workflows with task IDs, lifecycle status, progress-event queues, captured results/errors, and cooperative cancellation.
