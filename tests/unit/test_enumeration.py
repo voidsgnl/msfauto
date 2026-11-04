@@ -51,6 +51,66 @@ class EnumerationTests(unittest.TestCase):
         self.assertEqual(observations[0].attributes["status_code"], 204)
         self.assertIn("server", observations[0].attributes["headers"])
 
+    def test_unknown_tcp_service_is_identified_as_http_by_bounded_probe(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), _HTTPHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        service = Service(
+            server.server_port, "tcp", "open", name="ppp?", method="probed",
+            confidence=3,
+        )
+        host = Host(
+            address=ipaddress.ip_address("127.0.0.1"),
+            status="up",
+            services=(service,),
+        )
+        try:
+            results = enumerate_services(
+                "lab", (host,), build_policy(["127.0.0.1"], str(server.server_port)),
+                timeout=1.0,
+            )
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+        self.assertEqual(len(results), 1)
+        observation = results[0]
+        self.assertEqual(observation.protocol, "http")
+        self.assertEqual(observation.status, "completed")
+        self.assertEqual(observation.attributes["status_code"], 204)
+        self.assertEqual(observation.attributes["detected_by"], "active_http_probe")
+        self.assertEqual(observation.attributes["nmap_fingerprint"]["name"], "ppp?")
+        self.assertEqual(observation.attributes["nmap_fingerprint"]["confidence"], 3)
+
+    def test_unknown_tcp_service_with_non_http_response_is_not_classified(self):
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+
+        def serve():
+            conn, _ = listener.accept()
+            with conn:
+                conn.recv(1024)
+                conn.sendall(b"not an HTTP response\\r\\n")
+            listener.close()
+
+        thread = threading.Thread(target=serve, daemon=True)
+        thread.start()
+        host = Host(
+            address=ipaddress.ip_address("127.0.0.1"),
+            status="up",
+            services=(Service(port, "tcp", "open", name="unknown"),),
+        )
+        try:
+            results = enumerate_services(
+                "lab", (host,), build_policy(["127.0.0.1"], str(port)), timeout=1.0
+            )
+        finally:
+            thread.join(timeout=1)
+            listener.close()
+        self.assertEqual(results, ())
+
     def test_ssh_probe_records_server_banner(self):
         listener = socket.socket()
         listener.bind(("127.0.0.1", 0))
