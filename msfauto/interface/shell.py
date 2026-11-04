@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shlex
 import sqlite3
+import time
 from pathlib import Path
 
 from prompt_toolkit import PromptSession
@@ -14,6 +15,7 @@ from rich.text import Text
 
 from ..assessment.approval import record_decision
 from ..assessment.planner import build_plan
+from ..core import AssessmentApplication
 from ..cli import display_plan, run_discovery, run_safe_checks
 from ..discovery import DiscoveryError, parse_nmap_xml
 from ..exploitation import authorize_opportunity, review_opportunity
@@ -21,6 +23,7 @@ from ..reporting import ReportError, write_report
 from ..scope import ScopeError, build_policy
 from ..storage import WorkspaceStore
 from ..storage.models import Workspace
+from .tasks import ConsoleTask, TaskManager
 
 COMMANDS = {
     "workspace": ("create", "list", "show", "use"),
@@ -32,6 +35,7 @@ COMMANDS = {
     "exploits": ("list", "review", "authorize"),
     "findings": ("list", "show"),
     "report": ("generate", "show"),
+    "tasks": ("list", "show"),
     "dashboard": (),
     "help": (),
     "exit": (),
@@ -57,6 +61,7 @@ class CommandShell:
             history=FileHistory(str(history_path)),
         )
         self.running = True
+        self.tasks = TaskManager()
 
     def banner(self) -> None:
         logo = Text(
@@ -102,6 +107,7 @@ class CommandShell:
             ("EXPLOIT INTELLIGENCE", [("exploits list", "List matched exploit opportunities"), ("exploits review <id>", "Record an explicit opportunity review"), ("exploits authorize <id>", "Authorize an accepted opportunity")]),
             ("FINDINGS", [("findings list", "List recorded findings"), ("findings show", "Show finding details")]),
             ("REPORTING", [("report generate", "Generate a JSON or Markdown report"), ("report show", "Show the latest report location")]),
+            ("TASKS", [("tasks list", "List recent background tasks"), ("tasks show <id>", "Show task status and pending output")]),
             ("GENERAL", [("dashboard", "Show workspace assessment summary"), ("help", "Display this command reference"), ("exit", "Exit MSFAuto")]),
         ]
         for heading, commands in groups:
@@ -135,6 +141,24 @@ class CommandShell:
             plan = build_plan(self.workspace.name, self.store.get_hosts(self.workspace.name), self.store.get_all_module_metadata(self.workspace.name))
             self.store.save_plan(plan)
         return plan
+
+    def _wait_task(self, task: ConsoleTask) -> None:
+        self.console.print(f"[bright_cyan][*][/bright_cyan] Task {task.task_id}: {task.name}")
+        with self.console.status("[bold bright_cyan]Working…[/bold bright_cyan]", spinner="dots"):
+            while task.future is not None and not task.future.done():
+                self._drain_task_events(task)
+                time.sleep(0.08)
+            self._drain_task_events(task)
+        if task.status == "completed":
+            self.console.print(f"[green][+][/green] Task {task.task_id} completed.")
+        else:
+            self.console.print(f"[red][!][/red] Task {task.task_id} {task.status}: {task.error or 'No additional details.'}")
+
+    def _drain_task_events(self, task: ConsoleTask) -> None:
+        while not task.events.empty():
+            event = task.events.get_nowait()
+            style = {"error": "red", "warning": "yellow", "success": "green"}.get(event.level, "white")
+            self.console.print(f"[{style}][{event.level}][/{style}] {event.message}")
 
     def _dashboard(self) -> None:
         hosts = self.store.get_hosts(self.workspace.name)
@@ -209,7 +233,14 @@ class CommandShell:
                     self.console.print("[green][+][/green] Scope updated.")
                     self._show_context()
             elif command == "discovery run":
-                run_discovery(self.store, self.workspace)
+                application = AssessmentApplication(self.workspace, self.store)
+                task = self.tasks.submit(
+                    "assessment",
+                    lambda _cancel, emit: application.run_assessment(
+                        lambda event: emit(f"[{event.stage}] {event.message}", event.level)
+                    ),
+                )
+                self._wait_task(task)
             elif command == "discovery import":
                 if not args:
                     self.console.print("[yellow]Usage: discovery import <nmap.xml>[/yellow]")
@@ -310,6 +341,24 @@ class CommandShell:
                 report_dir = self.store.path.parent / "reports"
                 reports = sorted(report_dir.glob(f"{self.workspace.name}-*")) if report_dir.exists() else []
                 self._rows("GENERATED REPORTS", ("FILE",), [(path,) for path in reports])
+            elif command == "tasks list":
+                self._rows("CONSOLE TASKS", ("ID", "NAME", "STATUS", "ERROR"), [
+                    (task.task_id, task.name, task.status, task.error or "—")
+                    for task in self.tasks.list()
+                ])
+            elif command == "tasks show":
+                if not args:
+                    self.console.print("[yellow]Usage: tasks show <id>[/yellow]")
+                else:
+                    task = self.tasks.get(args[0])
+                    if task is None:
+                        self.console.print("[red]Task not found.[/red]")
+                    else:
+                        self._drain_task_events(task)
+                        self._rows("TASK DETAIL", ("FIELD", "VALUE"), [
+                            ("ID", task.task_id), ("Name", task.name),
+                            ("Status", task.status), ("Error", task.error or "—"),
+                        ])
             elif command == "dashboard":
                 self._dashboard()
             else:
@@ -327,4 +376,5 @@ class CommandShell:
                 self.console.print("\n[dim]Use 'exit' to close MSFAuto.[/dim]")
                 continue
             self.execute(line)
+        self.tasks.close()
         self.console.print("[bright_cyan][*][/bright_cyan] MSFAuto session closed.")
