@@ -83,8 +83,11 @@ def _is_smb(service: Service) -> bool:
 
 def _is_smtp(service: Service) -> bool:
     label = f"{service.name} {service.product}".lower()
-    return service.protocol.lower() == "tcp" and service.port != 465 and (
-        "smtp" in label or service.port in {25, 587}
+    return (
+        service.protocol.lower() == "tcp"
+        and service.tunnel.lower() != "ssl"
+        and service.port != 465
+        and ("smtp" in label or service.port in {25, 587})
     )
 
 
@@ -291,9 +294,12 @@ def _smtp_probe(
         )
     finally:
         try:
+            if client.sock is not None:
+                client.quit()
+            else:
+                client.close()
+        except (OSError, smtplib.SMTPException):
             client.close()
-        except OSError:
-            pass
 
 
 def _http_probe(

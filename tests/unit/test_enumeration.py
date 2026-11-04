@@ -137,7 +137,7 @@ class EnumerationTests(unittest.TestCase):
             conn, _ = listener.accept()
             with conn:
                 conn.recv(1024)
-                conn.sendall(b"not an HTTP response\\r\\n")
+                conn.sendall(b"not an HTTP response\r\n")
             listener.close()
 
         thread = threading.Thread(target=serve, daemon=True)
@@ -188,18 +188,18 @@ class EnumerationTests(unittest.TestCase):
         def serve():
             conn, _ = listener.accept()
             with conn:
-                conn.sendall(b"220 test.example ESMTP ready\\r\\n")
+                conn.sendall(b"220 test.example ESMTP ready\r\n")
                 data = conn.recv(2048)
                 self.assertTrue(data.upper().startswith(b"EHLO "))
                 conn.sendall(
-                    b"250-test.example\\r\\n"
-                    b"250-SIZE 10485760\\r\\n"
-                    b"250-STARTTLS\\r\\n"
-                    b"250-AUTH PLAIN LOGIN\\r\\n"
-                    b"250 HELP\\r\\n"
+                    b"250-test.example\r\n"
+                    b"250-SIZE 10485760\r\n"
+                    b"250-STARTTLS\r\n"
+                    b"250-AUTH PLAIN LOGIN\r\n"
+                    b"250 HELP\r\n"
                 )
                 conn.recv(1024)
-                conn.sendall(b"221 Bye\\r\\n")
+                conn.sendall(b"221 Bye\r\n")
             listener.close()
 
         thread = threading.Thread(target=serve, daemon=True)
