@@ -16,6 +16,7 @@ MSFAuto should not become merely a graphical wrapper around Metasploit. Metasplo
 - The current Textual interface is an existing prototype, not the intended final interface. Do not expand it into a larger TUI or treat its layout as the target product.
 - Keep the assessment domain, orchestration, integrations, and persistence independent of the interface so a graphical frontend can use the same application services.
 - CLI commands may remain useful for scripting, automation, and diagnostics, but they are not the primary user experience.
+- The graphical interface visual contract is defined in [`docs/interface/visual-system.md`](docs/interface/visual-system.md): shared task-state badges, truthful progress/indeterminate activity, elapsed time, event feed, accessibility, and explicit dispatch-uncertain treatment. This is a design foundation, not an implemented GUI.
 
 ## Core assessment capabilities
 
@@ -180,6 +181,9 @@ OSV workflow integration is active when explicit mappings are configured, but th
    - Never automatically retry an operation whose dispatch outcome is unknown.
 
 7. **Graphical application**
+   - [x] Define the graphical visual system and task lifecycle presentation contract (queued, prepared, dispatching, running, cancelling, completed, failed, timed out, cancelled, paused, and dispatch uncertain).
+   - [ ] Select and scaffold the graphical frontend; the repository currently has no graphical frontend.
+   - [ ] Implement shared status badges, truthful determinate/indeterminate progress, elapsed-time display, and live activity feed against persisted task/job events.
    - Replace the Textual prototype with a graphical interface using shared application services.
    - Design the interface around assets, services, assessment results, exploit opportunities, execution/session activity, evidence, and findings.
    - Keep dense technical detail accessible without making the product a terminal emulator.
@@ -199,3 +203,11 @@ Re-run discovery against the local Juice Shop workspace and inspect the persiste
 ## Deferred milestone: live isolated-lab validation and module-specific verifiers
 
 The dispatcher, framework reconciler, and evidence-backed outcome-assessment record are implemented and covered by fake-RPC/unit tests, but the dispatcher and reconciler have not been exercised against a live isolated Metasploit lab. Next, validate the supported RHOSTS/RPORT profile against a deliberately vulnerable lab target and verify job-list plus UUID-result behavior on the connected Metasploit version. Then implement opt-in, module-specific target verifiers with explicit expected indicators and bounded checks; a generic verifier must not guess what success looks like. Session records and post-exploitation actions remain a later, separately authorized milestone.
+
+
+## Latest implementation milestone: graphical task-state visual specification
+
+- Added `docs/interface/visual-system.md` as the visual/interaction contract for the intended graphical application.
+- Defined consistent treatments for queued, prepared, dispatching, running, cancelling, completed, failed, timed-out, cancelled, paused, and dispatch-uncertain states.
+- Specified shared status badges, truthful determinate versus indeterminate progress, elapsed time, chronological activity events, reduced-motion behavior, keyboard focus, and accessible text/icon labels.
+- Explicitly kept this work out of the Textual prototype. The repository does not yet contain a graphical frontend, so the visual system is specified but not yet rendered in an application. The next UI milestone is to scaffold that frontend and connect these components to the existing assessment/job services.
