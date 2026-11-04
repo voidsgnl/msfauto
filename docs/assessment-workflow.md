@@ -1,5 +1,17 @@
 # Assessment Workflow
 
+## Default discovery coverage
+
+The interactive entry point is `discover run` (also available as `discovery run`). It runs the end-to-end, read-only assessment pipeline using the `standard` TCP port profile by default.
+
+- `--profile quick`: a smaller set of high-value service ports.
+- `--profile standard`: the default prioritized service-port set.
+- `--profile full` or `--full`: all TCP ports, unless the workspace has an explicit port allowlist.
+- One-shot equivalent: `python -m msfauto.cli --discover --scan-profile full`.
+
+A saved workspace port allowlist is always authoritative. A scan profile may narrow that list but cannot expand it. Nmap's discovery result feeds service fingerprinting and the existing protocol adapters. The assessment enumerator runs with one worker by default so service investigations occur sequentially. Unsupported or unrecognized service adapters remain an explicit coverage gap and should be surfaced for manual investigation rather than interpreted as a negative result.
+
+
 ## Product workflow
 
 MSFAuto's primary workflow is an end-to-end security assessment, not a sequence of disconnected scanner commands. The intended primary interface is a terminal-only, full-screen Textual application with keyboard-driven numbered menus.
