@@ -8,7 +8,7 @@ import ssl
 from collections import deque
 from dataclasses import dataclass
 from html.parser import HTMLParser
-from urllib.parse import parse_qsl, urldefrag, urljoin, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urljoin, urlsplit, urlunsplit
 from uuid import uuid4
 
 from .models import ServiceObservation
@@ -256,9 +256,13 @@ def map_web_application(
             ):
                 for link in parser.links:
                     candidate = _canonical_url(urljoin(current, link))
-                    if _same_origin(candidate, origin) and not _skip_path(candidate):
-                        if candidate not in visited and len(queue) + len(visited) < max_pages:
-                            queue.append((candidate, depth + 1))
+                    if (
+                        _same_origin(candidate, origin)
+                        and not _skip_path(candidate)
+                        and candidate not in visited
+                        and len(queue) + len(visited) < max_pages
+                    ):
+                        queue.append((candidate, depth + 1))
         except (OSError, TimeoutError, http.client.HTTPException, ssl.SSLError, ValueError) as exc:
             observations.append(ServiceObservation(
                 observation_id=uuid4().hex,
