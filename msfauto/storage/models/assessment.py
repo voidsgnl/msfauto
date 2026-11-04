@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from uuid import uuid4
 
 from .base import utc_now
 
@@ -15,6 +16,7 @@ class DiscoveryRun:
     started_at: str
     finished_at: str
     error: str = ""
+    scan_id: str = field(default_factory=lambda: uuid4().hex)
 
 
 @dataclass(frozen=True)
