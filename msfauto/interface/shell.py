@@ -482,6 +482,9 @@ class CommandShell:
                             self.workspace.name, older.scan_id, newer.scan_id
                         )
                         for category, title in (
+                            ("added_hosts", "NEW HOSTS"),
+                            ("removed_hosts", "MISSING HOSTS"),
+                            ("changed_hosts", "CHANGED HOST IDENTITY / STATE"),
                             ("added", "ADDED SERVICES"),
                             ("removed", "REMOVED SERVICES"),
                             ("changed", "CHANGED SERVICES"),
