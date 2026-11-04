@@ -50,6 +50,31 @@ class _HTTPHandler(BaseHTTPRequestHandler):
         pass
 
 
+class _RedirectHTTPHandler(BaseHTTPRequestHandler):
+    def do_HEAD(self):
+        self.send_response(302)
+        self.send_header("Location", "/login")
+        self.end_headers()
+
+    def do_GET(self):
+        self.send_response(302)
+        self.send_header("Location", "/login")
+        self.end_headers()
+
+    def log_message(self, *_args):
+        pass
+
+
+class _SlowHTTPHandler(BaseHTTPRequestHandler):
+    def do_HEAD(self):
+        threading.Event().wait(0.15)
+        self.send_response(200)
+        self.end_headers()
+
+    def log_message(self, *_args):
+        pass
+
+
 class EnumerationTests(unittest.TestCase):
     def test_error_attributes_preserve_bounded_diagnostic_detail(self):
         attributes = _error_attributes(ConnectionRefusedError("connection refused"))
@@ -77,6 +102,36 @@ class EnumerationTests(unittest.TestCase):
         names = [item["name"] for item in app.attributes["technologies"]]
         self.assertIn("OWASP Juice Shop", names)
         self.assertIn("Angular", names)
+
+    def test_http_probe_records_redirect_destination_without_following_it(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), _RedirectHTTPHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            service = Service(server.server_port, "tcp", "open", name="http")
+            observations = _http_probe("lab", "127.0.0.1", service, 1.0)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+        self.assertEqual(observations[0].status, "completed")
+        self.assertEqual(observations[0].attributes["status_code"], 302)
+        self.assertTrue(observations[0].attributes["redirect"])
+        self.assertEqual(observations[0].attributes["redirect_location"], "/login")
+
+    def test_http_timeout_records_the_response_stage(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), _SlowHTTPHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            service = Service(server.server_port, "tcp", "open", name="http")
+            observations = _http_probe("lab", "127.0.0.1", service, 0.05)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+        self.assertEqual(observations[0].status, "failed")
+        self.assertEqual(observations[0].attributes["error_stage"], "http_head_response")
 
     def test_html_fingerprint_extracts_title_metadata_and_technology_evidence(self):
         result = fingerprint_http_html(
@@ -323,6 +378,15 @@ class EnumerationTests(unittest.TestCase):
         self.assertIn(attributes["tls_version"], {"TLSv1.2", "TLSv1.3"})
         self.assertTrue(attributes["cipher"])
         self.assertIn("session_reused", attributes)
+        self.assertEqual(attributes["certificate_common_name"], "localhost")
+        self.assertIn("CN=localhost", attributes["certificate_subject"])
+        self.assertTrue(attributes["certificate_issuer"])
+        self.assertTrue(attributes["certificate_not_before"])
+        self.assertTrue(attributes["certificate_not_after"])
+        self.assertTrue(attributes["certificate_valid_now"])
+        self.assertEqual(attributes["certificate_signature_algorithm"], "1.2.840.113549.1.1.11")
+        self.assertEqual(attributes["certificate_signature_hash"], "sha256")
+        self.assertEqual(attributes["certificate_subject_alt_names"], [])
 
     def test_tls_wrapped_non_http_service_is_not_misclassified_as_http(self):
         service = Service(636, "tcp", "open", name="ldaps", tunnel="ssl")
