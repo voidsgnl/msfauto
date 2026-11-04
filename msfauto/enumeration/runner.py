@@ -681,19 +681,21 @@ def _http_probe(
                 page_headers, body[:MAX_HTML_BYTES], truncated=truncated
             )
             if page_fingerprint is not None:
-                observations.append(
-                    _observation(
-                        workspace, target, service, "http_application",
-                        "completed", {
-                            **page_fingerprint,
-                            "status_code": page.status,
-                            "headers": page_headers,
-                            "detected_by": "bounded_html_fingerprint",
-                            "nmap_fingerprint": attributes["nmap_fingerprint"],
-                        },
-                        confidence=8 if page_fingerprint["title"] else 5,
-                    )
+                application_observation = _observation(
+                    workspace, target, service, protocol,
+                    "completed", {
+                        **page_fingerprint,
+                        "status_code": page.status,
+                        "headers": page_headers,
+                        "detected_by": "bounded_html_fingerprint",
+                        "nmap_fingerprint": attributes["nmap_fingerprint"],
+                    },
+                    confidence=8 if page_fingerprint["title"] else 5,
                 )
+                observations.append(replace(
+                    application_observation,
+                    kind="http_application",
+                ))
         if secure and isinstance(connection, http.client.HTTPSConnection):
             tls_socket = connection.sock
             if tls_socket is not None:
