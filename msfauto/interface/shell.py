@@ -782,13 +782,13 @@ class CommandShell:
             if found:
                 item = found[0]
                 self.console.print(Panel(
-                    f"[bold]{item.title}[/bold]\\nSeverity: {item.severity}  Status: {item.status}  Confidence: {item.confidence}%\\n\\n{item.description}\\nEvidence: {', '.join(item.evidence_ids) or 'none'}",
+                    f"[bold]{item.title}[/bold]\nSeverity: {item.severity}  Status: {item.status}  Confidence: {item.confidence}%\n\n{item.description}\nEvidence: {', '.join(item.evidence_ids) or 'none'}",
                     title=f"FINDING {item.finding_id[:12]}",
                 ))
             else:
                 item = leads[0]
                 self.console.print(Panel(
-                    f"{item.advisory_id} ({item.advisory_source})\\n{item.target}:{item.port}/{item.protocol}\\n{item.product} {item.observed_version}\\nStatus: {item.status}  Confidence: {item.confidence}%\\n\\n{item.rationale}",
+                    f"{item.advisory_id} ({item.advisory_source})\n{item.target}:{item.port}/{item.protocol}\n{item.product} {item.observed_version}\nStatus: {item.status}  Confidence: {item.confidence}%\n\n{item.rationale}",
                     title=f"VULNERABILITY CANDIDATE {item.candidate_id[:12]}",
                 ))
             return
