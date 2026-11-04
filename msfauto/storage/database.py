@@ -491,15 +491,25 @@ class WorkspaceStore:
         )
 
     def save_hosts(self, workspace: str, hosts: tuple[Host, ...]) -> None:
+        """Replace the current workspace inventory with one completed discovery result.
+
+        Historical scan contents remain available through discovery_snapshots; this
+        table represents only the latest imported/current inventory.
+        """
         with self._connect() as connection:
+            connection.execute(
+                "DELETE FROM discovery_services WHERE workspace = ?",
+                (workspace,),
+            )
+            connection.execute(
+                "DELETE FROM discovery_hosts WHERE workspace = ?",
+                (workspace,),
+            )
             for host in hosts:
                 connection.execute(
                     """
                     INSERT INTO discovery_hosts(workspace, address, status, hostname)
                     VALUES (?, ?, ?, ?)
-                    ON CONFLICT(workspace, address) DO UPDATE SET
-                        status = excluded.status,
-                        hostname = excluded.hostname
                     """,
                     (workspace, str(host.address), host.status, host.hostname),
                 )
@@ -510,18 +520,6 @@ class WorkspaceStore:
                             workspace, address, port, protocol, state, name, product, version,
                             method, confidence, extra_info, tunnel, cpes_json, source, observed_at
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ON CONFLICT(workspace, address, port, protocol) DO UPDATE SET
-                            state = excluded.state,
-                            name = excluded.name,
-                            product = excluded.product,
-                            version = excluded.version,
-                            method = excluded.method,
-                            confidence = excluded.confidence,
-                            extra_info = excluded.extra_info,
-                            tunnel = excluded.tunnel,
-                            cpes_json = excluded.cpes_json,
-                            source = excluded.source,
-                            observed_at = excluded.observed_at
                         """,
                         (
                             workspace,
