@@ -45,6 +45,7 @@ Supporting platform capabilities:
 - [x] Scope-enforced Nmap XML import and normalized service storage.
 - [x] Bounded HTTP/HTTPS and SSH service enumeration with append-only structured observations.
 - [x] Bounded HTTP confirmation probes for unrecognized open TCP services, preserving the original Nmap fingerprint and rejecting non-HTTP responses.
+- [x] Bounded HTML application fingerprinting for HTTP services: title, selected metadata, server/runtime headers, common framework/library markers, and referenced assets.
 - [x] Bounded Nmap execution adapter.
 - [x] Read-only Metasploit RPC module metadata integration.
 - [x] Explicit RPC execution for an allowlist of passive service-version checks.
@@ -62,6 +63,14 @@ Supporting platform capabilities:
 OSV workflow integration is active when explicit mappings are configured, but this does **not** mean the platform already provides a complete vulnerability assessment or exploitation lifecycle. The Metasploit passive-check adapter still supports only its fixed allowlist. A separate exploit dispatcher now supports a narrow, catalog-bound TCP profile using only persisted RHOSTS/RPORT values after exact review/authorization and scope revalidation. Framework job polling now reconciles UUID-specific terminal results without treating completion as proof of exploit success. Live isolated-lab validation, independent outcome validation, broader option/payload support, and session handling remain outstanding.
 
 ## Current handoff — 2026-11-04
+
+### Latest implementation milestone: bounded HTTP application fingerprinting
+- HTTP enumeration now follows its bounded HEAD confirmation with a GET of the same origin, without following redirects.
+- The response body is capped at 64 KiB locally even when a server ignores the Range request; request and socket timeouts remain in force.
+- HTML responses produce a separate http_application_response observation with page title, selected metadata, server/runtime header hints, framework/library indicators, referenced assets, and truncation state.
+- Technology claims include the marker that supports them and a confidence score. Non-HTML responses do not produce application fingerprints.
+- This is passive application identification only: it does not crawl routes, fetch robots.txt/sitemaps, or perform vulnerability checks.
+- Added unit coverage for title/meta extraction, React/jQuery and Angular indicators, non-HTML rejection, and bounded-body metadata.
 
 ### Latest implementation milestone: Metasploit MessagePack response compatibility
 - Diagnosed the live RPC authentication failure against the connected local Metasploit service: authentication succeeded, but the framework encoded response keys and text values as MessagePack binary strings.
@@ -123,7 +132,7 @@ OSV workflow integration is active when explicit mappings are configured, but th
 ## Work sequence
 
 1. **Service enumeration foundation**
-   - Extend the Nmap fingerprint baseline with structured service-specific enumeration adapters (HTTP/HTTPS, SSH, FTP, SMB2 negotiation, and TLS-only handshake inspection are implemented; HTTP technology detection remains).
+   - Extend the Nmap fingerprint baseline with structured service-specific enumeration adapters (HTTP/HTTPS, SSH, FTP, SMB2 negotiation, and TLS-only handshake inspection are implemented; HTTP application fingerprinting is now implemented; route/resource crawling and web-specific vulnerability checks remain).
    - Define probe/result contracts, normalized attributes, source provenance, timestamps, and confidence.
    - Preserve raw tool output as evidence while parsing structured observations for later stages.
    - Keep per-service timeouts, output limits, concurrency bounds, and scope/port checks.
@@ -181,8 +190,12 @@ OSV workflow integration is active when explicit mappings are configured, but th
 - Added a bounded HTTP HEAD confirmation attempt for otherwise-unclassified open TCP services that are not already routed to a known protocol adapter.
 - Unknown services are classified as HTTP only when the HTTP client parses a valid HTTP response. Non-HTTP responses are ignored rather than stored as failed HTTP observations.
 - Structured observations record the active detection method and retain the original Nmap service name, product, version, probe method, confidence, and tunnel metadata.
-- Added local-server tests for successful unknown-port HTTP detection and rejection of non-HTTP responses. Live Juice Shop re-test and full local CI verification remain pending.
+- Added local-server tests for successful unknown-port HTTP detection and rejection of non-HTTP responses. The user confirmed a live Juice Shop discovery run produced one completed HTTP observation; this newer application-fingerprinting milestone still requires a live re-test and CI verification.
 
-## Immediate next milestone: live isolated-lab validation and module-specific verifiers
+## Immediate next milestone: live web-application fingerprint validation
+
+Re-run discovery against the local Juice Shop workspace and inspect the persisted http_application_response observation for title, framework markers, assets, confidence, and truncation state. Then expand generic application fingerprint coverage only where supported by repeatable evidence. Route discovery and web vulnerability checks should be separate bounded milestones. Live isolated-Metasploit dispatch validation remains outstanding and must not be conflated with this web-enumeration work.
+
+## Deferred milestone: live isolated-lab validation and module-specific verifiers
 
 The dispatcher, framework reconciler, and evidence-backed outcome-assessment record are implemented and covered by fake-RPC/unit tests, but the dispatcher and reconciler have not been exercised against a live isolated Metasploit lab. Next, validate the supported RHOSTS/RPORT profile against a deliberately vulnerable lab target and verify job-list plus UUID-result behavior on the connected Metasploit version. Then implement opt-in, module-specific target verifiers with explicit expected indicators and bounded checks; a generic verifier must not guess what success looks like. Session records and post-exploitation actions remain a later, separately authorized milestone.
