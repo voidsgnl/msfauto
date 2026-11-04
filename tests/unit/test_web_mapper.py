@@ -10,9 +10,19 @@ class _MapperHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         type(self).requests.append(("GET", self.path))
+        if self.path == "/redirect":
+            body = b'<html><a href="/must-not-crawl">redirect body</a></html>'
+            self.send_response(302)
+            self.send_header("Location", "/destination")
+            self.send_header("Content-Type", "text/html")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path == "/":
             body = (
                 b'<html><a href="/inside?item=1">inside</a>'
+                b'<a href="/redirect">redirect</a>'
                 b'<a href="https://outside.example/secret">outside</a>'
                 b'<a href="/logout">logout</a>'
                 b'<form action="/submit" method="POST">'
@@ -54,7 +64,7 @@ class WebMapperTests(unittest.TestCase):
             max_pages=5, max_depth=2, max_requests=5,
         )
         completed = [item for item in results if item.status == "completed"]
-        self.assertEqual(len(completed), 2)
+        self.assertEqual(len(completed), 3)
         root = next(item for item in completed if item.attributes["path"] == "/")
         form = root.attributes["forms"][0]
         self.assertEqual(form["method"], "POST")
@@ -65,9 +75,14 @@ class WebMapperTests(unittest.TestCase):
         )
         inside = next(item for item in completed if item.attributes["path"] == "/inside")
         self.assertEqual(inside.attributes["query_parameters"], ["item"])
+        redirect = next(item for item in completed if item.attributes["path"] == "/redirect")
+        self.assertTrue(redirect.attributes["redirect"])
+        self.assertEqual(redirect.attributes["redirect_location"], "/destination")
         self.assertTrue(all(item.attributes["request_method"] == "GET" for item in results))
         self.assertFalse(any(method == "POST" for method, _ in _MapperHandler.requests))
         self.assertFalse(any(path == "/logout" for _, path in _MapperHandler.requests))
+        self.assertFalse(any(path == "/must-not-crawl" for _, path in _MapperHandler.requests))
+        self.assertFalse(any(path == "/destination" for _, path in _MapperHandler.requests))
 
     def test_rejects_invalid_hostnames_before_building_http_headers(self):
         with self.assertRaises(ValueError):
