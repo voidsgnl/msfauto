@@ -26,6 +26,31 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+class _PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """Connect to the scanned IP while sending the discovered hostname as TLS SNI."""
+
+    def __init__(
+        self,
+        target: str,
+        server_hostname: str,
+        port: int,
+        timeout: float,
+        context: ssl.SSLContext,
+    ) -> None:
+        super().__init__(target, port, timeout=timeout, context=context)
+        self._server_hostname = server_hostname
+
+    def connect(self) -> None:
+        self.sock = socket.create_connection(
+            (self.host, self.port), self.timeout, self.source_address
+        )
+        if self._tunnel_host:
+            self._tunnel()
+        self.sock = self._context.wrap_socket(
+            self.sock, server_hostname=self._server_hostname
+        )
+
+
 def _error_attributes(exc: Exception) -> dict[str, str]:
     """Return bounded diagnostic detail without storing an unbounded exception."""
     detail = " ".join(str(exc).split())[:160]
@@ -177,9 +202,10 @@ def _smb_probe(
 
 
 def _tls_probe(
-    workspace: str, target: str, service: Service, timeout: float
+    workspace: str, target: str, service: Service, timeout: float,
+    server_hostname: str | None = None,
 ) -> tuple[ServiceObservation, ...]:
-    """Inspect a TLS endpoint without sending application-layer requests."""
+    """Inspect TLS on the target IP while using its discovered hostname for SNI."""
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
@@ -189,7 +215,7 @@ def _tls_probe(
         ) as raw_socket:
             raw_socket.settimeout(timeout)
             with context.wrap_socket(
-                raw_socket, server_hostname=target
+                raw_socket, server_hostname=server_hostname or target
             ) as tls_socket:
                 cipher = tls_socket.cipher()
                 certificate = tls_socket.getpeercert(binary_form=True) or b""
@@ -218,7 +244,7 @@ def _tls_probe(
         return (
             _observation(
                 workspace, target, service, "tls", "failed",
-                {"error_type": type(exc).__name__},
+                _error_attributes(exc),
             ),
         )
 
@@ -253,7 +279,7 @@ def _ftp_probe(
         return (
             _observation(
                 workspace, target, service, "ftp", "failed",
-                {"error_type": type(exc).__name__},
+                _error_attributes(exc),
             ),
         )
     finally:
@@ -298,7 +324,7 @@ def _smtp_probe(
         return (
             _observation(
                 workspace, target, service, "smtp", "failed",
-                {"error_type": type(exc).__name__},
+                _error_attributes(exc),
             ),
         )
     finally:
@@ -318,12 +344,14 @@ def _http_probe(
     timeout: float,
     *,
     unidentified_service: bool = False,
+    server_hostname: str | None = None,
 ) -> tuple[ServiceObservation, ...]:
     secure = service.name.lower() == "https" or service.tunnel.lower() == "ssl"
     if secure:
         context = ssl._create_unverified_context()
-        connection: http.client.HTTPConnection = http.client.HTTPSConnection(
-            target, service.port, timeout=timeout, context=context
+        connection: http.client.HTTPConnection = _PinnedHTTPSConnection(
+            target, server_hostname or target, service.port,
+            timeout=timeout, context=context,
         )
         protocol = "https"
     else:
@@ -426,7 +454,7 @@ def _http_probe(
         return (
             _observation(
                 workspace, target, service, protocol, "failed",
-                {"error_type": type(exc).__name__},
+                _error_attributes(exc),
             ),
         )
     finally:
@@ -460,7 +488,7 @@ def _ssh_probe(
         return (
             _observation(
                 workspace, target, service, "ssh", "failed",
-                {"error_type": type(exc).__name__},
+                _error_attributes(exc),
             ),
         )
 
@@ -478,7 +506,7 @@ def enumerate_services(
     if not 1 <= max_workers <= MAX_WORKERS:
         raise ValueError(f"Enumeration workers must be between 1 and {MAX_WORKERS}.")
 
-    tasks: list[tuple[str, str, Service]] = []
+    tasks: list[tuple[str, str, str, Service]] = []
     for host in hosts:
         if host.status != "up" or not policy.permits_address(host.address):
             continue
@@ -486,45 +514,48 @@ def enumerate_services(
             if service.state != "open" or not policy.permits_port(service.port):
                 continue
             if _is_http(service):
-                tasks.append(("http", str(host.address), service))
+                tasks.append(("http", str(host.address), host.hostname, service))
             elif _is_ssh(service):
-                tasks.append(("ssh", str(host.address), service))
+                tasks.append(("ssh", str(host.address), host.hostname, service))
             elif _is_ftp(service):
-                tasks.append(("ftp", str(host.address), service))
+                tasks.append(("ftp", str(host.address), host.hostname, service))
             elif _is_smtp(service):
-                tasks.append(("smtp", str(host.address), service))
+                tasks.append(("smtp", str(host.address), host.hostname, service))
             elif _is_smb(service):
-                tasks.append(("smb", str(host.address), service))
+                tasks.append(("smb", str(host.address), host.hostname, service))
             elif _is_tls(service):
-                tasks.append(("tls", str(host.address), service))
+                tasks.append(("tls", str(host.address), host.hostname, service))
             elif service.protocol.lower() == "tcp" and not service.tunnel:
                 # Nmap can return an unknown service label even when the port
                 # speaks HTTP. Try one bounded HEAD request before giving up.
-                tasks.append(("http_candidate", str(host.address), service))
+                tasks.append(("http_candidate", str(host.address), host.hostname, service))
 
     results: list[ServiceObservation] = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
-        for kind, target, service in tasks:
-            if kind == "http_candidate":
+        for kind, target, server_hostname, service in tasks:
+            if kind in {"http", "http_candidate"}:
                 futures.append(
                     executor.submit(
-                        _http_probe,
-                        workspace,
-                        target,
-                        service,
-                        timeout,
-                        unidentified_service=True,
+                        _http_probe, workspace, target, service, timeout,
+                        unidentified_service=kind == "http_candidate",
+                        server_hostname=server_hostname or target,
+                    )
+                )
+                continue
+            if kind == "tls":
+                futures.append(
+                    executor.submit(
+                        _tls_probe, workspace, target, service, timeout,
+                        server_hostname=server_hostname or target,
                     )
                 )
                 continue
             probe = {
-                "http": _http_probe,
                 "ssh": _ssh_probe,
                 "ftp": _ftp_probe,
                 "smtp": _smtp_probe,
                 "smb": _smb_probe,
-                "tls": _tls_probe,
             }[kind]
             futures.append(executor.submit(probe, workspace, target, service, timeout))
         for future in as_completed(futures):
@@ -534,7 +565,7 @@ def enumerate_services(
                 # The adapter contract normally converts network errors to observations.
                 # This fallback preserves workflow progress if an unexpected adapter error occurs.
                 task_index = futures.index(future)
-                kind, target, service = tasks[task_index]
+                kind, target, _server_hostname, service = tasks[task_index]
                 results.append(
                     _observation(
                         workspace, target, service, kind, "failed",
