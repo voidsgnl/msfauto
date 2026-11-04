@@ -4,6 +4,7 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+- Added a standard-library input fallback so the command console can still start if `prompt-toolkit` is missing; enhanced completion and persistent history remain available when the dependency is installed.
 ### Exact-match module verification registry
 - Added a registry for module-specific target-side verifiers, selected only by exact persisted Metasploit module name.
 - Verifiers receive a bounded timeout budget and must return structured conclusions with independently stored target evidence references.
