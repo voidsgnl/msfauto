@@ -51,8 +51,8 @@ else:
     WordCompleter = _WordCompleter
     FileHistory = _FileHistory
 
-from ..assessment.investigation import build_investigation_steps
 from ..assessment.approval import record_decision
+from ..assessment.investigation import build_investigation_steps
 from ..assessment.planner import build_plan
 from ..cli import display_plan, run_safe_checks
 from ..core import AssessmentApplication
