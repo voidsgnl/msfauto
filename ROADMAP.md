@@ -1,3 +1,10 @@
+### Latest implementation milestone: service-observation console inspection
+
+- Added discovery-mode `observations` commands to inspect persisted protocol evidence without starting probes or changing inventory.
+- `observations` / `observations list` displays all observations in the active workspace; `observations host <ip>` filters by target; `observations show <id-prefix>` displays the complete stored attributes and collection metadata.
+- Observation lookup is workspace-scoped, supports unambiguous ID prefixes, and reports missing or ambiguous identifiers without guessing.
+- Next: use these records to improve service-to-vulnerability and exploit-catalog correlation while keeping protocol observations as supporting evidence only.
+
 ### Latest implementation milestone: phase-specific FTP and SMTP diagnostics
 
 - FTP and SMTP adapters now separate TCP connection establishment from the protocol greeting read, so failures identify whether the socket connection or server greeting timed out.
