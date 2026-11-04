@@ -579,10 +579,10 @@ def _ssh_probe(
         )
 
 
-def _run_timed_probe(probe, *args, timeout: float) -> tuple[ServiceObservation, ...]:
+def _run_timed_probe(probe, *args, timeout: float, **kwargs) -> tuple[ServiceObservation, ...]:
     """Attach bounded timing and failure classification to every probe result."""
     started = time.perf_counter()
-    observations = probe(*args)
+    observations = probe(*args, **kwargs)
     elapsed_ms = round((time.perf_counter() - started) * 1000, 3)
     enriched = []
     for observation in observations:
@@ -630,7 +630,7 @@ def enumerate_services(
         if not isinstance(value, (int, float)) or not 0 < value < float("inf"):
             raise ValueError(f"Timeout for {name} must be a finite number greater than zero.")
     def timeout_for(kind: str, service: Service) -> float:
-        key = kind
+        key = "http" if kind == "http_candidate" else kind
         if kind == "http":
             key = "https" if service.name.lower() == "https" or service.tunnel.lower() == "ssl" else "http"
         return float(configured_timeouts.get(key, timeout))
