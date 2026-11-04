@@ -287,6 +287,10 @@ class EnumerationTests(unittest.TestCase):
             fixture_dir / "tls-cert.pem",
             fixture_dir / "tls-key.pem",
         )
+        observed_sni = []
+        context.set_servername_callback(
+            lambda _socket, name, _context: observed_sni.append(name)
+        )
         listener = socket.socket()
         listener.bind(("127.0.0.1", 0))
         listener.listen(1)
@@ -302,11 +306,15 @@ class EnumerationTests(unittest.TestCase):
         thread.start()
         try:
             service = Service(port, "tcp", "open", name="ldaps", tunnel="ssl")
-            observations = _tls_probe("lab", "127.0.0.1", service, 1.0)
+            observations = _tls_probe(
+                "lab", "127.0.0.1", service, 1.0,
+                server_hostname="mail.example.test",
+            )
         finally:
             thread.join(timeout=1)
             listener.close()
 
+        self.assertEqual(observed_sni, ["mail.example.test"])
         self.assertEqual(observations[0].status, "completed")
         attributes = observations[0].attributes
         self.assertTrue(attributes["certificate_present"])
