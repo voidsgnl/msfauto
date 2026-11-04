@@ -16,6 +16,7 @@ from ..assessment.approval import record_decision
 from ..assessment.planner import build_plan
 from ..cli import display_plan, run_discovery, run_safe_checks
 from ..discovery import DiscoveryError, parse_nmap_xml
+from ..exploitation import authorize_opportunity, review_opportunity
 from ..reporting import ReportError, write_report
 from ..scope import ScopeError, build_policy
 from ..storage import WorkspaceStore
@@ -262,13 +263,38 @@ class CommandShell:
                 ])
             elif command in {"exploits list", "exploits review"}:
                 items = self.store.get_exploit_opportunities(self.workspace.name)
+                if command == "exploits review" and args:
+                    opportunity = next((item for item in items if item.opportunity_id.startswith(args[0])), None)
+                    if opportunity is None:
+                        self.console.print("[red]Exploit opportunity not found.[/red]")
+                    elif len(args) < 4:
+                        self.console.print("[yellow]Usage: exploits review <id> <accepted|rejected|deferred> <reviewer> <rationale>[/yellow]")
+                    else:
+                        review = review_opportunity(opportunity, args[2], args[1], " ".join(args[3:]))
+                        self.store.save_exploit_review(review)
+                        self.console.print(f"[green][+][/green] Review recorded: {review.review_id[:12]}")
                 self._rows("EXPLOIT OPPORTUNITIES", ("ID", "TARGET", "PORT", "MODULE", "RANK", "STATUS"), [
                     (item.opportunity_id[:12], item.target, f"{item.port}/{item.protocol}", item.module_name, item.rank, item.status) for item in items
                 ])
-                if command == "exploits review":
-                    self.console.print("[dim]Review is informational here; authorization remains a separate explicit workflow.[/dim]")
             elif command == "exploits authorize":
-                self.console.print("[yellow]Use the persisted exploit review and authorization APIs for a specific opportunity. This console command is reserved until the guided authorization form is connected.[/yellow]")
+                if len(args) < 3:
+                    self.console.print("[yellow]Usage: exploits authorize <id> <approver> <rationale>[/yellow]")
+                else:
+                    opportunity = next((item for item in self.store.get_exploit_opportunities(self.workspace.name) if item.opportunity_id.startswith(args[0])), None)
+                    if opportunity is None:
+                        self.console.print("[red]Exploit opportunity not found.[/red]")
+                    else:
+                        reviews = [item for item in self.store.get_exploit_reviews(self.workspace.name) if item.opportunity_id == opportunity.opportunity_id]
+                        latest = reviews[-1] if reviews else None
+                        if latest is None or latest.decision != "accepted":
+                            self.console.print("[red]Authorization denied: the latest review must be accepted.[/red]")
+                        else:
+                            authorization = authorize_opportunity(
+                                opportunity, self.workspace.policy, args[1],
+                                " ".join(args[2:]), review=latest,
+                            )
+                            self.store.save_exploit_authorization(authorization)
+                            self.console.print(f"[green][+][/green] Authorization recorded: {authorization.authorization_id[:12]} (expires {authorization.expires_at}).")
             elif command in {"findings list", "findings show"}:
                 items = self.store.get_findings(self.workspace.name)
                 if args and command.endswith("show"):
