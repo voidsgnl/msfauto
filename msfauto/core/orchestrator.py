@@ -19,8 +19,8 @@ from ..storage.models import (
     Workspace,
     utc_now,
 )
-from ..vulnerability.workflow import assess_with_osv, load_package_mappings
 from ..integrations.metasploit import MetasploitClient
+from ..vulnerability.workflow import assess_with_osv, load_package_mappings
 
 
 class WorkflowError(RuntimeError):
