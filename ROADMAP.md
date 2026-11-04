@@ -1,3 +1,20 @@
+# Target-to-exploitation workflow — product objective
+
+The operator's job is to provide an authorized IP address, network, or URL and receive evidence-backed vulnerability findings with the best-matched exploitation path prepared for review. MSFAuto owns the decision-making between stages; operators should not need to manually chain scanners, protocol probes, fingerprinting, vulnerability checks, and module searches.
+
+- [x] Add authenticated Metasploit RPC primitives for temporary console use, bounded command output, `db_nmap` invocation, and host/service inventory reads.
+- [ ] Make Metasploit's `db_nmap` and database the default discovery and inventory path; preserve Nmap XML import as an optional interoperability path, not the primary scan/import architecture.
+- [ ] Isolate each MSFAuto workspace in a corresponding Metasploit database workspace and verify DB connectivity before assessment.
+- [ ] Normalize Metasploit host/service records into the existing MSFAuto evidence and assessment models, retaining source IDs and scan provenance.
+- [ ] Add first-class URL/origin targets with DNS resolution/pinning, Host/SNI preservation, redirect boundaries, and explicit origin scope.
+- [ ] Make `run` select investigation steps from the observed attack surface rather than requiring operator-selected protocol commands.
+- [ ] Add bounded web mapping, technology fingerprinting, passive checks, and profile-governed active checks with request/time/response budgets.
+- [ ] Correlate findings with Metasploit auxiliary/check/exploit module metadata and show prerequisites, options, compatibility, and confidence.
+- [ ] Add `exploit <finding-id>` to prepare a finding-specific execution plan; retain review, exact action authorization, scope revalidation, and explicit dispatch as separate operator decisions.
+- [ ] Persist a single assessment-run identity across discovery, observations, checks, candidates, findings, module matches, and prepared executions.
+
+A prepared exploit means a reviewed module selection and validated option set, not automatic dispatch. A scan result, module match, or candidate finding is not proof of exploitability. No exploit module is to be dispatched automatically by `run`.
+
 # Unified assessment workflow — current product direction
 
 MSFAuto is moving to a ZAP-style operator workflow: one `run` performs the saved-scope assessment pipeline and returns consolidated, evidence-backed results. Operators should not have to manually chain discovery, service enumeration, fingerprinting, vulnerability correlation, and exploit-intelligence commands.
