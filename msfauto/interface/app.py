@@ -23,10 +23,10 @@ def _build_context_markup(
 ) -> str:
     """Build Rich markup for the persistent workspace context panel."""
     return (
-        f"[bold #9ce4d6]WORKSPACE[/bold]  {workspace_name}    "
-        f"[bold #9ce4d6]PROFILE[/bold]  {profile}\n"
-        f"[bold #9ce4d6]SCOPE[/bold]  {', '.join(targets) or 'not configured'}\n"
-        f"[bold #9ce4d6]PORTS[/bold]  {ports}"
+        f"[bold #9ce4d6]WORKSPACE[/bold #9ce4d6]  {workspace_name}    "
+        f"[bold #9ce4d6]PROFILE[/bold #9ce4d6]  {profile}\n"
+        f"[bold #9ce4d6]SCOPE[/bold #9ce4d6]  {', '.join(targets) or 'not configured'}\n"
+        f"[bold #9ce4d6]PORTS[/bold #9ce4d6]  {ports}"
     )
 
 
