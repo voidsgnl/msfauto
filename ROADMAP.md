@@ -1,3 +1,12 @@
+### Latest milestone: command-driven approval and exploit authorization
+
+- Connected `checks approve <recommendation#> <approver> [rationale]` to the existing stable recommendation identity and persisted approval records.
+- Changed interactive `checks run` to consume only matching persisted approvals; unapproved, rejected, or mismatched recommendations are skipped. The one-shot CLI retains its interactive approval flow.
+- Connected `exploits review <id> <accepted|rejected|deferred> <reviewer> <rationale>` to the exact-opportunity review domain and SQLite history.
+- Connected `exploits authorize <id> <approver> <rationale>` to the accepted latest review, dangerous-actions profile, current target/port scope, and expiring authorization record.
+- These commands create review/authorization records only. Exploit dispatch remains a separate prepared-execution workflow and is not triggered by authorization.
+- CI verified after the console redesign: Python 3.10, 3.12, and 3.14 passed.
+
 # MSFAuto Roadmap
 
 ## Product definition
