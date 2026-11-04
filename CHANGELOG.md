@@ -4,11 +4,12 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
-### Graphical interface visual system
-- Added a visual/interaction specification for task lifecycle states, including queued, prepared, dispatching, running, cancelling, completed, failed, timed out, cancelled, paused, and dispatch-uncertain.
-- Defined reusable status, progress, and activity-feed components; progress must be measurable or shown as indeterminate rather than fabricated.
-- Specified elapsed-time context, accessible labels/icons, reduced-motion behavior, and explicit handling for uncertain exploit dispatches.
-- Added a standalone browser-openable HTML preview of the task-state treatments. This is the graphical frontend design foundation; no graphical frontend has been implemented yet, and the Textual prototype was intentionally left unchanged.
+### Terminal interface redesign
+- Replaced the button-oriented Textual dashboard with a full-screen, keyboard-driven, numbered-menu terminal experience.
+- Added dedicated terminal views for target/service inventory, vulnerability candidates, exploit intelligence, exploit execution lifecycle, findings/evidence, workspace scope, and assessment history.
+- Added direct number-key navigation, Home/Escape return, refresh, and quit bindings.
+- Added an animated running indicator, elapsed-time display, and bounded live activity log for assessment workflow events. No fabricated percentage progress is shown.
+- Removed the browser-based HTML preview and corrected the product direction to terminal-only; no web interface or desktop GUI is planned.
 
 ### HTTP application fingerprinting
 - Extended HTTP enumeration with a bounded GET of the root document after the initial HEAD response; redirects are not followed.
