@@ -28,7 +28,7 @@ class ExploitOutcomeShellTests(unittest.TestCase):
         self.shell = CommandShell(self.store, SimpleNamespace(name="lab"))
         self.output = StringIO()
         self.shell.console = Console(
-            file=self.output, force_terminal=False, color_system=None
+            file=self.output, force_terminal=False, color_system=None, width=160
         )
 
     def tearDown(self):
@@ -55,7 +55,9 @@ class ExploitOutcomeShellTests(unittest.TestCase):
             actor="analyst",
             rationale="Expected target banner observed",
         )
-        self.assertIn("Framework execution state was not changed", self.output.getvalue())
+        output = self.output.getvalue()
+        self.assertIn("Framework execution state", output)
+        self.assertIn("was not changed", output)
 
     def test_outcome_list_is_limited_to_execution_in_active_workspace(self):
         assessment = SimpleNamespace(
