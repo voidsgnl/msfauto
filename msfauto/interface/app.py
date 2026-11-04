@@ -155,17 +155,17 @@ class Dashboard(App[None]):
         with Vertical():
             yield Static(
                 "[bold #9ce4d6]███╗   ███╗███████╗███████╗[/bold #9ce4d6]  "
-                "[bold #d7e1e7]MSFAuto[/bold #d7e1e7]  [dim]v0.1.0[/dim]\n"
+                "[bold #d7e1e7]MSFAuto[/bold]  [dim]v0.1.0[/dim]\n"
                 "[bold #9ce4d6]████╗ ████║██╔════╝██╔════╝[/bold #9ce4d6]  "
                 "[dim]SECURITY ASSESSMENT FRAMEWORK[/dim]\n"
                 "[dim]Reconnaissance  /  Vulnerability intelligence  /  Exploitation  /  Validation[/dim]",
                 id="brand",
             )
             yield Static(
-                f"[bold #9ce4d6]WORKSPACE[/bold #d7e1e7]  {self.workspace.name}    "
-                f"[bold #9ce4d6]PROFILE[/bold #d7e1e7]  {self.workspace.policy.profile}\n"
-                f"[bold #9ce4d6]SCOPE[/bold #d7e1e7]  {', '.join(targets) or 'not configured'}\n"
-                f"[bold #9ce4d6]PORTS[/bold #d7e1e7]  {ports}",
+                f"[bold #9ce4d6]WORKSPACE[/bold]  {self.workspace.name}    "
+                f"[bold #9ce4d6]PROFILE[/bold]  {self.workspace.policy.profile}\n"
+                f"[bold #9ce4d6]SCOPE[/bold]  {', '.join(targets) or 'not configured'}\n"
+                f"[bold #9ce4d6]PORTS[/bold]  {ports}",
                 id="context",
             )
             yield Static("MAIN MENU  /  SELECT A WORKFLOW", id="screen-title")
@@ -378,10 +378,10 @@ class Dashboard(App[None]):
         ports = ", ".join(map(str, self.workspace.policy.allowed_ports)) or "all discovered ports"
         self._show_view(
             "WORKSPACE  /  AUTHORIZATION SCOPE",
-            f"[bold #9ce4d6]Workspace[/bold #d7e1e7]  {self.workspace.name}\n"
-            f"[bold #9ce4d6]Profile[/bold #d7e1e7]  {self.workspace.policy.profile}\n"
-            f"[bold #9ce4d6]Authorized targets[/bold #d7e1e7]  {', '.join(targets) or 'none'}\n"
-            f"[bold #9ce4d6]Allowed ports[/bold #d7e1e7]  {ports}\n\n"
+            f"[bold #9ce4d6]Workspace[/bold]  {self.workspace.name}\n"
+            f"[bold #9ce4d6]Profile[/bold]  {self.workspace.policy.profile}\n"
+            f"[bold #9ce4d6]Authorized targets[/bold]  {', '.join(targets) or 'none'}\n"
+            f"[bold #9ce4d6]Allowed ports[/bold]  {ports}\n\n"
             "[bold #e8c879]NOTE[/bold #e8c879]  Discovery does not authorize intrusive actions. "
             "Exploit actions require their own exact, current authorization.",
             "scope",
