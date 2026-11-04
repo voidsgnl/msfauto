@@ -6,7 +6,7 @@ MSFAuto is an automated security assessment platform. Its core job is to discove
 
 It is not merely a wrapper around Metasploit. Metasploit is one integration and execution engine among multiple assessment capabilities.
 
-The intended primary interface is a **graphical application**, not a terminal UI/TUI. The user-supplied reference informs visual language and interaction feel; it is not a literal terminal application specification and must not be copied for its terminology, commands, payloads, or workflow. The current Textual screen is a prototype, not the target interface. Keep domain and application services independent of Textual so a graphical frontend can replace it without rewriting assessment logic.
+The intended primary interface is a **terminal-only, full-screen Textual application**. Its interaction model is keyboard-driven and menu-oriented, with numbered workflow selection, dedicated terminal views, and live execution feedback. There is no web interface or native desktop GUI in the product plan. Keep domain and application services independent of Textual widgets so the terminal presentation can evolve without rewriting assessment logic.
 
 ## Architectural principles
 
