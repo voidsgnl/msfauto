@@ -17,18 +17,19 @@ class DiscoveryError(ValueError):
     """Raised when discovery data is malformed or outside the active scope."""
 
 
+# The fast profile covers the most common web entry points plus a small
+# set of high-value supporting services. Standard adds common alternate
+# web, mail, remote-access, directory, and database ports. Full is -p-.
 QUICK_TCP_PORTS = (
-    21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445,
-    465, 587, 993, 995, 1433, 3306, 3389, 5432, 5900, 8080, 8443,
+    22, 25, 53, 80, 443, 445, 465, 587, 3000, 3306, 5000, 5432,
+    8000, 8080, 8443,
 )
 STANDARD_TCP_PORTS = tuple(sorted({
     *QUICK_TCP_PORTS,
-    20, 69, 88, 123, 161, 389, 500, 514, 636, 873, 902, 989, 990,
-    992, 1000, 1025, 1080, 1099, 1434, 1521, 1723, 1883, 2049,
-    2181, 2375, 2376, 3000, 3128, 3268, 3269, 3307, 4000, 4444,
-    5000, 5001, 5060, 5061, 5432, 5672, 5901, 5985, 5986, 6379,
-    7001, 7002, 8000, 8008, 8009, 8081, 8082, 8088, 8888, 9000,
-    9090, 9200, 9300, 9418, 9443, 10000, 11211, 27017,
+    20, 21, 23, 110, 111, 135, 139, 143, 389, 636, 993, 995,
+    1433, 1521, 2049, 2375, 2376, 3389, 4000, 5001, 5900,
+    5985, 5986, 6379, 7001, 7002, 8008, 8081, 8082, 8888,
+    9000, 9090, 9200, 9443, 10000, 11211, 27017,
 }))
 SCAN_PROFILES = ("quick", "standard", "full")
 
