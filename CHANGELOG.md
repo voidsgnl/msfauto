@@ -2,6 +2,7 @@
 
 ### Added
 - Added a bounded same-origin web application mapper to the interactive assessment. It follows only same-origin HTML links with GET requests, inventories query parameter names and form actions/methods/fields, skips common state-changing routes, caps pages/depth/requests/response bytes/timeouts, and never submits forms or follows redirects. Page inventory is persisted as run-linked web-surface observations.
+- Corrected HTTP application observation classification to preserve the actual HTTP/HTTPS scheme and the `http_application` kind, ensuring passive web checks, technology correlation, and the mapper receive the intended evidence.
 - Added authenticated Metasploit RPC support for creating/destroying temporary consoles, running bounded single-line console commands, invoking scoped `db_nmap`, selecting an isolated Metasploit database workspace, and reading host/service inventory.
 - Wired the interactive `run` assessment path to execute `db_nmap` through Metasploit RPC and normalize in-scope host/open-service records from the selected Metasploit database workspace. The legacy standalone Nmap path remains for non-interactive/one-shot use and XML import remains available.
 - Validated `db_nmap` inputs as IP/CIDR targets and bounded port specifications; console output is capped and timed, and temporary consoles are destroyed after use.
