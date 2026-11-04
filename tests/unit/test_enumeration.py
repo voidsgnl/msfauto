@@ -180,7 +180,7 @@ class EnumerationTests(unittest.TestCase):
         self.assertEqual(observations[0].attributes["method"], "HEAD")
         self.assertEqual(observations[0].attributes["status_code"], 200)
         self.assertIn("server", observations[0].attributes["headers"])
-        app = next(item for item in observations if item.kind == "http_application_response")
+        app = next(item for item in observations if item.kind == "http_application")
         self.assertEqual(app.attributes["title"], "OWASP Juice Shop")
         names = [item["name"] for item in app.attributes["technologies"]]
         self.assertIn("OWASP Juice Shop", names)
