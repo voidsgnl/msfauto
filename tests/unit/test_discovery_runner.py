@@ -1,7 +1,7 @@
 import tempfile
-from threading import Event
 import unittest
 from pathlib import Path
+from threading import Event
 from unittest.mock import patch
 
 from msfauto.discovery import DiscoveryError, run_nmap
