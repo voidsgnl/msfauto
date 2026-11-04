@@ -1,5 +1,12 @@
 ## Unreleased
 
+### Improved
+- Split FTP and SMTP TCP connection setup from protocol greeting reads and record explicit failure stages (`tcp_connect`, `ftp_greeting`, `ftp_feat`, `smtp_greeting`, `smtp_ehlo`) for actionable diagnostics. Existing timeout budgets and no-retry behavior are unchanged.
+
+### Tests
+- Added delayed-greeting fixtures verifying FTP and SMTP report greeting-stage timeouts.
+
+
 ### Fixed
 - Import only Nmap ports explicitly reported as open into the current host/service inventory; closed and filtered ports are excluded from service enumeration while remaining in the raw scan artifact and historical snapshot.
 - Use the discovered hostname for TLS SNI in direct TLS and HTTPS probes while pinning the TCP connection to the discovered IP address.
