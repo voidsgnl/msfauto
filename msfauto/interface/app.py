@@ -9,6 +9,11 @@ from textual.app import App, ComposeResult
 from textual.containers import Vertical
 from textual.widgets import DataTable, Footer, Header, Static
 
+from ..core import AssessmentApplication, WorkflowError
+from ..discovery import DiscoveryError
+from ..storage import WorkspaceStore
+from ..storage.models import Host, Workspace
+
 
 def _build_context_markup(
     workspace_name: str,
@@ -19,15 +24,11 @@ def _build_context_markup(
     """Build Rich markup for the persistent workspace context panel."""
     return (
         f"[bold #9ce4d6]WORKSPACE[/bold]  {workspace_name}    "
-        f"[bold #9ce4d6]PROFILE[/bold]  {profile}\\n"
-        f"[bold #9ce4d6]SCOPE[/bold]  {', '.join(targets) or 'not configured'}\\n"
+        f"[bold #9ce4d6]PROFILE[/bold]  {profile}\n"
+        f"[bold #9ce4d6]SCOPE[/bold]  {', '.join(targets) or 'not configured'}\n"
         f"[bold #9ce4d6]PORTS[/bold]  {ports}"
     )
 
-from ..core import AssessmentApplication, WorkflowError
-from ..discovery import DiscoveryError
-from ..storage import WorkspaceStore
-from ..storage.models import Host, Workspace
 
 
 class Dashboard(App[None]):
