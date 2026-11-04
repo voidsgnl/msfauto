@@ -4,6 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### HTTP detection on unrecognized TCP services
+- Added a bounded HTTP HEAD confirmation probe for open TCP services that Nmap leaves unclassified and that are not already handled by a known protocol adapter.
+- Classifies an unknown service as HTTP only when a valid HTTP response is parsed; non-HTTP responses do not create misleading failed HTTP observations.
+- Records the detection method and preserves the original Nmap fingerprint metadata in the structured observation.
+- Added tests for successful HTTP identification on an unknown port and rejection of non-HTTP responses.
+
+
 ### Metasploit MessagePack response compatibility
 - Normalize MessagePack binary-encoded UTF-8 keys and values into Python strings before interpreting RPC responses, including authentication tokens and nested metadata.
 - Preserve non-UTF-8 binary values rather than corrupting them.
