@@ -148,20 +148,34 @@ class ObservationConsoleTests(unittest.TestCase):
     def test_observations_list_is_available_in_discovery_mode(self):
         output = io.StringIO()
         self.shell.console = Console(file=output)
+        self.shell.session.prompt = lambda *_args, **_kwargs: ""
         self.shell.execute("observations list")
         rendered = output.getvalue()
         self.assertIn("observa", rendered)
         self.assertIn("127.0.0.1", rendered)
-        self.assertIn("smtp_capabilitie", rendered)
+        self.assertIn("smtp_capa", rendered)
+        self.assertIn("Select observation number", rendered)
 
     def test_observations_host_filters_to_exact_target(self):
         output = io.StringIO()
         self.shell.console = Console(file=output)
+        self.shell.session.prompt = lambda *_args, **_kwargs: ""
         self.shell.execute("observations host 127.0.0.1")
         rendered = output.getvalue()
         self.assertIn("observa", rendered)
         self.assertNotIn("22/tcp", rendered)
         self.assertIn("465/tcp", rendered)
+
+    def test_observations_list_selects_number_and_displays_details(self):
+        output = io.StringIO()
+        self.shell.console = Console(file=output)
+        self.shell.session.prompt = lambda *_args, **_kwargs: "1"
+        self.shell.execute("observations list")
+        rendered = output.getvalue()
+        self.assertIn("│ 1 ", rendered)
+        self.assertIn("mail.example", rendered)
+        self.assertIn("STARTTLS", rendered)
+        self.assertIn("OBSERVATION METADATA", rendered)
 
     def test_observations_show_resolves_prefix_and_displays_attributes(self):
         output = io.StringIO()
