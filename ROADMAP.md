@@ -5,7 +5,10 @@
 - SMTP observations already capture greeting, EHLO capabilities, STARTTLS, and advertised AUTH mechanisms; FTP observations capture greeting and FEAT capabilities. These remain non-authenticating, non-mail-sending probes.
 - TLS and HTTP failures now include bounded stage labels to distinguish connect, handshake, request/response, and application-body failures.
 - Added `cryptography` as the X.509 parsing dependency and regression tests for certificate fields, redirects, and HTTP response-stage timeouts.
-- Next: surface concise protocol-specific summaries in the observation detail view and correlate normalized service facts with advisory/exploit catalog evidence. Certificate metadata alone must not be treated as a trust or vulnerability verdict.
+- [x] Surface concise protocol-specific summaries in the numbered observation detail view, retaining the complete raw attributes panel.
+- [x] Show TLS/X.509 identity and validity metadata, HTTP response/redirect headers, HTTP application title/technology/assets, SMTP greeting/EHLO/STARTTLS/AUTH capabilities, FTP greeting/FEAT capabilities, SSH banner, SMB2 negotiation details, and failure stage/type/detail.
+- [x] Make the exploit-opportunity rationale expose the linked vulnerability-candidate IDs and explain that those candidates retain service-observation evidence references.
+- [ ] Next: add richer advisory/exploit source synchronization and explicit evidence-to-module applicability mappings; do not infer vulnerability or exploitability from protocol metadata alone. Certificate metadata alone is not trust validation.
 
 ### Latest implementation milestone: numbered service-observation inspection
 
