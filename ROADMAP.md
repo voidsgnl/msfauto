@@ -1,3 +1,12 @@
+### Latest implementation milestone: operation modes and host-level discovery diffs
+
+- Split the persistent console into Metasploit-style operation modes: `discovery`, `exploit`, `analysis`, and `workspace`.
+- Root prompt now exposes only mode navigation, mode listing, help, and exit. `use <mode>` enters a mode, `back` returns to root, and the prompt reflects the active mode.
+- Help and command completion are mode-aware. Short commands in a mode resolve to the existing full command handlers; the assessment, persistence, and exploit lifecycle services were not duplicated.
+- Discovery snapshot comparison now reports host additions, host removals, and host identity/state changes (address, hostname, up/down state), alongside existing service-level additions, removals, and fingerprint changes.
+- Added regression tests for mode command routing and host-level change detection. All comparisons remain bound to completed snapshots in the active workspace.
+- CI verification pending for this milestone.
+
 ### Nmap scan history and result provenance
 
 - Every interactive assessment scan now writes XML to a unique workspace-scoped artifact path instead of overwriting the previous scan.
