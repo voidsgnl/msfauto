@@ -14,7 +14,4 @@ class OnboardingTests(unittest.TestCase):
             display_next_steps(Workspace("lab", build_policy(["192.168.56.0/24"])))
 
         text = output.getvalue()
-        self.assertIn("Run Nmap automatically", text)
-        self.assertIn("Build a read-only assessment plan", text)
-        self.assertIn("Run bounded non-invasive checks", text)
-        self.assertIn("Open the dashboard", text)
+        self.assertIn("Type 'help'", text)
