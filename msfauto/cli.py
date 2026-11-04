@@ -290,8 +290,26 @@ def interactive(store: WorkspaceStore, workspace_name: str, profile: str) -> int
             return 2
 
     from .interface import CommandShell
+    from .integrations.metasploit.process import MetasploitProcessManager
 
-    CommandShell(store, workspace).run()
+    rpc_url = os.environ.get(
+        "MSFAUTO_METASPLOIT_URL", "http://127.0.0.1:55553/api/1.0"
+    )
+    process_manager = MetasploitProcessManager(rpc_url)
+    username = os.environ.get("MSFAUTO_METASPLOIT_USERNAME", "")
+    password = os.environ.get("MSFAUTO_METASPLOIT_PASSWORD", "")
+    try:
+        try:
+            username, password = process_manager.start(username, password)
+            os.environ["MSFAUTO_METASPLOIT_USERNAME"] = username
+            os.environ["MSFAUTO_METASPLOIT_PASSWORD"] = password
+            state = "Started local msfrpcd" if process_manager.started else "Using existing Metasploit RPC service"
+            print(f"[+] {state} at {rpc_url}")
+        except MetasploitError as exc:
+            print(f"[yellow][!][/yellow] Metasploit RPC unavailable: {exc}")
+        CommandShell(store, workspace).run()
+    finally:
+        process_manager.stop()
     return 0
 
 
