@@ -8,6 +8,7 @@
 - Add `discovery history` and `discovery compare <older-scan-id> <newer-scan-id>` console commands to inspect runs and identify added, removed, and changed service fingerprints.
 - Keep latest workspace observations compatible with existing assessment workflows; snapshots preserve per-scan history independently.
 - Add regression tests for scan history, comparison results, and workspace isolation.
+- GitHub Actions run #598 passed on Python 3.10, 3.12, and 3.14: 187 tests passed plus 5 subtests; Ruff passed on all three versions.
 
 
 ### Added
