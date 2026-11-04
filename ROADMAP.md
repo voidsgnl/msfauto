@@ -36,7 +36,7 @@ Supporting platform capabilities:
 - Session and job lifecycle management.
 - Evidence provenance and integrity.
 - Findings review and reporting.
-- Graphical interaction, configuration, and visualization.
+- Terminal navigation, configuration prompts, technical tables, and live execution feedback.
 
 ## Current implementation baseline
 
