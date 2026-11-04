@@ -372,7 +372,7 @@ class CommandShell:
                 runs = self.store.get_discovery_runs(self.workspace.name)
                 self._rows(
                     "DISCOVERY SCAN HISTORY",
-                    ("SCAN ID", "SCANNER", "STATUS", "STARTED", "FINISHED", "HOSTS XML"),
+                    ("SCAN ID", "SCANNER", "STATUS", "STARTED", "FINISHED", "XML ARTIFACT"),
                     [
                         (
                             item.scan_id[:12], item.scanner, item.status,
