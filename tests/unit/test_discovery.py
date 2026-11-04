@@ -90,6 +90,48 @@ class DiscoveryTests(unittest.TestCase):
         self.assertIn("9.6p1", changes["changed"][0][1])
         self.assertIn("9.7p1", changes["changed"][0][1])
 
+    def test_discovery_comparison_detects_host_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = WorkspaceStore(Path(directory) / "state.sqlite3")
+            policy = build_policy(["192.168.56.0/24"])
+            older_xml = NMAP_XML.replace(
+                "</nmaprun>",
+                NMAP_XML.split("<host>", 1)[1].split("</host>", 1)[0].join(["<host>", "</host>"])
+                .replace("192.168.56.10", "192.168.56.11")
+                .replace("lab-host", "retired-host") + "</nmaprun>",
+            )
+            newer_xml = NMAP_XML.replace("lab-host", "renamed-host")
+            older_path = Path(directory) / "older-hosts.xml"
+            newer_path = Path(directory) / "newer-hosts.xml"
+            older_path.write_text(older_xml, encoding="utf-8")
+            newer_path.write_text(newer_xml, encoding="utf-8")
+            older_hosts = parse_nmap_xml(older_path, policy)
+            newer_hosts = parse_nmap_xml(newer_path, policy)
+            store.save_discovery_run(
+                DiscoveryRun(
+                    "lab", "nmap", (), str(older_path), "completed",
+                    "2026-11-01T10:00:00+00:00", "2026-11-01T10:00:10+00:00",
+                    scan_id="hosts-older",
+                ),
+                older_hosts,
+            )
+            store.save_discovery_run(
+                DiscoveryRun(
+                    "lab", "nmap", (), str(newer_path), "completed",
+                    "2026-11-02T10:00:00+00:00", "2026-11-02T10:00:10+00:00",
+                    scan_id="hosts-newer",
+                ),
+                newer_hosts,
+            )
+
+            changes = store.compare_discovery_runs("lab", "hosts-older", "hosts-newer")
+
+        self.assertEqual(len(changes["removed_hosts"]), 1)
+        self.assertEqual(changes["removed_hosts"][0][0], "192.168.56.11")
+        self.assertEqual(len(changes["changed_hosts"]), 1)
+        self.assertIn("lab-host", changes["changed_hosts"][0][1])
+        self.assertIn("renamed-host", changes["changed_hosts"][0][1])
+
     def test_discovery_snapshot_comparison_rejects_cross_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = WorkspaceStore(Path(directory) / "state.sqlite3")
