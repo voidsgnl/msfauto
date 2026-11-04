@@ -1,3 +1,12 @@
+### Latest implementation milestone: enriched protocol observations
+
+- TLS handshakes now retain decoded X.509 subject, issuer, common name, SAN entries, validity bounds/current validity, serial number, and signature algorithm/hash alongside existing protocol/cipher/fingerprint metadata. Parsing certificate metadata does not imply trust-chain or hostname validation.
+- HTTP observations expose status, bounded headers, redirect destination (without following redirects), and the existing bounded HTML/application technology fingerprint.
+- SMTP observations already capture greeting, EHLO capabilities, STARTTLS, and advertised AUTH mechanisms; FTP observations capture greeting and FEAT capabilities. These remain non-authenticating, non-mail-sending probes.
+- TLS and HTTP failures now include bounded stage labels to distinguish connect, handshake, request/response, and application-body failures.
+- Added `cryptography` as the X.509 parsing dependency and regression tests for certificate fields, redirects, and HTTP response-stage timeouts.
+- Next: surface concise protocol-specific summaries in the observation detail view and correlate normalized service facts with advisory/exploit catalog evidence. Certificate metadata alone must not be treated as a trust or vulnerability verdict.
+
 ### Latest implementation milestone: numbered service-observation inspection
 
 - Discovery-mode `observations` and `observations list` display a numbered list of stored observations and prompt for a row number; selecting a row opens its full attributes and metadata.
