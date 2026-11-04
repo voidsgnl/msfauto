@@ -107,7 +107,7 @@ class EnumerationTests(unittest.TestCase):
         attrs = result[0].attributes
         self.assertEqual(attrs["timeout_seconds"], 0.25)
         self.assertGreaterEqual(attrs["elapsed_ms"], 0)
-        self.assertEqual(attrs["failure_category"], "timeout")
+        self.assertEqual(attrs["failure_category"], "protocol_timeout")
         self.assertIn("configured timeout", attrs["failure_explanation"])
 
     def test_protocol_specific_timeouts_are_validated_and_applied(self):
@@ -134,6 +134,28 @@ class EnumerationTests(unittest.TestCase):
                 "lab", (host,), build_policy(["127.0.0.1"]),
                 protocol_timeouts={"unknown": 1},
             )
+
+    def test_timed_probe_classifies_tcp_connect_timeout_separately(self):
+        from msfauto.enumeration.runner import _run_timed_probe
+
+        observation = ServiceObservation(
+            observation_id="connect-timeout",
+            workspace="lab",
+            target="127.0.0.1",
+            port=21,
+            transport="tcp",
+            protocol="ftp",
+            kind="ftp_response",
+            status="failed",
+            attributes={
+                "error_type": "TimeoutError",
+                "error": "timed out",
+                "error_stage": "tcp_connect",
+            },
+        )
+        result = _run_timed_probe(lambda: (observation,), timeout=0.5)
+        self.assertEqual(result[0].attributes["failure_category"], "connection_timeout")
+        self.assertIn("TCP connection establishment", result[0].attributes["failure_explanation"])
 
     def test_error_attributes_preserve_bounded_diagnostic_detail(self):
         attributes = _error_attributes(ConnectionRefusedError("connection refused"))
