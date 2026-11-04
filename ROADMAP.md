@@ -52,6 +52,12 @@ Supporting platform capabilities:
 - Added lifecycle regression tests for running → cancelling → cancelled and for recovery of a process interrupted while cancellation was pending. Interrupted cancellation remains uncertain and retains its Metasploit job ID/UUID for operator reconciliation.
 - CI for the reconciliation-test correction and the additional cancellation tests is pending; do not treat this milestone as verified until the run is green.
 
+### Latest implementation milestone: independent outcome verification regression coverage
+- Added tests proving target evidence must match both the execution workspace and exact target.
+- Added append-only history coverage for multiple independent assessments of one execution.
+- Asserted that recording target-side verdicts does not mutate the Metasploit framework execution state.
+- The cancellation/recovery test suite and this additional verification coverage are being checked through CI.
+
 ## Current implementation baseline
 
 - [x] Interactive application entry point and workspace onboarding.
