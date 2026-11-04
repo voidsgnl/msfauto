@@ -5,7 +5,7 @@
 - Help and command completion are mode-aware. Short commands in a mode resolve to the existing full command handlers; the assessment, persistence, and exploit lifecycle services were not duplicated.
 - Discovery snapshot comparison now reports host additions, host removals, and host identity/state changes (address, hostname, up/down state), alongside existing service-level additions, removals, and fingerprint changes.
 - Added regression tests for mode command routing and host-level change detection. All comparisons remain bound to completed snapshots in the active workspace.
-- CI verification pending for this milestone.
+- GitHub Actions run #610 passed on Python 3.10, 3.12, and 3.14: 190 tests passed plus 5 subtests; Ruff passed on all three versions.
 
 ### Nmap scan history and result provenance
 
