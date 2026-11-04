@@ -22,6 +22,7 @@ from ..storage.models import (
     Workspace,
     utc_now,
 )
+from ..vulnerability.web_checks import record_web_configuration_findings
 from ..vulnerability.workflow import assess_with_osv, load_package_mappings
 
 
@@ -181,6 +182,21 @@ class AssessmentApplication:
                     )
             observations = tuple(collected)
             self.store.save_service_observations(observations, discovery_run_id)
+
+            web_findings = record_web_configuration_findings(
+                self.workspace.name, observations, self.store
+            )
+            if web_findings:
+                emit(
+                    "vulnerability_assessment",
+                    f"Passive web configuration checks recorded {len(web_findings)} "
+                    "evidence-backed potential finding(s). No intrusive tests were run.",
+                )
+            else:
+                emit(
+                    "vulnerability_assessment",
+                    "Passive web configuration checks produced no new findings.",
+                )
 
             if self.metasploit_client is not None:
                 technologies: list[str] = []
