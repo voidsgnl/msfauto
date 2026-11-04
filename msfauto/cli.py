@@ -306,7 +306,7 @@ def interactive(store: WorkspaceStore, workspace_name: str, profile: str) -> int
             state = "Started local msfrpcd" if process_manager.started else "Using existing Metasploit RPC service"
             print(f"[+] {state} at {rpc_url}")
         except MetasploitError as exc:
-            print(f"[yellow][!][/yellow] Metasploit RPC unavailable: {exc}")
+            print(f"[!] Metasploit RPC unavailable: {exc}")
         CommandShell(store, workspace).run()
     finally:
         process_manager.stop()
