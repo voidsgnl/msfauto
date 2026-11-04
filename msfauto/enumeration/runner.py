@@ -26,6 +26,15 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _error_attributes(exc: Exception) -> dict[str, str]:
+    """Return bounded diagnostic detail without storing an unbounded exception."""
+    detail = " ".join(str(exc).split())[:160]
+    return {
+        "error_type": type(exc).__name__,
+        "error": detail or type(exc).__name__,
+    }
+
+
 def _observation(
     workspace: str,
     target: str,
@@ -162,7 +171,7 @@ def _smb_probe(
         return (
             _observation(
                 workspace, target, service, "smb", "failed",
-                {"error_type": type(exc).__name__},
+                _error_attributes(exc),
             ),
         )
 
