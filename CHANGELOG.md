@@ -1,6 +1,7 @@
 ## Unreleased
 
 ### Added
+- Added a bounded, read-only Metasploit auxiliary-module intelligence component for observed web technologies. It filters out exploit modules, retrieves exact module descriptions/options/check support, and never dispatches modules; interactive investigation integration remains in progress.
 - Added a deterministic, evidence-driven service investigation planner. It emits one prioritized next step per open service, records expected evidence and rationale in the assessment event stream, and explicitly avoids automatic retries or module dispatch. The interactive `investigate` view now uses the same planner.
 
 ### Improved
