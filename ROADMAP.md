@@ -322,8 +322,10 @@ OSV workflow integration is active when explicit mappings are configured, but th
    - [x] Preserve explicit review, authorization, one-shot dispatch, job reconciliation, and independent outcome records.
 
 5. **Evidence-driven decision and vulnerability engine**
-   - [ ] Define an investigation-plan contract: observed evidence, candidate next actions, prerequisites, expected evidence, timeout/request budget, risk class, and stop conditions.
-   - [ ] Select next actions from service fingerprints and unresolved evidence gaps; avoid blind module sweeps.
+   - [x] Define the initial read-only investigation-step contract with observed evidence, next action, rationale, expected evidence, and explicit no-dispatch/no-retry behavior.
+   - [ ] Extend the contract with module prerequisites, timeout/request budgets, risk class, and stop conditions.
+   - [x] Select initial next actions from service fingerprints and unresolved evidence gaps; avoid blind module sweeps.
+   - [ ] Expand selection using live Metasploit auxiliary/check module metadata and web technology packs.
    - [ ] Add bounded, evidence-producing web vulnerability checks before intrusive validation.
    - [ ] Correlate advisory sources and framework metadata without treating a match as confirmation.
    - [ ] Present per-service states READY, NEEDS_REVIEW, INSUFFICIENT, UNSUPPORTED, and COMPLETED with rationale.
