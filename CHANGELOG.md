@@ -4,6 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Metasploit-style command console
+- Made a persistent Rich + prompt_toolkit command shell the primary interactive experience, with Fluxion-inspired ASCII branding and a clean `msfauto >` prompt.
+- Moved the full command catalogue behind `help`; grouped commands follow the workspace, scope, discovery, plan, checks, vulnerabilities, exploits, findings, report, and dashboard hierarchy.
+- Added command completion and wired supported commands to existing assessment services. Retained one-shot CLI flags for automation.
+- Updated terminal-interface documentation and roadmap. Exploit authorization remains gated by the existing persisted review/authorization lifecycle; the shell does not invent approvals.
+
+
 ### Terminal interface redesign
 - Replaced the button-oriented Textual dashboard with a full-screen, keyboard-driven, numbered-menu terminal experience.
 - Added dedicated terminal views for target/service inventory, vulnerability candidates, exploit intelligence, exploit execution lifecycle, findings/evidence, workspace scope, and assessment history.
