@@ -4,7 +4,7 @@ from pathlib import Path
 from threading import Event
 from unittest.mock import patch
 
-from msfauto.discovery import DiscoveryError, run_nmap
+from msfauto.discovery import DiscoveryError, run_metasploit_db_nmap, run_nmap
 from msfauto.scope import build_policy
 
 
@@ -78,3 +78,39 @@ class DiscoveryRunnerTests(unittest.TestCase):
             self.assertRaisesRegex(DiscoveryError, "not found"),
         ):
             run_nmap("lab", build_policy(["127.0.0.1"]), Path("/tmp/scan.xml"))
+
+
+    def test_metasploit_db_nmap_normalizes_only_in_scope_open_services(self) -> None:
+        class FakeMetasploitClient:
+            def __init__(self) -> None:
+                self.scan = None
+
+            def run_db_nmap(self, workspace, targets, port_spec, timeout=300.0):
+                self.scan = (workspace, targets, port_spec)
+                return "Nmap completed"
+
+            def database_hosts(self, workspace, addresses=(), limit=1000):
+                return [
+                    {"address": "192.0.2.10", "state": "alive", "name": "lab-host"},
+                    {"address": "192.0.2.99", "state": "alive", "name": "out-of-scope"},
+                ]
+
+            def database_services(self, workspace, addresses=(), limit=1000):
+                return [
+                    {"host": "192.0.2.10", "port": 80, "proto": "tcp", "state": "open", "name": "http", "info": "nginx"},
+                    {"host": "192.0.2.10", "port": 22, "proto": "tcp", "state": "closed", "name": "ssh"},
+                    {"host": "192.0.2.99", "port": 443, "proto": "tcp", "state": "open", "name": "https"},
+                ]
+
+        client = FakeMetasploitClient()
+        policy = build_policy(["192.0.2.10"], "80")
+        run, hosts = run_metasploit_db_nmap("lab", policy, client)
+
+        self.assertEqual(run.scanner, "metasploit:db_nmap")
+        self.assertEqual(client.scan, ("lab", ("192.0.2.10",), "80"))
+        self.assertEqual(len(hosts), 1)
+        self.assertEqual(str(hosts[0].address), "192.0.2.10")
+        self.assertEqual(hosts[0].hostname, "lab-host")
+        self.assertEqual(len(hosts[0].services), 1)
+        self.assertEqual(hosts[0].services[0].port, 80)
+        self.assertEqual(hosts[0].services[0].source, "metasploit-db")
