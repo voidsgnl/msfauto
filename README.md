@@ -144,6 +144,14 @@ This is an evidence-backed assessment record, not an automatic exploit-success d
 
 ## Interface direction
 
+MSFAuto is a **terminal-only application**. Its primary interface is a full-screen, menu-driven Textual terminal experience inspired by the guided interaction style of tools such as Fluxion. It uses numbered workflows and keyboard navigation rather than clickable dashboard controls.
+
+The main menu opens dedicated views for targets and services, vulnerability candidates, exploit intelligence, execution lifecycle, findings and evidence, workspace scope, and assessment history. Running workflows display an animated activity indicator, elapsed time, and live stage messages. There is no web interface or native desktop GUI in the product plan.
+
+The CLI remains available for scripting, automation, imports, and diagnostics.
+
+## Interface direction
+
 The intended primary experience is a **graphical application**, not a terminal UI (TUI). The user-supplied interface reference informs the visual language and interaction feel; it is not a specification to reproduce a terminal application or copy its terminology and workflow.
 
 The current Textual screen is an early prototype and should not be expanded into the final product interface. The graphical application should expose assets, services, vulnerability assessment, exploit opportunities, execution and session activity, evidence, and findings through a coherent operator workflow.
