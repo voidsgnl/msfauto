@@ -4,10 +4,11 @@
 - Added authenticated Metasploit RPC support for creating/destroying temporary consoles, running bounded single-line console commands, invoking scoped `db_nmap`, selecting an isolated Metasploit database workspace, and reading host/service inventory.
 - Wired the interactive `run` assessment path to execute `db_nmap` through Metasploit RPC and normalize in-scope host/open-service records from the selected Metasploit database workspace. The legacy standalone Nmap path remains for non-interactive/one-shot use and XML import remains available.
 - Validated `db_nmap` inputs as IP/CIDR targets and bounded port specifications; console output is capped and timed, and temporary consoles are destroyed after use.
+- Connected observed HTTP application technologies to bounded Metasploit auxiliary-module metadata discovery. Exact module options and check support are persisted for planning; this stage never executes modules.
 
 ### Product direction
 - Defined the primary objective as target-to-finding-to-prepared-exploit: the operator supplies an authorized IP/network or URL, and MSFAuto autonomously chooses the relevant discovery, investigation, vulnerability-assessment, and Metasploit-correlation steps.
-- The new RPC primitives are groundwork. The current assessment orchestrator has not yet switched from its standalone Nmap/XML path to Metasploit database discovery, and URL targets plus the full vulnerability pipeline remain unimplemented.
+- The interactive assessment path now uses Metasploit `db_nmap` and its database inventory. The one-shot CLI still uses the standalone Nmap/XML path. URL targets, web mapping, general vulnerability checks, and finding-to-module preparation remain unimplemented.
 
 
 ### Added
