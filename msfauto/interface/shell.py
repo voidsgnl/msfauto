@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import shlex
 import os
+import shlex
 import sqlite3
 import time
 from pathlib import Path
@@ -466,6 +466,8 @@ class CommandShell:
                     record = self.store.get_exploit_execution(args[0])
                     if record is None or record.workspace != self.workspace.name:
                         self.console.print("[red]Execution record not found in this workspace.[/red]")
+                    elif not record.external_job_id:
+                        self.console.print("[red]Execution has no persisted Metasploit job ID; cancellation cannot be sent.[/red]")
                     else:
                         cancelling = request_exploit_cancellation(
                             self.store, record.execution_id, actor=args[1],
@@ -495,10 +497,18 @@ class CommandShell:
                         self.console.print("[red]Execution record not found in this workspace.[/red]")
                     elif record.state != "dispatch_uncertain":
                         self.console.print("[red]Only dispatch_uncertain records can be operator-reconciled.[/red]")
+                    elif args[1] == "running" and len(args) < 6:
+                        self.console.print(
+                            "[yellow]Usage for running: exploits reconcile <id> running "
+                            "<actor> <job-id> <uuid> <reason>[/yellow]"
+                        )
                     else:
+                        running_references = args[1] == "running"
                         updated = reconcile_uncertain_execution(
                             self.store, record.execution_id, args[1], actor=args[2],
-                            rationale=" ".join(args[3:]),
+                            external_job_id=args[3] if running_references else "",
+                            external_uuid=args[4] if running_references else "",
+                            rationale=" ".join(args[5:] if running_references else args[3:]),
                         )
                         self.console.print(
                             f"[green][+][/green] Reconciliation recorded: {updated.execution_id[:12]} "
