@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from threading import Event
 from uuid import uuid4
 
 from ..assessment.planner import build_plan
@@ -23,6 +24,10 @@ class WorkflowError(RuntimeError):
     """Raised when an assessment workflow cannot safely proceed."""
 
 
+class WorkflowCancelled(WorkflowError):
+    """Raised when an operator cancels an assessment at a safe checkpoint."""
+
+
 class AssessmentApplication:
     """Shared application-service boundary and durable assessment orchestrator."""
 
@@ -30,11 +35,16 @@ class AssessmentApplication:
         self.workspace = workspace
         self.store = store
 
-    def discover(self) -> tuple[str, tuple[Host, ...]]:
+    def discover(self, cancel_event: Event | None = None) -> tuple[str, tuple[Host, ...]]:
         """Run bounded discovery for the workspace's saved authorization scope."""
         output_path = self.store.path.parent / "discovery" / f"{self.workspace.name}.xml"
-        run, hosts = run_nmap(self.workspace.name, self.workspace.policy, output_path)
+        run, hosts = run_nmap(
+            self.workspace.name, self.workspace.policy, output_path,
+            cancel_event=cancel_event,
+        )
         self.store.save_discovery_run(run)
+        if run.status == "cancelled":
+            raise WorkflowCancelled(run.error or "Discovery cancelled by operator.")
         if run.status != "completed":
             detail = run.error or "The scanner did not complete successfully."
             raise DiscoveryError(f"Discovery {run.status}: {detail}")
@@ -54,7 +64,9 @@ class AssessmentApplication:
         return plan
 
     def run_assessment(
-        self, progress: Callable[[AssessmentEvent], None] | None = None
+        self,
+        progress: Callable[[AssessmentEvent], None] | None = None,
+        cancel_event: Event | None = None,
     ) -> tuple[AssessmentRun, AssessmentPlan]:
         """Persist a discovery-and-planning workflow; never dispatch active checks."""
         run_id = uuid4().hex
@@ -83,17 +95,24 @@ class AssessmentApplication:
             self.store.save_assessment_run(current)
             emit(stage, message)
 
+        def check_cancelled() -> None:
+            if cancel_event is not None and cancel_event.is_set():
+                raise WorkflowCancelled("Assessment cancelled by operator.")
+
         try:
             if not self.workspace.policy.networks and not self.workspace.policy.addresses:
                 raise WorkflowError("Assessment blocked: no authorized targets are configured.")
+            check_cancelled()
             transition("discovery", "Starting bounded discovery within the saved authorization scope.")
-            _, hosts = self.discover()
+            _, hosts = self.discover(cancel_event)
+            check_cancelled()
             emit("discovery", f"Discovery completed; {len(hosts)} host(s) imported.")
             transition("enumeration", "Enumerating recognized HTTP/HTTPS, SSH, FTP, SMB2, and TLS services within scope.")
             observations = enumerate_services(
                 self.workspace.name, hosts, self.workspace.policy
             )
             self.store.save_service_observations(observations)
+            check_cancelled()
             mappings = load_package_mappings()
             if mappings:
                 transition("vulnerability_assessment", "Querying OSV for explicitly mapped package identities.")
@@ -117,6 +136,7 @@ class AssessmentApplication:
                     "vulnerability_assessment",
                     "OSV assessment skipped: no explicit package identity mappings configured.",
                 )
+            check_cancelled()
             curated_catalog = load_exploit_catalog()
             persisted_catalog = self.store.get_exploit_catalog(self.workspace.name)
             catalog_by_id = {
@@ -155,6 +175,7 @@ class AssessmentApplication:
                 f"Service enumeration recorded {len(observations)} observation(s): "
                 f"{completed} completed, {failed} failed.",
             )
+            check_cancelled()
             transition("planning", "Building a read-only plan from stored observations.")
             plan = self.build_assessment_plan()
             self.store.save_run_plan(run_id, plan)
@@ -173,10 +194,15 @@ class AssessmentApplication:
             return current, plan
         except Exception as exc:
             now = utc_now()
+            cancelled = isinstance(exc, WorkflowCancelled)
             current = AssessmentRun(
-                run_id, self.workspace.name, "failed", current.stage,
-                started, now, now, str(exc),
+                run_id, self.workspace.name, "cancelled" if cancelled else "failed",
+                current.stage, started, now, now, str(exc),
             )
             self.store.save_assessment_run(current)
-            emit(current.stage, f"Assessment failed: {exc}", "error")
+            emit(
+                current.stage,
+                f"Assessment {'cancelled' if cancelled else 'failed'}: {exc}",
+                "warning" if cancelled else "error",
+            )
             raise
