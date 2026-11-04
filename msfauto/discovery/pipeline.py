@@ -40,7 +40,7 @@ def run_nmap(
     if not targets:
         raise DiscoveryError("Cannot discover without an authorized target scope.")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    command = [scanner, "-n", "-sV", "--version-light", "-oX", str(output_path)]
+    command = [scanner, "-n", "-Pn", "-sV", "--version-light", "-oX", str(output_path)]
     if policy.allowed_ports:
         command.extend(["-p", ",".join(str(port) for port in policy.allowed_ports)])
     command.extend(targets)
