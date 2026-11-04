@@ -4,6 +4,7 @@ from collections.abc import Callable
 from threading import Event
 from uuid import uuid4
 
+from ..assessment.investigation import build_investigation_steps
 from ..assessment.planner import build_plan
 from ..discovery import DiscoveryError, run_nmap
 from ..enumeration import enumerate_services
@@ -167,6 +168,18 @@ class AssessmentApplication:
                     )
             observations = tuple(collected)
             self.store.save_service_observations(observations, discovery_run_id)
+            investigation_steps = build_investigation_steps(
+                tuple((str(host.address), service) for host in hosts for service in host.services),
+                observations,
+            )
+            for step in investigation_steps:
+                emit(
+                    "investigation",
+                    f"{step.state}: {step.target}:{step.port}/{step.transport} "
+                    f"[{step.action}] — {step.rationale} "
+                    f"Expected evidence: {step.expected_evidence}",
+                    "warning" if step.state == "NEEDS_REVIEW" else "info",
+                )
             for item in observations:
                 if item.status in {"failed", "partial"}:
                     detail = str(item.attributes.get("error") or item.attributes.get("error_type") or "protocol response incomplete")[:160]
