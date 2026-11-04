@@ -54,6 +54,25 @@ class ConsoleTaskTests(unittest.TestCase):
         finally:
             manager.close()
 
+    def test_cancelled_operation_exception_keeps_cancelled_status(self) -> None:
+        manager = TaskManager(workers=1)
+        started = Event()
+        try:
+            def operation(cancel, _emit):
+                started.set()
+                cancel.wait(2)
+                raise RuntimeError("scanner stopped")
+
+            task = manager.submit("cancelled", operation, cancellable=True)
+            self.assertTrue(started.wait(2))
+            self.assertTrue(manager.cancel(task.task_id))
+            assert task.future is not None
+            with self.assertRaisesRegex(RuntimeError, "scanner stopped"):
+                task.future.result(timeout=2)
+            self.assertEqual(task.status, "cancelled")
+        finally:
+            manager.close()
+
     def test_cancellation_is_cooperative_and_opt_in(self) -> None:
         manager = TaskManager(workers=1)
         started = Event()
