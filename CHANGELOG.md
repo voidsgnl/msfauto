@@ -6,7 +6,7 @@
 - Add dedicated `discovery`, `exploit`, `analysis`, and `workspace` command modes with mode-specific help, completion, and prompt labels.
 - Route short mode commands into the existing command handlers without duplicating business logic or weakening exploit lifecycle controls.
 - Extend discovery comparisons to report new, missing, and changed hosts in addition to service changes.
-- Add regression tests for mode routing and host-level comparison.
+- Add regression tests for mode routing and host-level comparison.\n- GitHub Actions run #610 passed on Python 3.10, 3.12, and 3.14: 190 tests passed plus 5 subtests; Ruff passed on all three versions.
 
 ### Nmap discovery history and comparison
 
