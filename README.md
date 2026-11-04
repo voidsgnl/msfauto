@@ -150,14 +150,6 @@ The main menu opens dedicated views for targets and services, vulnerability cand
 
 The CLI remains available for scripting, automation, imports, and diagnostics.
 
-## Interface direction
-
-The intended primary experience is a **graphical application**, not a terminal UI (TUI). The user-supplied interface reference informs the visual language and interaction feel; it is not a specification to reproduce a terminal application or copy its terminology and workflow.
-
-The current Textual screen is an early prototype and should not be expanded into the final product interface. The graphical application should expose assets, services, vulnerability assessment, exploit opportunities, execution and session activity, evidence, and findings through a coherent operator workflow.
-
-The CLI remains useful for scripting, automation, imports, and diagnostics.
-
 ## Intended assessment lifecycle
 
 1. Select a workspace and define the authorized scope.
