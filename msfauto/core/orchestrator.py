@@ -35,7 +35,7 @@ class AssessmentApplication:
         self.workspace = workspace
         self.store = store
 
-    def discover(self, cancel_event: Event | None = None) -> tuple[str, tuple[Host, ...]]:
+    def discover(self, cancel_event: Event | None = None) -> tuple[str, tuple[Host, ...], str]:
         """Run bounded discovery for the workspace's saved authorization scope."""
         output_path = self.store.path.parent / "discovery" / f"{uuid4().hex}.xml"
         run, hosts = run_nmap(
@@ -49,7 +49,7 @@ class AssessmentApplication:
             detail = run.error or "The scanner did not complete successfully."
             raise DiscoveryError(f"Discovery {run.status}: {detail}")
         self.store.save_hosts(self.workspace.name, hosts)
-        return run.status, hosts
+        return run.status, hosts, run.scan_id
 
     def targets(self) -> tuple[Host, ...]:
         return self.store.get_hosts(self.workspace.name)
@@ -104,14 +104,14 @@ class AssessmentApplication:
                 raise WorkflowError("Assessment blocked: no authorized targets are configured.")
             check_cancelled()
             transition("discovery", "Starting bounded discovery within the saved authorization scope.")
-            _, hosts = self.discover(cancel_event)
+            _, hosts, discovery_run_id = self.discover(cancel_event)
             check_cancelled()
             emit("discovery", f"Discovery completed; {len(hosts)} host(s) imported.")
             transition("enumeration", "Enumerating recognized HTTP/HTTPS, SSH, FTP/SMTP, SMB2, and TLS services within scope.")
             observations = enumerate_services(
                 self.workspace.name, hosts, self.workspace.policy
             )
-            self.store.save_service_observations(observations)
+            self.store.save_service_observations(observations, discovery_run_id)
             for item in observations:
                 if item.status in {"failed", "partial"}:
                     detail = str(item.attributes.get("error") or item.attributes.get("error_type") or "protocol response incomplete")[:160]
