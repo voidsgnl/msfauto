@@ -408,3 +408,4 @@ The dispatcher, framework reconciler, and evidence-backed outcome-assessment rec
 - [x] Default `observations` to the latest run; add `observations history`, `observations run <id>`, and `observations all`.
 - [x] Keep pre-migration records accessible as legacy/unassigned observations; retain all historical data.
 - [ ] Add dedicated shell regression coverage for latest-run, run-specific, and archive views; validate against a workspace with multiple live scans.
+- [x] Add elapsed-time and timeout-budget metadata plus connection/timeout/protocol-response failure classification to service observations; expose per-protocol timeout overrides in the enumeration API.
