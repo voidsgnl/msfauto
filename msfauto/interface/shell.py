@@ -247,8 +247,9 @@ class CommandShell:
             raise MetasploitError(
                 "Metasploit RPC credentials are not configured. Set "
                 "MSFAUTO_METASPLOIT_USERNAME and MSFAUTO_METASPLOIT_PASSWORD "
-                "to query the module catalogue or use Metasploit-backed commands. "
-                "MSFAuto does not start msfrpcd automatically."
+                "to connect to an existing Metasploit RPC service. "
+                "For local endpoints, MSFAuto starts and supervises msfrpcd automatically "
+                "when it is available."
             )
         config = MetasploitConfig(
             url=os.environ.get("MSFAUTO_METASPLOIT_URL", "http://127.0.0.1:55553/api/1.0"),
