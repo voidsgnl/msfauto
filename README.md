@@ -74,7 +74,11 @@ Matching requires an open service, an exact product alias, and either an exact a
 
 ### Metasploit RPC connection
 
-MSFAuto does **not** launch or manage `msfrpcd` as part of startup. Start the Metasploit RPC daemon separately, then configure the RPC endpoint and credentials in the environment before using framework-backed commands. The default endpoint is `http://127.0.0.1:55553/api/1.0`; override it with `MSFAUTO_METASPLOIT_URL`. Set `MSFAUTO_METASPLOIT_USERNAME` and `MSFAUTO_METASPLOIT_PASSWORD` to the account configured for that RPC daemon. These credentials are required for read-only catalogue queries as well as execution-related RPC calls; they are not an indication that an exploit is being run.
+For the default local endpoint, the interactive MSFAuto console automatically starts and supervises `msfrpcd` when no service is already listening. It binds the daemon to loopback, waits for the RPC port, and stops only the child process it started when the console exits. If an RPC service is already running, MSFAuto reuses it and requires its configured credentials.
+
+When starting a local daemon, MSFAuto generates an ephemeral RPC password if credentials were not supplied. The password is passed to supported Metasploit versions through the child process environment rather than command-line arguments. The daemon is not started for remote RPC endpoints.
+
+You can override the endpoint and/or provide credentials for an existing service using `MSFAUTO_METASPLOIT_URL`, `MSFAUTO_METASPLOIT_USERNAME`, and `MSFAUTO_METASPLOIT_PASSWORD`. The default endpoint is `http://127.0.0.1:55553/api/1.0`. RPC authentication is required even for read-only catalogue queries such as `exploits list`.
 
 ### Importing exploit metadata from Metasploit
 
