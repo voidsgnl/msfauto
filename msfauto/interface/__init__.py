@@ -1,4 +1,4 @@
-"""Terminal user interface."""
-from .app import Dashboard
+"""Interactive terminal command interface."""
+from .shell import CommandShell
 
-__all__ = ["Dashboard"]
+__all__ = ["CommandShell"]
