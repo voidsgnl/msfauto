@@ -8,8 +8,8 @@ from datetime import datetime, timezone
 from ipaddress import ip_address
 from pathlib import Path
 from threading import Event
-from typing import TYPE_CHECKING
 from time import monotonic, sleep
+from typing import TYPE_CHECKING
 
 from ..storage.models import DiscoveryRun, Host, ScopePolicy, Service
 
