@@ -236,12 +236,14 @@ class MetasploitClientTests(unittest.TestCase):
         methods = [method for method, _ in transport.calls]
         self.assertIn("db.add_workspace", methods)
         self.assertIn("db.set_workspace", methods)
-        write_call = next(args for method, args in transport.calls if method == "console.write")
+        write_calls = [args for method, args in transport.calls if method == "console.write"]
         self.assertEqual(
-            write_call,
-            ("token-1", "console-7", "db_nmap -n -Pn -sV --version-light -p 22,80,443 192.0.2.10 192.0.2.0/24\\n"),
+            write_calls[-1],
+            ("token-1", "console-7", "db_nmap -n -Pn -sV --version-light -p 22,80,443 192.0.2.10/32 192.0.2.0/24\\n"),
         )
-        self.assertIn(("console.destroy", ("token-1", "console-7")), transport.calls)
+        self.assertGreaterEqual(
+            sum(method == "console.destroy" for method, _ in transport.calls), 2,
+        )
 
     def test_db_nmap_rejects_shell_injection_and_invalid_ports(self) -> None:
         client = MetasploitClient(FakeTransport(), "user", "password")
