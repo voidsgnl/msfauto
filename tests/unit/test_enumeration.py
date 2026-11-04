@@ -16,6 +16,8 @@ from msfauto.enumeration.runner import (
     _error_attributes,
     _ftp_probe,
     _http_probe,
+    _imap_probe,
+    _pop3_probe,
     _smb_probe,
     _smtp_probe,
     _ssh_probe,
@@ -621,6 +623,69 @@ class EnumerationTests(unittest.TestCase):
         self.assertEqual(observations[0].status, "completed")
         self.assertEqual(observations[0].attributes["dialect"], "0x0300")
         self.assertEqual(observations[0].attributes["max_read_size"], 65536)
+
+    def test_pop3_probe_collects_greeting_and_capa_without_authentication(self):
+        listener = socket.socket()
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+
+        def serve():
+            conn, _ = listener.accept()
+            with conn:
+                conn.sendall(b"+OK Dovecot ready\\r\\n")
+                command = conn.recv(128)
+                if command.upper().startswith(b"CAPA"):
+                    conn.sendall(b"+OK Capability list follows\\r\\nUSER\\r\\nUIDL\\r\\nTOP\\r\\n.\\r\\n")
+                conn.recv(128)  # QUIT
+            listener.close()
+
+        thread = threading.Thread(target=serve, daemon=True)
+        thread.start()
+        try:
+            observations = _pop3_probe(
+                "lab", "127.0.0.1", Service(port, "tcp", "open", name="pop3"), 1.0,
+            )
+        finally:
+            thread.join(timeout=1)
+            listener.close()
+        self.assertEqual(observations[0].status, "completed")
+        self.assertIn("Dovecot", observations[0].attributes["greeting"])
+        self.assertEqual(observations[0].attributes["capabilities"], ["USER", "UIDL", "TOP"])
+
+    def test_imap_probe_collects_greeting_and_capabilities_without_authentication(self):
+        listener = socket.socket()
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+
+        def serve():
+            conn, _ = listener.accept()
+            with conn:
+                conn.sendall(b"* OK Dovecot ready\\r\\n")
+                command = conn.recv(128)
+                if b"CAPABILITY" in command.upper():
+                    conn.sendall(b"* CAPABILITY IMAP4rev1 STARTTLS AUTH=PLAIN\\r\\na001 OK Capability completed\\r\\n")
+                conn.recv(128)  # LOGOUT
+            listener.close()
+
+        thread = threading.Thread(target=serve, daemon=True)
+        thread.start()
+        try:
+            observations = _imap_probe(
+                "lab", "127.0.0.1", Service(port, "tcp", "open", name="imap"), 1.0,
+            )
+        finally:
+            thread.join(timeout=1)
+            listener.close()
+        self.assertEqual(observations[0].status, "completed")
+        self.assertIn("Dovecot", observations[0].attributes["greeting"])
+        self.assertEqual(
+            observations[0].attributes["capabilities"],
+            ["IMAP4rev1", "STARTTLS", "AUTH=PLAIN"],
+        )
 
     def test_invalid_worker_count_is_rejected(self):
         with self.assertRaises(ValueError):
