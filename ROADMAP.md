@@ -354,6 +354,17 @@ OSV workflow integration is active when explicit mappings are configured, but th
 - Structured observations record the active detection method and retain the original Nmap service name, product, version, probe method, confidence, and tunnel metadata.
 - Added local-server tests for successful unknown-port HTTP detection and rejection of non-HTTP responses. The user confirmed a live Juice Shop discovery run produced one completed HTTP observation; this newer application-fingerprinting milestone still requires a live re-test and CI verification.
 
+## Assessment-first workflow milestone (2026-11-04)
+
+- [x] Add prioritized TCP discovery profiles: quick, standard (default), and full.
+- [x] Keep saved workspace port allowlists authoritative; profiles cannot widen scope.
+- [x] Add the discover run alias and profile selection to the interactive shell and one-shot CLI.
+- [x] Run service enumeration sequentially during the full assessment.
+- [ ] Add protocol adapters for the remaining prioritized service families.
+- [ ] Persist explicit unsupported/manual-review records for open services without an adapter.
+- [ ] Add a per-port next-action view connecting collected evidence to analyst review.
+- [ ] Validate profile coverage and sequential execution in the authorized lab.
+
 ## Immediate next milestone: live web-application fingerprint validation
 
 Re-run discovery against the local Juice Shop workspace and inspect the persisted http_application_response observation for title, framework markers, assets, confidence, and truncation state. Then expand generic application fingerprint coverage only where supported by repeatable evidence. Route discovery and web vulnerability checks should be separate bounded milestones. Live isolated-Metasploit dispatch validation remains outstanding and must not be conflated with this web-enumeration work.
