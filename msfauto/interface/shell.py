@@ -731,6 +731,80 @@ class CommandShell:
             ("Findings", len(findings)),
         ])
 
+
+    def _assessment_results(self) -> None:
+        """Show persisted assessment output without treating candidates as confirmed findings."""
+        hosts = self.store.get_hosts(self.workspace.name)
+        candidates = self.store.get_vulnerability_candidates(self.workspace.name)
+        opportunities = self.store.get_exploit_opportunities(self.workspace.name)
+        findings = self.store.get_findings(self.workspace.name)
+        self._rows("ASSESSMENT RESULTS", ("METRIC", "COUNT"), [
+            ("Hosts", len(hosts)),
+            ("Open services", sum(len(host.services) for host in hosts)),
+            ("Vulnerability candidates", len(candidates)),
+            ("Exploit opportunities", len(opportunities)),
+            ("Recorded findings", len(findings)),
+        ])
+        if candidates:
+            self._rows("VULNERABILITY CANDIDATES — REVIEW REQUIRED",
+                ("ID", "TARGET", "PORT", "ADVISORY", "PRODUCT / VERSION", "CONFIDENCE", "STATUS"), [
+                (item.candidate_id[:12], item.target, item.port, item.advisory_id,
+                 f"{item.product} {item.observed_version}".strip(), f"{item.confidence}%", item.status)
+                for item in candidates
+            ])
+        if opportunities:
+            self._rows("METASPLOIT OPPORTUNITIES — NOT AUTHORIZED",
+                ("ID", "TARGET", "PORT", "MODULE", "RANK", "CONFIDENCE", "STATUS"), [
+                (item.opportunity_id[:12], item.target, item.port, item.module_name,
+                 item.rank, f"{item.confidence}%", item.status)
+                for item in opportunities
+            ])
+        if findings:
+            self._rows("RECORDED FINDINGS", ("ID", "SEVERITY", "STATUS", "CONFIDENCE", "TITLE"), [
+                (item.finding_id[:12], item.severity, item.status, f"{item.confidence}%", item.title)
+                for item in findings
+            ])
+        self.console.print("[dim]Candidates are leads, not confirmed vulnerabilities. Exploit opportunities require review and explicit authorization before execution.[/dim]")
+
+    def _show_findings(self, action: str, args: list[str]) -> None:
+        findings = self.store.get_findings(self.workspace.name)
+        candidates = self.store.get_vulnerability_candidates(self.workspace.name)
+        if action == "show":
+            if len(args) != 1:
+                self.console.print("[yellow]Usage: findings show <id-prefix>[/yellow]")
+                return
+            key = args[0]
+            found = [item for item in findings if item.finding_id.startswith(key)]
+            leads = [item for item in candidates if item.candidate_id.startswith(key)]
+            if len(found) + len(leads) != 1:
+                self.console.print("[yellow]ID not found or prefix is ambiguous.[/yellow]")
+                return
+            if found:
+                item = found[0]
+                self.console.print(Panel(
+                    f"[bold]{item.title}[/bold]\\nSeverity: {item.severity}  Status: {item.status}  Confidence: {item.confidence}%\\n\\n{item.description}\\nEvidence: {', '.join(item.evidence_ids) or 'none'}",
+                    title=f"FINDING {item.finding_id[:12]}",
+                ))
+            else:
+                item = leads[0]
+                self.console.print(Panel(
+                    f"{item.advisory_id} ({item.advisory_source})\\n{item.target}:{item.port}/{item.protocol}\\n{item.product} {item.observed_version}\\nStatus: {item.status}  Confidence: {item.confidence}%\\n\\n{item.rationale}",
+                    title=f"VULNERABILITY CANDIDATE {item.candidate_id[:12]}",
+                ))
+            return
+        if action != "list":
+            self.console.print("[yellow]Usage: findings [list|show <id-prefix>][/yellow]")
+            return
+        self._rows("RECORDED FINDINGS", ("ID", "SEVERITY", "STATUS", "CONFIDENCE", "TITLE"), [
+            (item.finding_id[:12], item.severity, item.status, f"{item.confidence}%", item.title)
+            for item in findings
+        ])
+        self._rows("VULNERABILITY CANDIDATES", ("ID", "TARGET", "PORT", "ADVISORY", "PRODUCT / VERSION", "CONFIDENCE", "STATUS"), [
+            (item.candidate_id[:12], item.target, item.port, item.advisory_id,
+             f"{item.product} {item.observed_version}".strip(), f"{item.confidence}%", item.status)
+            for item in candidates
+        ])
+
     def execute(self, line: str) -> bool:
         try:
             parts = shlex.split(line)
@@ -853,6 +927,12 @@ class CommandShell:
                     cancellable=True,
                 )
                 self._wait_task(task)
+                if task.status == "completed":
+                    self._assessment_results()
+            elif command == "findings list":
+                self._show_findings("list", args)
+            elif command == "findings show":
+                self._show_findings("show", args)
             elif command == "discovery import":
                 if not args:
                     self.console.print("[yellow]Usage: discovery import <nmap.xml>[/yellow]")
