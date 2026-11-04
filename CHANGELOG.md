@@ -1,5 +1,8 @@
 ## Unreleased
 
+### Added
+- Added a deterministic, evidence-driven service investigation planner. It emits one prioritized next step per open service, records expected evidence and rationale in the assessment event stream, and explicitly avoids automatic retries or module dispatch. The interactive `investigate` view now uses the same planner.
+
 ### Improved
 - Rebalanced the default discovery profiles around a web-first workflow: `quick` now checks a compact set of common web entry points and high-value supporting services; `standard` adds important alternate web, mail, remote-access, directory, and database ports. The `full` profile remains the explicit all-TCP-port option.
 
