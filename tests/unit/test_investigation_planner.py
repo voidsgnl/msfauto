@@ -42,6 +42,17 @@ class InvestigationPlannerTests(unittest.TestCase):
         self.assertIn("Next.js", step.rationale)
         self.assertIn("Metasploit", step.expected_evidence)
 
+    def test_successful_http_app_evidence_takes_precedence_over_tls_failure(self) -> None:
+        tls_failure = observation("tls", "failed", {"error": "handshake timeout"})
+        app_success = observation("http_application", "completed", {
+            "title": "Portal", "technologies": [{"name": "React", "confidence": 8}],
+        })
+        step = plan_service_investigation(
+            "192.0.2.10", self.web, (tls_failure, app_success),
+        )
+        self.assertEqual(step.action, "review_technology_specific_checks")
+        self.assertIn("React", step.rationale)
+
     def test_unfingerprinted_web_app_needs_surface_mapping(self) -> None:
         item = observation("http_application", "completed", {"title": "Portal"})
         step = plan_service_investigation("192.0.2.10", self.web, (item,))
