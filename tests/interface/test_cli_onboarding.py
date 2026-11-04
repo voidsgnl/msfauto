@@ -1,11 +1,16 @@
 import io
+import tempfile
 import unittest
+from pathlib import Path
 from contextlib import redirect_stdout
 from threading import Event
 
 from msfauto.cli import display_next_steps
+from msfauto.enumeration.models import ServiceObservation
+from msfauto.interface.shell import CommandShell
 from msfauto.interface.tasks import TaskManager
 from msfauto.scope import build_policy
+from msfauto.storage import WorkspaceStore
 from msfauto.storage.models import Workspace
 
 
@@ -95,3 +100,76 @@ class ConsoleTaskTests(unittest.TestCase):
             protected.future.result(timeout=2)
         finally:
             manager.close()
+
+
+
+class ObservationConsoleTests(unittest.TestCase):
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.store = WorkspaceStore(Path(self.tempdir.name) / "workspace.sqlite3")
+        self.workspace = Workspace("lab", build_policy(["127.0.0.1"]))
+        self.shell = CommandShell(self.store, self.workspace)
+        self.shell.mode = "discovery"
+        self.observations = (
+            ServiceObservation(
+                observation_id="observation-abc123",
+                workspace="lab",
+                target="127.0.0.1",
+                port=465,
+                transport="tcp",
+                protocol="smtp",
+                kind="smtp_capabilities",
+                status="completed",
+                attributes={"greeting": "220 mail.example ESMTP", "capabilities": ["SIZE", "STARTTLS"]},
+                confidence=8,
+                observed_at="2026-11-04T10:00:00+00:00",
+            ),
+            ServiceObservation(
+                observation_id="observation-def456",
+                workspace="lab",
+                target="127.0.0.2",
+                port=22,
+                transport="tcp",
+                protocol="ssh",
+                kind="ssh_banner",
+                status="completed",
+                attributes={"banner": "SSH-2.0-OpenSSH_9.8"},
+                confidence=9,
+                observed_at="2026-11-04T10:01:00+00:00",
+            ),
+        )
+        self.store.save_service_observations(self.observations)
+
+    def tearDown(self):
+        self.tempdir.cleanup()
+
+    def test_observations_list_is_available_in_discovery_mode(self):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            self.shell.execute("observations list")
+        rendered = output.getvalue()
+        self.assertIn("observation-a", rendered)
+        self.assertIn("127.0.0.1", rendered)
+        self.assertIn("smtp_capabilities", rendered)
+
+    def test_observations_host_filters_to_exact_target(self):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            self.shell.execute("observations host 127.0.0.1")
+        rendered = output.getvalue()
+        self.assertIn("observation-a", rendered)
+        self.assertNotIn("observation-d", rendered)
+
+    def test_observations_show_resolves_prefix_and_displays_attributes(self):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            self.shell.execute("observations show observation-abc")
+        rendered = output.getvalue()
+        self.assertIn("mail.example", rendered)
+        self.assertIn("STARTTLS", rendered)
+
+    def test_observations_show_rejects_ambiguous_prefix(self):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            self.shell.execute("observations show observation-")
+        self.assertIn("ambiguous", output.getvalue().casefold())
