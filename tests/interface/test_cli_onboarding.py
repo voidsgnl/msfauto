@@ -5,6 +5,8 @@ from pathlib import Path
 from contextlib import redirect_stdout
 from threading import Event
 
+from rich.console import Console
+
 from msfauto.cli import display_next_steps
 from msfauto.enumeration.models import ServiceObservation
 from msfauto.interface.shell import CommandShell
@@ -145,8 +147,8 @@ class ObservationConsoleTests(unittest.TestCase):
 
     def test_observations_list_is_available_in_discovery_mode(self):
         output = io.StringIO()
-        with redirect_stdout(output):
-            self.shell.execute("observations list")
+        self.shell.console = Console(file=output)
+        self.shell.execute("observations list")
         rendered = output.getvalue()
         self.assertIn("observation-a", rendered)
         self.assertIn("127.0.0.1", rendered)
@@ -154,22 +156,22 @@ class ObservationConsoleTests(unittest.TestCase):
 
     def test_observations_host_filters_to_exact_target(self):
         output = io.StringIO()
-        with redirect_stdout(output):
-            self.shell.execute("observations host 127.0.0.1")
+        self.shell.console = Console(file=output)
+        self.shell.execute("observations host 127.0.0.1")
         rendered = output.getvalue()
         self.assertIn("observation-a", rendered)
         self.assertNotIn("observation-d", rendered)
 
     def test_observations_show_resolves_prefix_and_displays_attributes(self):
         output = io.StringIO()
-        with redirect_stdout(output):
-            self.shell.execute("observations show observation-abc")
+        self.shell.console = Console(file=output)
+        self.shell.execute("observations show observation-abc")
         rendered = output.getvalue()
         self.assertIn("mail.example", rendered)
         self.assertIn("STARTTLS", rendered)
 
     def test_observations_show_rejects_ambiguous_prefix(self):
         output = io.StringIO()
-        with redirect_stdout(output):
-            self.shell.execute("observations show observation-")
+        self.shell.console = Console(file=output)
+        self.shell.execute("observations show observation-")
         self.assertIn("ambiguous", output.getvalue().casefold())
