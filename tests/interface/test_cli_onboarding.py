@@ -174,7 +174,7 @@ class ObservationConsoleTests(unittest.TestCase):
         self.shell.execute("observations list")
         rendered = output.getvalue()
         self.assertIn("│ 1 ", rendered)
-        self.assertIn("mail.example", rendered)
+        self.assertIn("SSH-2.0-OpenSSH_9.8", rendered)
         self.assertIn("STARTTLS", rendered)
         self.assertIn("OBSERVATION METADATA", rendered)
 
