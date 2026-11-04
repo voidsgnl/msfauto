@@ -1,3 +1,10 @@
+### Latest implementation milestone: service enumeration failure diagnostics
+
+- Service adapter failures now persist a bounded exception type and diagnostic message rather than only the exception class, making connection refusals, timeouts, TLS negotiation errors, and protocol rejections distinguishable.
+- Assessment progress emits a per-endpoint warning for failed or partial observations and reports all three status counts.
+- Diagnostic text is whitespace-normalized and capped at 160 characters. Enumeration remains bounded and scope-enforced; no retry or protocol downgrade is introduced.
+- Added regression coverage for bounded error details. Re-run the affected workspace assessment to obtain the actual causes of its earlier failed observations.
+
 ### Latest implementation milestone: root-level workspace onboarding
 
 - Added `workspace create` to root-console help so a new workspace can be created without first entering workspace mode.
