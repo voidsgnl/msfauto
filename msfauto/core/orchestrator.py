@@ -10,6 +10,7 @@ from ..discovery import DiscoveryError, run_metasploit_db_nmap, run_nmap
 from ..enumeration import enumerate_services
 from ..enumeration.models import ServiceObservation
 from ..exploitation.matcher import load_exploit_catalog, match_exploits
+from ..integrations.metasploit import MetasploitClient
 from ..storage import WorkspaceStore
 from ..storage.models import (
     AssessmentEvent,
@@ -19,7 +20,6 @@ from ..storage.models import (
     Workspace,
     utc_now,
 )
-from ..integrations.metasploit import MetasploitClient
 from ..vulnerability.workflow import assess_with_osv, load_package_mappings
 
 
