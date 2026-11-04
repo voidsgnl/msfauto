@@ -16,7 +16,7 @@ MSFAuto should not become merely a graphical wrapper around Metasploit. Metasplo
 - The current Textual interface is an existing prototype, not the intended final interface. Do not expand it into a larger TUI or treat its layout as the target product.
 - Keep the assessment domain, orchestration, integrations, and persistence independent of the interface so a graphical frontend can use the same application services.
 - CLI commands may remain useful for scripting, automation, and diagnostics, but they are not the primary user experience.
-- The graphical interface visual contract is defined in [`docs/interface/visual-system.md`](docs/interface/visual-system.md): shared task-state badges, truthful progress/indeterminate activity, elapsed time, event feed, accessibility, and explicit dispatch-uncertain treatment. This is a design foundation, not an implemented GUI.
+- The graphical interface visual contract is defined in [`docs/interface/visual-system.md`](docs/interface/visual-system.md), with a standalone [task-state preview](docs/interface/task-states-preview.html): shared task-state badges, truthful progress/indeterminate activity, elapsed time, event feed, accessibility, and explicit dispatch-uncertain treatment. These are design artifacts, not an integrated GUI.
 
 ## Core assessment capabilities
 
@@ -207,7 +207,7 @@ The dispatcher, framework reconciler, and evidence-backed outcome-assessment rec
 
 ## Latest implementation milestone: graphical task-state visual specification
 
-- Added `docs/interface/visual-system.md` as the visual/interaction contract for the intended graphical application.
+- Added `docs/interface/visual-system.md` as the visual/interaction contract and `docs/interface/task-states-preview.html` as a browser-openable visual preview for the intended graphical application.
 - Defined consistent treatments for queued, prepared, dispatching, running, cancelling, completed, failed, timed-out, cancelled, paused, and dispatch-uncertain states.
 - Specified shared status badges, truthful determinate versus indeterminate progress, elapsed time, chronological activity events, reduced-motion behavior, keyboard focus, and accessible text/icon labels.
 - Explicitly kept this work out of the Textual prototype. The repository does not yet contain a graphical frontend, so the visual system is specified but not yet rendered in an application. The next UI milestone is to scaffold that frontend and connect these components to the existing assessment/job services.
