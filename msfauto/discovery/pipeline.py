@@ -64,6 +64,7 @@ def run_nmap(
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait()
+                output_path.unlink(missing_ok=True)
                 return (
                     DiscoveryRun(
                         workspace, executable, tuple(command), str(output_path), "cancelled",
@@ -76,6 +77,7 @@ def run_nmap(
                 process.wait()
                 stderr_file.seek(0)
                 detail = stderr_file.read().strip()
+                output_path.unlink(missing_ok=True)
                 return (
                     DiscoveryRun(
                         workspace, executable, tuple(command), str(output_path), "timed_out",
@@ -88,6 +90,7 @@ def run_nmap(
         stderr_file.seek(0)
         stderr = stderr_file.read().strip()
         if process.returncode != 0:
+            output_path.unlink(missing_ok=True)
             return (
                 DiscoveryRun(
                     workspace, executable, tuple(command), str(output_path), "failed",
