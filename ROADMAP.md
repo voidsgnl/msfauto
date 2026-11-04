@@ -18,6 +18,7 @@
 - On normal console exit, MSFAuto terminates only the daemon process it started; external services are left untouched.
 - Startup failures are reported while leaving non-Metasploit console commands available.
 - Added lifecycle tests for automatic startup, credential handling, existing-service reuse, remote-endpoint restrictions, and owned-process shutdown.
+- GitHub Actions run #584 passed on Python 3.10, 3.12, and 3.14: 185 tests passed plus 5 subtests; Ruff passed on all three versions.
 - Compatibility note: automatic credential injection requires an msfrpcd build that supports `MSF_RPC_USER` and `MSF_RPC_PASS`; otherwise startup diagnostics identify the daemon failure.
 
 
