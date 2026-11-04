@@ -122,40 +122,42 @@
 
 ## Product definition
 
-**MSFAuto is an automated security assessment platform for discovering, enumerating, assessing, exploiting, and validating security weaknesses in explicitly authorized environments.**
+**MSFAuto is a web-first, Metasploit-powered penetration-testing automation platform for explicitly authorized assessments.**
 
-Its primary value is the assessment work it can perform and the quality of the technical intelligence it produces. Safety controls, evidence integrity, workflow orchestration, and reporting are essential supporting capabilities; they are not the product's central purpose.
+Its primary job is to guide an operator from a target to an evidence-backed understanding of its web attack surface and the next relevant assessment actions. It should not stop after reporting open ports or require the operator to manually assemble every scanner and module invocation.
 
-MSFAuto should not become merely a graphical wrapper around Metasploit. Metasploit is an important integration and execution engine within a broader platform that owns discovery, service intelligence, vulnerability assessment, exploit orchestration, result validation, and analysis.
+Metasploit is the primary security-testing and exploitation engine. MSFAuto makes the framework's existing auxiliary modules, check capabilities, exploit metadata, jobs, and supported session operations easier to discover, configure, sequence, and interpret. MSFAuto provides the higher-level target model, orchestration, evidence-driven decision logic, correlation, operator interface, and authorization lifecycle. Reimplement framework capabilities only when a clear gap requires it.
+
+Web applications are the primary assessment domain. Network discovery and supporting-service investigation reveal and contextualize the web application and its infrastructure. Broad port scanning is optional, not the default experience.
+
+The product should behave like an assessment operator: discover the surface, investigate each relevant service, understand the evidence, select the next useful step, and present a defensible path for human review. Automation must not confuse a banner with a vulnerability, a module match with exploitability, or framework completion with verified target impact.
 
 ## Product and interface direction
 
-- MSFAuto is a **terminal-only application**. There is no web interface or mouse-driven desktop GUI in the product plan.
-- The primary operator experience is a persistent Metasploit-style command console, with Fluxion-inspired terminal aesthetics rather than a menu-driven TUI.
-- Startup is intentionally minimal: MSFAuto branding, compact workspace/profile/scope/RPC context, and a persistent `msfauto >` prompt. The command catalogue is displayed only when the operator enters `help`.
-- Operators use concise hierarchical commands such as `discovery run`, `scope show`, `plan build`, and `exploits list`; detailed output appears in the terminal and returns to the prompt.
-- `dashboard` is optional and explicitly invoked. One-shot CLI flags remain available for automation.
-- Use Rich for terminal rendering and prompt_toolkit for editable input, completion, and persistent command history. Keep assessment services, integrations, persistence, and authorization independent of the shell.
+- MSFAuto remains a **terminal-first application** with a persistent Metasploit-style command prompt.
+- Keep startup minimal and make the common workflow discoverable through `help`.
+- Design the primary workflow around a target and one orchestrated assessment run, not unrelated scanner commands.
+- Web application assessment is the default focus. Important web ports and common supporting services belong in the default focused profile; full TCP scanning is explicitly opt-in.
+- Treat Nmap as a replaceable discovery provider. Use it for bounded host/port/service discovery where appropriate, but do not make Nmap-specific concepts the centre of the user experience.
+- Prefer Metasploit's built-in auxiliary, check, exploit metadata, job, and session capabilities when they fit. MSFAuto wraps them with target-aware selection, bounded defaults, structured evidence, progress, and understandable results.
+- Keep raw framework access available for advanced operators while presenting guided workflows to ordinary users.
+- The planned web-target model must support an origin (scheme, hostname, port), resolved-address constraints, virtual-host/SNI context, and explicit host/path scope. The current MVP accepts IP/CIDR only; URL/hostname target support is future work.
+- Use Rich and prompt_toolkit for terminal rendering, input, completion, and history. Keep assessment services and integrations independent of the shell.
 
 ## Core assessment capabilities
 
-These are first-class product capabilities, not optional add-ons:
+Priority order:
 
-1. **Reconnaissance and discovery** — identify in-scope assets, hosts, ports, and exposed services.
-2. **Service enumeration and intelligence** — fingerprint services, identify versions and technologies, inspect configurations, and gather useful context beyond open-port detection.
-3. **Vulnerability assessment** — map observations to potential vulnerabilities and weaknesses, distinguish evidence from hypotheses, and prioritize assessment opportunities.
-4. **Exploitation** — research and select applicable exploit techniques, check prerequisites, configure and execute explicitly authorized exploit attempts, and capture outcomes. Exploitation must be a distinct engine and workflow, not buried inside generic safe checks.
-5. **Post-exploitation assessment** — where separately authorized, assess achieved access, privilege context, host information, and security impact. This does not imply persistence, stealth, lateral movement, or destructive behavior as default features.
-6. **Validation and verification** — determine whether suspected weaknesses are actually present, whether an exploit attempt succeeded, and what the evidence supports.
-7. **Analysis and correlation** — correlate results across assets and stages, identify relationships and potential attack paths, assess confidence, and prioritize meaningful findings.
+1. **Web reconnaissance and application mapping** — identify HTTP/HTTPS endpoints, redirects, virtual hosts, TLS identity, server/framework/CMS indicators, accessible resources, and application entry points. Support non-standard ports and preserve origin/hostname context.
+2. **Evidence-driven investigation** — investigate each discovered web service in sequence. Select checks from observed technology and behavior; record why an action was selected, expected evidence, results, and remaining unknowns.
+3. **Metasploit-native assessment** — discover relevant built-in auxiliary and exploit module metadata, inspect options and check support, and invoke suitable bounded checks through supported RPC operations. Avoid duplicating maintained framework probes.
+4. **Vulnerability intelligence** — correlate application/service evidence with advisories and module applicability requirements. Keep identity, version, affected-range, and prerequisite evidence explicit; never infer a vulnerability from a port or banner alone.
+5. **Exploit opportunity and attack-path analysis** — explain candidate entry points, prerequisites, evidence quality, missing information, and plausible next steps. An opportunity is a lead, not proof of exploitability.
+6. **Controlled exploitation and validation** — retain review, scope, authorization, single-use, and uncertain-dispatch controls. Independently verify target outcomes; framework job completion is not proof of compromise.
+7. **Supporting network assessment** — investigate important remote-access, mail, file-sharing, directory, database, and infrastructure services when relevant. Full all-port scanning remains optional.
+8. **Post-exploitation and session management** — add separately authorized, bounded session assessment only after core web investigation and validation are reliable.
 
-Supporting platform capabilities:
-- Assessment orchestration and durable run history.
-- Explicit authorization, scope enforcement, and action-specific approvals.
-- Session and job lifecycle management.
-- Evidence provenance and integrity.
-- Findings review and reporting.
-- Terminal navigation, configuration prompts, technical tables, and live execution feedback.
+Supporting capabilities: durable run history, cancellation/recovery, workspace isolation, evidence provenance/integrity, findings review, reporting, and operator-friendly terminal feedback.
 
 ### Latest implementation milestone: exploit lifecycle CI correction and cancellation recovery tests
 - Inspected the red CI checks on run #529. All three Python versions failed the same pre-existing reconciliation test because it supplied a job ID without the UUID now required for a `running` record.
@@ -288,64 +290,57 @@ OSV workflow integration is active when explicit mappings are configured, but th
 
 ## Work sequence
 
-1. **Service enumeration foundation**
-   - Extend the Nmap fingerprint baseline with structured service-specific enumeration adapters (HTTP/HTTPS, SSH, FTP, SMB2 negotiation, and TLS-only handshake inspection are implemented; HTTP application fingerprinting is now implemented; route/resource crawling and web-specific vulnerability checks remain).
-   - Define probe/result contracts, normalized attributes, source provenance, timestamps, and confidence.
-   - Preserve raw tool output as evidence while parsing structured observations for later stages.
-   - Keep per-service timeouts, output limits, concurrency bounds, and scope/port checks.
+1. **Web-first target and scope model**
+   - [ ] Extend the current IP/CIDR-only target model to accept an explicitly scoped web origin (scheme, hostname, port), with resolved-IP and DNS-rebinding protections.
+   - [ ] Preserve Host header, TLS SNI, redirect, and virtual-host context without silently expanding scope.
+   - [ ] Reject out-of-scope redirect destinations and keep workspace authorization authoritative.
 
-2. **Vulnerability assessment foundation**
-   - [x] Add normalized advisory and candidate domain records with source provenance, affected-version metadata, prerequisites, references, and evidence requirements.
-   - [x] Match observed service products and exact versions to advisory records; retain missing or nonmatching versions as unverified hypotheses.
-   - [x] Persist workspace-scoped candidates with evidence references, rationale, and bounded confidence.
-   - [x] Add an OSV.dev package-version query adapter and normalized advisory ingestion for explicitly identified package ecosystems.
-   - [x] Preserve source IDs, aliases, references, affected versions, and raw affected-range metadata in the advisory registry.
-   - [ ] Add maintained bulk/incremental feed synchronization and normalized ecosystem-specific range evaluation.
-   - [ ] Add broader CPE normalization and service-to-OS-package identity mappings.
-   - [ ] Add configuration/behavior-based checks, coverage accounting, and independent validation.
-   - Never declare a vulnerability solely from a banner or a version string.
+2. **Focused discovery and service routing**
+   - [x] Provide quick, standard (default), and full TCP discovery profiles; broad all-port discovery is opt-in.
+   - [x] Keep explicit workspace port allowlists authoritative.
+   - [x] Run discovered-service enumeration sequentially in the full assessment.
+   - [ ] Review the standard profile to prioritize web ports and high-value supporting services.
+   - [ ] Route services from observed protocol/tunnel evidence, not port number alone.
+   - [ ] Retain Nmap behind a discovery-provider interface; evaluate Metasploit-native discovery/auxiliary capabilities where equivalent.
+   - [ ] Preserve unsupported-service records with an explicit manual-inspection next action.
 
-3. **Exploit intelligence and execution architecture**
-   - [x] Introduce a first-class exploit catalog/registry, separate from passive checks.
-   - [x] Represent source attribution, affected products/versions, prerequisites, required options, target compatibility metadata, risk, and supporting references.
-   - [x] Match exact product aliases and versions, with optional links to known vulnerability candidate IDs; persist workspace-scoped opportunities.
-   - [x] Add a Metasploit RPC exploit-module importer with explicit product/version/advisory mappings and normalized module metadata.
-   - [x] Persist imported catalog definitions with workspace isolation and explicit refresh/synchronization.
-   - [x] Merge active synchronized catalog entries with curated entries in assessment runs while preserving operator-controlled mappings.
-   - Add maintained catalog synchronization/import adapters and version-range semantics with source-specific tests.
-   - Represent expected outcomes and richer target compatibility metadata as catalog sources are integrated.
-   - [x] Add explicit exploit review and action-specific authorization before dispatch.
-   - [x] Build a durable execution lifecycle for preparation, dispatch intent, running, completion, failure, timeout, cancellation, and uncertain dispatch. Unknown outcomes remain uncertain and are never automatically retried.
-   - [x] Add a controlled Metasploit dispatch adapter that consumes only prepared lifecycle records and their exact authorization; initial support is restricted to catalog-bound TCP modules using RHOSTS/RPORT.
-   - [x] Add framework job polling and UUID-specific result reconciliation; unknown or ambiguous outcomes remain unresolved and are never inferred.
-   - Next: validate dispatch and reconciliation against an isolated Metasploit lab, then implement independent exploit-outcome validation before adding session management.
+3. **Web reconnaissance and application investigation**
+   - [x] Capture bounded HTTP/HTTPS response metadata, redirects, TLS certificate metadata, and basic HTML technology indicators.
+   - [ ] Add bounded route/resource discovery with request budgets, same-origin defaults, redirect scope checks, and opt-in for broader crawling.
+   - [ ] Add virtual-host and application-origin investigation using authorized hostnames.
+   - [ ] Add technology-specific investigation packs for common web servers, frameworks, CMS platforms, and application stacks.
+   - [ ] Add authentication-surface mapping without credential guessing or brute force by default.
+   - [ ] Store request/response observations with source, timing, status, truncation, and run ID.
 
-4. **Post-exploitation and session management**
-   - Define session records and lifecycle separately from generic jobs.
-   - Support only explicitly authorized, bounded post-exploitation assessment actions.
-   - Associate every session and resulting observation with its originating assessment run and evidence.
+4. **Metasploit-native module intelligence and execution**
+   - [x] Read live Metasploit module inventories and inspect module metadata/options.
+   - [x] Synchronize explicitly mapped exploit metadata into the workspace catalog.
+   - [ ] Build a target-aware recommender across relevant auxiliary and exploit modules using module metadata, check support, service evidence, and explicit mappings.
+   - [ ] Make suitable auxiliary/check modules guided investigation steps with bounded options and structured results.
+   - [ ] Explain why a module was selected and what it can/cannot establish.
+   - [ ] Surface unsupported module requirements for manual review rather than silently omitting candidates.
+   - [x] Preserve explicit review, authorization, one-shot dispatch, job reconciliation, and independent outcome records.
 
-5. **Validation, correlation, and useful results**
-   - Verify suspected weaknesses and exploit outcomes using independent evidence where possible.
-   - Correlate observations, candidate vulnerabilities, exploit attempts, sessions, and findings.
-   - Make confidence and limitations visible.
-   - Generate findings from validated evidence with analyst review.
+5. **Evidence-driven decision and vulnerability engine**
+   - [ ] Define an investigation-plan contract: observed evidence, candidate next actions, prerequisites, expected evidence, timeout/request budget, risk class, and stop conditions.
+   - [ ] Select next actions from service fingerprints and unresolved evidence gaps; avoid blind module sweeps.
+   - [ ] Add bounded, evidence-producing web vulnerability checks before intrusive validation.
+   - [ ] Correlate advisory sources and framework metadata without treating a match as confirmation.
+   - [ ] Present per-service states READY, NEEDS_REVIEW, INSUFFICIENT, UNSUPPORTED, and COMPLETED with rationale.
+   - [ ] Preserve manual inspection and operator override at each decision point.
 
-6. **End-to-end workflow and reliability**
-   - Connect discovery, enumeration, vulnerability assessment, exploit review/approval, execution, validation, evidence, findings, and reporting into one traceable run.
-   - Add interruption/recovery and dispatch reconciliation before any resume/retry behavior.
-   - Never automatically retry an operation whose dispatch outcome is unknown.
+6. **Unified assessment workflow and operator experience**
+   - [x] Provide `discover run` as an end-to-end discovery/enumeration/assessment entry point.
+   - [ ] Evolve the primary command into target-centric `assess web` / `assess run` after URL/origin scope exists; retain `discover run` for discovery-only and network workflows.
+   - [ ] Stream progress per target, port, service, and investigation action; isolate failures and continue where safe.
+   - [ ] Show prioritized findings, evidence gaps, next actions, and manual-inspection references.
+   - [ ] Ensure every child action and observation belongs to one durable assessment run.
 
-7. **Terminal interface**
-   - [x] Replace the menu-driven Textual dashboard as the primary entry point with a persistent Rich + prompt_toolkit command console.
-   - [x] Add Fluxion-inspired ASCII branding, compact workspace/profile/scope context, and a clean `msfauto >` prompt.
-   - [x] Add grouped `help` output for workspace, scope, discovery, planning, checks, vulnerability, exploit, findings, reporting, and dashboard command families.
-   - [x] Add command completion and retain one-shot CLI flags for automation.
-   - [x] Connect supported commands to existing workspace, discovery, planning, checks, vulnerability, exploit-intelligence, findings, and reporting services.
-   - [ ] Complete guided opportunity-bound exploit review and authorization commands without bypassing the existing lifecycle.
-- [x] Persist interactive command history under the MSFAuto home directory (`command_history`).
-   - [ ] Add responsive asynchronous task streaming/cancellation.
-   - [ ] Add session and post-exploitation commands when those domain services are implemented.
+7. **Validation, execution, and later capabilities**
+   - [ ] Validate supported Metasploit dispatch/reconciliation in an isolated lab; never use public third-party systems for exploit testing.
+   - [ ] Add narrowly scoped, module-specific outcome verifiers with documented non-destructive indicators.
+   - [ ] Add separately authorized session inventory and bounded post-exploitation assessment.
+   - [ ] Expand non-web protocol coverage after the web-first workflow is useful end-to-end.
 
 ## Latest implementation milestone: protocol confirmation for unknown TCP services
 - Nmap may return an unrecognized service label even when the endpoint speaks HTTP, as observed with the local OWASP Juice Shop instance on TCP/3000.
@@ -365,9 +360,15 @@ OSV workflow integration is active when explicit mappings are configured, but th
 - [ ] Add a per-port next-action view connecting collected evidence to analyst review.
 - [ ] Validate profile coverage and sequential execution in the authorized lab.
 
-## Immediate next milestone: live web-application fingerprint validation
+## Immediate next milestone: establish the web-first assessment vertical
 
-Re-run discovery against the local Juice Shop workspace and inspect the persisted http_application_response observation for title, framework markers, assets, confidence, and truncation state. Then expand generic application fingerprint coverage only where supported by repeatable evidence. Route discovery and web vulnerability checks should be separate bounded milestones. Live isolated-Metasploit dispatch validation remains outstanding and must not be conflated with this web-enumeration work.
+1. Validate bounded HTTP application fingerprinting against the local Juice Shop lab and capture actual fields, limitations, and run provenance.
+2. Review the standard TCP profile and make web ports dominant while retaining high-value supporting services; keep full TCP scanning opt-in.
+3. Inspect Metasploit RPC module inventory and metadata APIs to design a recommender for relevant auxiliary/check modules based on observed web technologies and services. Do not invoke arbitrary modules or perform broad module sweeps.
+4. Define the investigation-plan/result contract before adding more probes: selection rationale, prerequisites, expected evidence, bounded request/time budget, result, confidence, and next decision.
+5. After validating the current IP/CIDR workflow, design URL/origin target support with DNS pinning, Host/SNI preservation, redirect boundaries, and explicit path scope.
+
+The current implementation accepts IP/CIDR targets, has basic HTTP/HTTPS and application fingerprint observations, and can read Metasploit module metadata. It does not yet provide a complete web crawler, URL-target workflow, technology-specific investigation engine, or broad automatic Metasploit module selection. Keep those gaps explicit.
 
 ## Deferred milestone: live isolated-lab validation and module-specific verifiers
 
