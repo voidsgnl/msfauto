@@ -37,7 +37,7 @@ class AssessmentApplication:
 
     def discover(self, cancel_event: Event | None = None) -> tuple[str, tuple[Host, ...]]:
         """Run bounded discovery for the workspace's saved authorization scope."""
-        output_path = self.store.path.parent / "discovery" / self.workspace.name / f"{uuid4().hex}.xml"
+        output_path = self.store.path.parent / "discovery" / f"{uuid4().hex}.xml"
         run, hosts = run_nmap(
             self.workspace.name, self.workspace.policy, output_path,
             cancel_event=cancel_event,
