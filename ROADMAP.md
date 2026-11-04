@@ -10,13 +10,12 @@ MSFAuto should not become merely a graphical wrapper around Metasploit. Metasplo
 
 ## Product and interface direction
 
-- The intended product interface is a **graphical application**, not a terminal UI or TUI.
-- The user-supplied UI reference informs visual language and interaction feel; it is not a literal terminal implementation specification or a source of copied terminology, commands, payloads, or workflow steps.
-- A dense security-console aesthetic may inform the graphical presentation: strong status hierarchy, clear target/service tables, activity feedback, compact technical detail, and operator-visible progress.
-- The current Textual interface is an existing prototype, not the intended final interface. Do not expand it into a larger TUI or treat its layout as the target product.
-- Keep the assessment domain, orchestration, integrations, and persistence independent of the interface so a graphical frontend can use the same application services.
-- CLI commands may remain useful for scripting, automation, and diagnostics, but they are not the primary user experience.
-- The graphical interface visual contract is defined in [`docs/interface/visual-system.md`](docs/interface/visual-system.md), with a standalone [task-state preview](docs/interface/task-states-preview.html): shared task-state badges, truthful progress/indeterminate activity, elapsed time, event feed, accessibility, and explicit dispatch-uncertain treatment. These are design artifacts, not an integrated GUI.
+- MSFAuto is a **terminal-only application**. The primary operator experience is a full-screen Textual interface; there is no web interface or native desktop GUI in the product plan.
+- Interaction is keyboard-driven and menu-oriented, inspired by the guided workflow style of tools such as Fluxion without copying its branding, wording, or behavior.
+- The interface opens on a branded main menu with numbered workflows, dedicated terminal screens, clear back/navigation keys, and focused prompts.
+- Long-running operations use truthful lifecycle states, animated indeterminate activity when no measurable percentage exists, elapsed time, and a bounded live activity log.
+- Keep assessment services, integrations, persistence, and authorization independent of Textual widgets so workflows remain testable and reusable by CLI commands.
+- The interface prioritizes targets, services, vulnerability candidates, exploit intelligence, execution lifecycle, findings, evidence, and run history.
 
 ## Core assessment capabilities
 
@@ -180,14 +179,13 @@ OSV workflow integration is active when explicit mappings are configured, but th
    - Add interruption/recovery and dispatch reconciliation before any resume/retry behavior.
    - Never automatically retry an operation whose dispatch outcome is unknown.
 
-7. **Graphical application**
-   - [x] Define the graphical visual system and task lifecycle presentation contract (queued, prepared, dispatching, running, cancelling, completed, failed, timed out, cancelled, paused, and dispatch uncertain).
-   - [ ] Select and scaffold the graphical frontend; the repository currently has no graphical frontend.
-   - [ ] Implement shared status badges, truthful determinate/indeterminate progress, elapsed-time display, and live activity feed against persisted task/job events.
-   - Replace the Textual prototype with a graphical interface using shared application services.
-   - Design the interface around assets, services, assessment results, exploit opportunities, execution/session activity, evidence, and findings.
-   - Keep dense technical detail accessible without making the product a terminal emulator.
-   - Do not begin by merely porting the current TUI screen layout.
+7. **Terminal interface**
+   - [x] Replace the button-oriented dashboard with a full-screen, keyboard-driven Textual application.
+   - [x] Add a branded numbered main menu and dedicated screens for targets/services, vulnerability candidates, exploit intelligence, executions, findings/evidence, workspace scope, and assessment history.
+   - [x] Add live task animation, elapsed time, workflow-stage activity messages, and terminal lifecycle feedback.
+   - [ ] Add deeper drill-down views and guided configuration/review prompts for each assessment workflow.
+   - [ ] Connect execution manager controls to persisted job/exploit lifecycle operations with explicit confirmation.
+   - [ ] Add session and post-exploitation screens when those domain services are implemented.
 
 ## Latest implementation milestone: protocol confirmation for unknown TCP services
 - Nmap may return an unrecognized service label even when the endpoint speaks HTTP, as observed with the local OWASP Juice Shop instance on TCP/3000.
@@ -205,9 +203,11 @@ Re-run discovery against the local Juice Shop workspace and inspect the persiste
 The dispatcher, framework reconciler, and evidence-backed outcome-assessment record are implemented and covered by fake-RPC/unit tests, but the dispatcher and reconciler have not been exercised against a live isolated Metasploit lab. Next, validate the supported RHOSTS/RPORT profile against a deliberately vulnerable lab target and verify job-list plus UUID-result behavior on the connected Metasploit version. Then implement opt-in, module-specific target verifiers with explicit expected indicators and bounded checks; a generic verifier must not guess what success looks like. Session records and post-exploitation actions remain a later, separately authorized milestone.
 
 
-## Latest implementation milestone: graphical task-state visual specification
+## Latest implementation milestone: Fluxion-inspired terminal interaction
 
-- Added `docs/interface/visual-system.md` as the visual/interaction contract and `docs/interface/task-states-preview.html` as a browser-openable visual preview for the intended graphical application.
-- Defined consistent treatments for queued, prepared, dispatching, running, cancelling, completed, failed, timed-out, cancelled, paused, and dispatch-uncertain states.
-- Specified shared status badges, truthful determinate versus indeterminate progress, elapsed time, chronological activity events, reduced-motion behavior, keyboard focus, and accessible text/icon labels.
-- Explicitly kept this work out of the Textual prototype. The repository does not yet contain a graphical frontend, so the visual system is specified but not yet rendered in an application. The next UI milestone is to scaffold that frontend and connect these components to the existing assessment/job services.
+- Replaced the button-oriented dashboard with a full-screen, keyboard-driven Textual terminal application.
+- Added a branded startup header, persistent workspace/scope context, numbered main menu, and dedicated views for target/service inventory, vulnerability candidates, exploit intelligence, execution lifecycle, findings/evidence, workspace scope, and assessment history.
+- Added direct number-key navigation, Home/Escape return, refresh, and quit bindings. The interface no longer relies on clickable buttons.
+- Added a live activity area and animated running indicator with elapsed time. Progress remains indeterminate unless the workflow supplies a real measurable percentage.
+- The interface is terminal-only: no browser UI, HTML preview, or native desktop GUI is part of the product direction.
+- Follow-up work: deepen each view with focused detail screens and guided review/configuration prompts, then connect execution controls as the underlying lifecycle APIs mature.
