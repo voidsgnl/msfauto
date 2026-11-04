@@ -52,6 +52,38 @@ class DiscoveryTests(unittest.TestCase):
             self.assertEqual(restored[0].address, hosts[0].address)
             self.assertEqual(restored[0].services[0], hosts[0].services[0])
 
+    def test_save_hosts_replaces_current_inventory_without_stale_services(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = WorkspaceStore(Path(directory) / "state.sqlite3")
+            policy = build_policy(["192.168.56.0/24"])
+            initial_path = Path(directory) / "initial.xml"
+            updated_path = Path(directory) / "updated.xml"
+            initial_path.write_text(NMAP_XML, encoding="utf-8")
+            updated_path.write_text(
+                NMAP_XML.replace(
+                    '      <port protocol="tcp" portid="80">\\n'
+                    '        <state state="open"/>\\n'
+                    '        <service name="http"/>\\n'
+                    '      </port>\\n',
+                    "",
+                ),
+                encoding="utf-8",
+            )
+
+            store.save_hosts("lab", parse_nmap_xml(initial_path, policy))
+            self.assertEqual(len(store.get_hosts("lab")[0].services), 2)
+
+            store.save_hosts("lab", parse_nmap_xml(updated_path, policy))
+            current = store.get_hosts("lab")
+            self.assertEqual(len(current), 1)
+            self.assertEqual(
+                [(service.port, service.name) for service in current[0].services],
+                [(22, "ssh")],
+            )
+
+            store.save_hosts("lab", ())
+            self.assertEqual(store.get_hosts("lab"), ())
+
     def test_discovery_history_and_snapshot_comparison(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = WorkspaceStore(Path(directory) / "state.sqlite3")
