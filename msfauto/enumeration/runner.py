@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from ..storage.models import Host, ScopePolicy, Service
-from .models import ServiceObservation
 from .http_fingerprint import MAX_HTML_BYTES, fingerprint_http_html
+from .models import ServiceObservation
 
 DEFAULT_TIMEOUT = 3.0
 MAX_WORKERS = 8
