@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import tempfile
 import xml.etree.ElementTree as ET
 from threading import Event
 from time import monotonic, sleep
@@ -45,51 +46,52 @@ def run_nmap(
     command.extend(targets)
     started_at = _utc_now()
     deadline = monotonic() + timeout
-    process = subprocess.Popen(
-        command,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    while process.poll() is None:
-        if cancel_event is not None and cancel_event.is_set():
-            process.terminate()
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
+    with tempfile.TemporaryFile(mode="w+t") as stderr_file:
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.DEVNULL,
+            stderr=stderr_file,
+            text=True,
+        )
+        while process.poll() is None:
+            if cancel_event is not None and cancel_event.is_set():
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+                return (
+                    DiscoveryRun(
+                        workspace, executable, tuple(command), str(output_path), "cancelled",
+                        started_at, _utc_now(), "Discovery cancelled by operator.",
+                    ),
+                    (),
+                )
+            if monotonic() >= deadline:
                 process.kill()
                 process.wait()
-            if process.stderr is not None:
-                process.stderr.close()
-            return (
-                DiscoveryRun(
-                    workspace, executable, tuple(command), str(output_path), "cancelled",
-                    started_at, _utc_now(), "Discovery cancelled by operator.",
-                ),
-                (),
-            )
-        if monotonic() >= deadline:
-            process.kill()
-            process.wait()
-            stderr = process.stderr.read() if process.stderr is not None else ""
-            return (
-                DiscoveryRun(
-                    workspace, executable, tuple(command), str(output_path), "timed_out",
-                    started_at, _utc_now(), stderr.strip() or "Discovery timed out.",
-                ),
-                (),
-            )
-        sleep(0.1)
+                stderr_file.seek(0)
+                detail = stderr_file.read().strip()
+                return (
+                    DiscoveryRun(
+                        workspace, executable, tuple(command), str(output_path), "timed_out",
+                        started_at, _utc_now(), detail or "Discovery timed out.",
+                    ),
+                    (),
+                )
+            sleep(0.1)
 
-    stderr = process.stderr.read() if process.stderr is not None else ""
-    if process.returncode != 0:
-        return (
-            DiscoveryRun(
-                workspace, executable, tuple(command), str(output_path), "failed",
-                started_at, _utc_now(), stderr.strip(),
-            ),
-            (),
-        )
+        stderr_file.seek(0)
+        stderr = stderr_file.read().strip()
+        if process.returncode != 0:
+            return (
+                DiscoveryRun(
+                    workspace, executable, tuple(command), str(output_path), "failed",
+                    started_at, _utc_now(), stderr,
+                ),
+                (),
+            )
     hosts = parse_nmap_xml(output_path, policy)
     return (
         DiscoveryRun(
