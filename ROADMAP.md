@@ -81,7 +81,7 @@ OSV workflow integration is active when explicit mappings are configured, but th
 - Dispatch requires a prepared record and an exact `DISPATCH` confirmation, then uses the existing narrow Metasploit TCP dispatcher. No arbitrary module/target/port/options are accepted.
 - Polling uses the existing active-job and UUID-specific result reconciler. Cancellation records `cancelling` before requesting `job.stop`; a stop acknowledgement is not treated as terminal completion.
 - Uncertain dispatch remains a separate operator-only reconciliation path. A manually reconciled running state must include both the Metasploit job ID and UUID. A confirmed non-dispatch closes the attempt; retry requires a new review and authorization.
-- No live exploit was dispatched as part of this implementation. CI verification is pending for the latest commit.
+- No live exploit was dispatched as part of this implementation. GitHub Actions run #520 passed on Python 3.10, 3.12, and 3.14: 164 tests passed (plus 2 subtests) on each version; Ruff passed on all three.
 
 
 ### Latest implementation milestone: bounded HTTP application fingerprinting
