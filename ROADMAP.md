@@ -235,3 +235,12 @@ The dispatcher, framework reconciler, and evidence-backed outcome-assessment rec
 - Some commands are informational/reserved where the underlying guided workflow is not yet connected (notably exploit authorization); no placeholder command may bypass persisted authorization.
 - Dependencies now include Rich and prompt_toolkit. The previous Textual implementation remains as legacy code pending cleanup; it is not the primary interface.
 - Verification status: the previous CI runs passed 159 tests but exposed an import-order lint issue; the import correction and persistent-history update are committed to main and their CI runs are pending.
+
+
+## Latest implementation milestone: live command-console task output (2026-11-04)
+
+- Added an in-process task registry with task IDs, lifecycle status, queued progress events, captured results/errors, and a cooperative cancellation primitive for future cancellable operations.
+- Connected `discovery run` to the shared `AssessmentApplication` service through the task runner. Stage events now stream into the terminal while the assessment is running, with a Rich activity indicator; the shell remains a persistent `msfauto >` command console.
+- Added `tasks list` and `tasks show <id>` for inspecting task state and any queued task output.
+- Discovery is currently submitted as non-cancellable because the Nmap adapter still uses a blocking subprocess call. Do not present cancellation as available until the scanner process and orchestrator support safe cooperative cancellation.
+- Follow-up: implement cancellable Nmap process management and stage-boundary cancellation, add lifecycle tests for the task runner, then expose the existing persisted exploit execution lifecycle through console commands without weakening review, authorization, scope, single-use dispatch, or uncertain-outcome reconciliation.
