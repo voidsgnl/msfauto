@@ -56,7 +56,7 @@ Supporting platform capabilities:
 - Added tests proving target evidence must match both the execution workspace and exact target.
 - Added append-only history coverage for multiple independent assessments of one execution.
 - Asserted that recording target-side verdicts does not mutate the Metasploit framework execution state.
-- The cancellation/recovery test suite and this additional verification coverage are being checked through CI.
+- GitHub Actions run #535 passed on Python 3.10, 3.12, and 3.14: 170 tests passed plus 5 subtests; Ruff passed on all versions.
 
 ## Current implementation baseline
 
