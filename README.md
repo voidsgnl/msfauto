@@ -162,7 +162,18 @@ Evidence IDs must already exist and belong to the same workspace and exact targe
 
 ## Interface direction
 
-MSFAuto is a **terminal-only application** with a persistent Metasploit-style command prompt (`msfauto >`). Startup is intentionally minimal; type `help` to see the command catalogue. Operators use concise hierarchical commands such as `discovery run`, `scope show`, `plan build`, and `exploits poll`. Rich terminal output and live task messages provide feedback without turning the application into a menu-driven TUI. There is no web interface or native desktop GUI in the product plan.
+MSFAuto is a **terminal-only application** with a persistent Metasploit-style, mode-aware command prompt. The root `msfauto >` prompt exposes `use <mode>`, `show modes`, `help`, and `exit`. Enter `discovery`, `exploit`, `analysis`, or `workspace` mode to get a focused command catalogue and a matching prompt such as `[discovery] msfauto >`. Use `back` to return to the root prompt; `help` always shows only the current context's commands. Existing hierarchical command handlers and services are reused beneath the short mode commands. Discovery comparisons report host additions/removals/identity changes as well as service-level changes. Rich terminal output and live task messages provide feedback without turning the application into a menu-driven TUI. There is no web interface or native desktop GUI in the product plan.
+
+Example:
+```text
+msfauto > show modes
+msfauto > use discovery
+[discovery] msfauto > help
+[discovery] msfauto > history
+[discovery] msfauto > back
+msfauto > use exploit
+[exploit] msfauto > list
+```
 
 The CLI remains available for scripting, automation, imports, and diagnostics.
 
