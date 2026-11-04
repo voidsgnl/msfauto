@@ -324,6 +324,10 @@ class CommandShell:
             add("Failure stage", "error_stage")
             add("Error type", "error_type")
             add("Error detail", "error")
+            add("Failure category", "failure_category")
+            add("Elapsed time (ms)", "elapsed_ms")
+            add("Timeout budget (s)", "timeout_seconds")
+            add("Interpretation", "failure_explanation")
         elif item.protocol == "tls":
             for label, key in (
                 ("TLS version", "tls_version"), ("Cipher", "cipher"),
