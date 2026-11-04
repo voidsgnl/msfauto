@@ -59,12 +59,15 @@ def display_plan(store: WorkspaceStore, workspace: Workspace) -> None:
         print(f"   {recommendation.reason}")
 
 
-def run_discovery(store: WorkspaceStore, workspace: Workspace) -> int:
+def run_discovery(
+    store: WorkspaceStore, workspace: Workspace, scan_profile: str = "standard",
+) -> int:
     application = AssessmentApplication(workspace, store)
     print("Starting the saved-scope assessment workflow (discovery + read-only planning).")
     try:
         run, plan = application.run_assessment(
-            lambda event: print(f"[{event.stage}] {event.message}")
+            lambda event: print(f"[{event.stage}] {event.message}"),
+            scan_profile=scan_profile,
         )
     except (DiscoveryError, RuntimeError) as exc:
         print(f"Assessment failed: {exc}")
@@ -337,6 +340,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--shell", action="store_true", help="Open the interactive MSFAuto command shell (the default).")
     parser.add_argument("--import-nmap", type=Path, help="Import an Nmap XML result into the workspace.")
     parser.add_argument("--discover", action="store_true", help="Run the saved-scope discovery and read-only planning workflow.")
+    parser.add_argument("--scan-profile", choices=("quick", "standard", "full"), default="standard", help="TCP discovery coverage for --discover (default: standard; full scans all TCP ports within saved scope).")
     parser.add_argument("--show-plan", action="store_true", help="Build and print a read-only assessment plan.")
     parser.add_argument("--run-safe-checks", action="store_true", help="Run bounded non-invasive checks from the plan.")
     parser.add_argument(
@@ -396,7 +400,7 @@ def main() -> int:
         if workspace is None:
             print(f"Workspace not found: {args.workspace}")
             return 1
-        return run_discovery(store, workspace)
+        return run_discovery(store, workspace, args.scan_profile)
     if args.show_plan:
         workspace = store.get(args.workspace)
         if workspace is None:
