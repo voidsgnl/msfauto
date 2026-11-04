@@ -7,6 +7,8 @@ import smtplib
 import socket
 import ssl
 import struct
+import time
+from dataclasses import replace
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -577,18 +579,61 @@ def _ssh_probe(
         )
 
 
+def _run_timed_probe(probe, *args, timeout: float) -> tuple[ServiceObservation, ...]:
+    """Attach bounded timing and failure classification to every probe result."""
+    started = time.perf_counter()
+    observations = probe(*args)
+    elapsed_ms = round((time.perf_counter() - started) * 1000, 3)
+    enriched = []
+    for observation in observations:
+        attributes = dict(observation.attributes)
+        attributes["elapsed_ms"] = elapsed_ms
+        attributes["timeout_seconds"] = timeout
+        if observation.status == "failed":
+            error_type = str(attributes.get("error_type", ""))
+            error = str(attributes.get("error", "")).lower()
+            stage = str(attributes.get("error_stage", ""))
+            if error_type in {"TimeoutError", "socket.timeout"} or "timed out" in error:
+                category = "timeout"
+                explanation = "The endpoint did not complete this operation within the configured timeout."
+            elif stage == "tcp_connect":
+                category = "connection"
+                explanation = "A TCP connection could not be established."
+            else:
+                category = "protocol_response"
+                explanation = "The connection reached the protocol probe, but a usable response was not completed."
+            attributes["failure_category"] = category
+            attributes["failure_explanation"] = explanation
+        enriched.append(replace(observation, attributes=attributes))
+    return tuple(enriched)
+
+
 def enumerate_services(
     workspace: str,
     hosts: tuple[Host, ...],
     policy: ScopePolicy,
     timeout: float = DEFAULT_TIMEOUT,
     max_workers: int = MAX_WORKERS,
+    protocol_timeouts: dict[str, float] | None = None,
 ) -> tuple[ServiceObservation, ...]:
     """Enumerate recognized open TCP services within the saved target/port scope."""
     if timeout <= 0:
         raise ValueError("Enumeration timeout must be greater than zero.")
     if not 1 <= max_workers <= MAX_WORKERS:
         raise ValueError(f"Enumeration workers must be between 1 and {MAX_WORKERS}.")
+    allowed_timeouts = {"http", "https", "tls", "ssh", "ftp", "smtp", "smb"}
+    configured_timeouts = dict(protocol_timeouts or {})
+    unknown_timeouts = set(configured_timeouts) - allowed_timeouts
+    if unknown_timeouts:
+        raise ValueError(f"Unsupported protocol timeout keys: {', '.join(sorted(unknown_timeouts))}.")
+    for name, value in configured_timeouts.items():
+        if not isinstance(value, (int, float)) or not 0 < value < float("inf"):
+            raise ValueError(f"Timeout for {name} must be a finite number greater than zero.")
+    def timeout_for(kind: str, service: Service) -> float:
+        key = kind
+        if kind == "http":
+            key = "https" if service.name.lower() == "https" or service.tunnel.lower() == "ssl" else "http"
+        return float(configured_timeouts.get(key, timeout))
 
     tasks: list[tuple[str, str, str, Service]] = []
     for host in hosts:
@@ -618,10 +663,12 @@ def enumerate_services(
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for kind, target, server_hostname, service in tasks:
+            selected_timeout = timeout_for(kind, service)
             if kind in {"http", "http_candidate"}:
                 futures.append(
                     executor.submit(
-                        _http_probe, workspace, target, service, timeout,
+                        _run_timed_probe, _http_probe, workspace, target, service, selected_timeout,
+                        timeout=selected_timeout,
                         unidentified_service=kind == "http_candidate",
                         server_hostname=server_hostname or target,
                     )
@@ -630,7 +677,8 @@ def enumerate_services(
             if kind == "tls":
                 futures.append(
                     executor.submit(
-                        _tls_probe, workspace, target, service, timeout,
+                        _run_timed_probe, _tls_probe, workspace, target, service, selected_timeout,
+                        timeout=selected_timeout,
                         server_hostname=server_hostname or target,
                     )
                 )
@@ -641,7 +689,10 @@ def enumerate_services(
                 "smtp": _smtp_probe,
                 "smb": _smb_probe,
             }[kind]
-            futures.append(executor.submit(probe, workspace, target, service, timeout))
+            futures.append(executor.submit(
+                _run_timed_probe, probe, workspace, target, service, selected_timeout,
+                timeout=selected_timeout,
+            ))
         for future in as_completed(futures):
             try:
                 results.extend(future.result())
