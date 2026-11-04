@@ -28,6 +28,11 @@ from .manager import (
     JobManager,
 )
 from .metasploit import SAFE_AUXILIARY_MODULES, MetasploitSafeAdapter
+from .module_verification import (
+    ModuleVerificationError,
+    ModuleVerificationResult,
+    ModuleVerifierRegistry,
+)
 from .outcome_validation import (
     ExploitOutcomeValidationError,
     ExploitOutcomeValidator,
@@ -67,6 +72,9 @@ __all__ = [
     "MetasploitExploitDispatcher",
     "MetasploitExploitReconciler",
     "MetasploitSafeAdapter",
+    "ModuleVerificationError",
+    "ModuleVerificationResult",
+    "ModuleVerifierRegistry",
     "TargetOutcomeAssessment",
     "begin_exploit_dispatch",
     "finish_exploit_execution",
