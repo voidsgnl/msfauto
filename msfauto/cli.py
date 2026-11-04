@@ -39,12 +39,7 @@ def display_policy(policy: ScopePolicy) -> None:
 
 
 def display_next_steps(workspace: Workspace) -> None:
-    print("\nWhat to do next:")
-    print("  1. Run Nmap automatically using this saved scope.")
-    print("  2. Build a read-only assessment plan from discovered services.")
-    print("  3. Run bounded non-invasive checks from that plan.")
-    print("  4. Open the dashboard to review hosts, plans, and job results.")
-    print("\nThe guided terminal interface opens next, so you can perform these steps without memorizing commands.")
+    print("\nType 'help' at the MSFAuto prompt to see available commands.")
 
 
 def display_plan(store: WorkspaceStore, workspace: Workspace) -> None:
@@ -275,17 +270,18 @@ def interactive(store: WorkspaceStore, workspace_name: str, profile: str) -> int
             print(f"Scope error: {exc}")
             return 2
 
-    from .interface import Dashboard
+    from .interface import CommandShell
 
-    Dashboard(workspace, store).run()
+    CommandShell(store, workspace).run()
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Local terminal-first assessment orchestrator.")
+    parser.add_argument("command", nargs="?", choices=("shell",), help="Open the interactive MSFAuto command shell.")
     parser.add_argument("--workspace", default="default", help="Workspace name to open.")
     parser.add_argument("--show-scope", action="store_true", help="Print the saved scope and exit.")
-    parser.add_argument("--tui", action="store_true", help="Open the interactive terminal interface (now the default).")
+    parser.add_argument("--shell", action="store_true", help="Open the interactive MSFAuto command shell (the default).")
     parser.add_argument("--import-nmap", type=Path, help="Import an Nmap XML result into the workspace.")
     parser.add_argument("--discover", action="store_true", help="Run the saved-scope discovery and read-only planning workflow.")
     parser.add_argument("--show-plan", action="store_true", help="Build and print a read-only assessment plan.")
@@ -372,15 +368,6 @@ def main() -> int:
         return run_safe_checks(
             store, workspace, args.max_checks, args.check_workers, args.metasploit
         )
-    if args.tui:
-        workspace = store.get(args.workspace)
-        if workspace is None:
-            print(f"Workspace not found: {args.workspace}")
-            return 1
-        from .interface import Dashboard
-
-        Dashboard(workspace, store).run()
-        return 0
     try:
         return interactive(store, args.workspace, args.profile)
     except (KeyboardInterrupt, EOFError):
