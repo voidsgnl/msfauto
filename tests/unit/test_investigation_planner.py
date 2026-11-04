@@ -1,6 +1,9 @@
 import unittest
 
-from msfauto.assessment.investigation import build_investigation_steps, plan_service_investigation
+from msfauto.assessment.investigation import (
+    build_investigation_steps,
+    plan_service_investigation,
+)
 from msfauto.enumeration.models import ServiceObservation
 from msfauto.storage.models import Service
 
