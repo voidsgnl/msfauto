@@ -7,13 +7,12 @@ import smtplib
 import socket
 import ssl
 import struct
-from datetime import datetime, timezone
-
-from cryptography import x509
-from cryptography.exceptions import UnsupportedAlgorithm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from uuid import uuid4
+
+from cryptography import x509
+from cryptography.exceptions import UnsupportedAlgorithm
 
 from ..storage.models import Host, ScopePolicy, Service
 from .http_fingerprint import MAX_HTML_BYTES, fingerprint_http_html
