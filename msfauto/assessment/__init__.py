@@ -4,7 +4,10 @@ from .investigation import (
     build_investigation_steps,
     plan_service_investigation,
 )
-from .metasploit_intelligence import AuxiliaryModuleCandidate, discover_web_auxiliary_modules
+from .metasploit_intelligence import (
+    AuxiliaryModuleCandidate,
+    discover_web_auxiliary_modules,
+)
 from .planner import build_plan
 
 __all__ = [
