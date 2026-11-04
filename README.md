@@ -72,6 +72,10 @@ Example entry:
 Matching requires an open service, an exact product alias, and either an exact affected version or a linked vulnerability candidate with an explicitly listed advisory ID. Results are persisted as identified exploit opportunities. The catalog is metadata only: it does not authorize, configure, or execute a module. Version ranges and fuzzy product matching are deliberately not inferred.
 
 
+### Metasploit RPC connection
+
+MSFAuto does **not** launch or manage `msfrpcd` as part of startup. Start the Metasploit RPC daemon separately, then configure the RPC endpoint and credentials in the environment before using framework-backed commands. The default endpoint is `http://127.0.0.1:55553/api/1.0`; override it with `MSFAUTO_METASPLOIT_URL`. Set `MSFAUTO_METASPLOIT_USERNAME` and `MSFAUTO_METASPLOIT_PASSWORD` to the account configured for that RPC daemon. These credentials are required for read-only catalogue queries as well as execution-related RPC calls; they are not an indication that an exploit is being run.
+
 ### Importing exploit metadata from Metasploit
 
 Use `exploits list [filter]` in the interactive console to display the live module-name inventory returned by Metasploit's `module.exploits` RPC method; the optional case-insensitive filter narrows that inventory. Use `exploits opportunities` for target-matched, workspace-persisted leads. These are intentionally separate: a module being present in Metasploit does not mean it applies to a discovered target. MSFAuto can also normalize module metadata (rank, description, platforms, architectures, targets, required options, references, and check support). Import is deliberately opt-in and restricted to modules listed in `MSFAUTO_EXPLOIT_PRODUCT_MAPPINGS`; the importer fetches detailed metadata only for those mapped modules.
