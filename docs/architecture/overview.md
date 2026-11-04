@@ -22,7 +22,7 @@ The intended primary interface is a **graphical application**, not a terminal UI
 ## High-level component model
 
 ```text
-Graphical Application
+Full-screen Textual Terminal
         |
         v
 Application / Assessment Orchestrator
@@ -52,7 +52,7 @@ The interface calls application services. It must not build shell commands, call
 
 | Component | Owns | Does not own |
 |---|---|---|
-| graphical interface | Screens, navigation, visualizations, prompts, progress and presentation | Assessment decisions or direct tool execution |
+| terminal interface | Numbered menus, terminal screens, keyboard navigation, prompts, tables, progress and presentation | Assessment decisions or direct tool execution |
 | core | Application lifecycle, workflow coordination, events and state | Tool-specific protocol details |
 | configuration/workspace | Settings, workspace identity and lifecycle | Authorization decisions |
 | scope | Authorized targets, exclusions, ports and operation policy | User-interface navigation |
@@ -102,6 +102,6 @@ Every meaningful operation should be traceable to an assessment run, target, ope
 
 The repository currently has working foundations for Nmap discovery, normalized host/service storage, read-only Metasploit metadata, a limited passive-check adapter, read-only planning, bounded jobs, approvals, evidence, findings, workspace reports, and run-specific plan snapshots.
 
-The current Textual UI is a prototype. Keep its service calls reusable, but do not treat its widgets or terminal layout as the target graphical application.
+The Textual interface is the intended primary operator experience. Keep its service calls reusable and keep domain behavior outside the widgets.
 
 Introduce future domain packages only when they contain real behavior and tests. Preserve the existing SQLite data with explicit migrations. Work directly on `main`; do not create a redesign branch unless explicitly requested.
