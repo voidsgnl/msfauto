@@ -243,7 +243,12 @@ def _ftp_probe(
 
 
 def _http_probe(
-    workspace: str, target: str, service: Service, timeout: float
+    workspace: str,
+    target: str,
+    service: Service,
+    timeout: float,
+    *,
+    unidentified_service: bool = False,
 ) -> tuple[ServiceObservation, ...]:
     secure = service.name.lower() == "https" or service.tunnel.lower() == "ssl"
     if secure:
@@ -263,12 +268,29 @@ def _http_probe(
             key.lower(): value[:MAX_VALUE_LENGTH]
             for key, value in response.getheaders()[:MAX_HEADERS]
         }
+        if unidentified_service and (
+            response.version not in {10, 11} or not 100 <= response.status <= 599
+        ):
+            return ()
         attributes: dict[str, object] = {
             "status_code": response.status,
             "reason": (response.reason or "")[:MAX_VALUE_LENGTH],
+            "http_version": f"HTTP/{response.version // 10}.{response.version % 10}",
             "headers": headers,
             "method": "HEAD",
             "path": "/",
+            "detected_by": (
+                "active_http_probe" if unidentified_service
+                else "nmap_service_fingerprint"
+            ),
+            "nmap_fingerprint": {
+                "name": service.name,
+                "product": service.product,
+                "version": service.version,
+                "method": service.method,
+                "confidence": service.confidence,
+                "tunnel": service.tunnel,
+            },
         }
         observations = [
             _observation(workspace, target, service, protocol, "completed", attributes)
@@ -294,6 +316,10 @@ def _http_probe(
                 )
         return tuple(observations)
     except (OSError, http.client.HTTPException, ssl.SSLError, TimeoutError) as exc:
+        if unidentified_service:
+            # An unknown TCP service is only classified as HTTP after a valid
+            # HTTP response. A non-HTTP response is not an enumeration failure.
+            return ()
         return (
             _observation(
                 workspace, target, service, protocol, "failed",
@@ -366,11 +392,27 @@ def enumerate_services(
                 tasks.append(("smb", str(host.address), service))
             elif _is_tls(service):
                 tasks.append(("tls", str(host.address), service))
+            elif service.protocol.lower() == "tcp" and not service.tunnel:
+                # Nmap can return an unknown service label even when the port
+                # speaks HTTP. Try one bounded HEAD request before giving up.
+                tasks.append(("http_candidate", str(host.address), service))
 
     results: list[ServiceObservation] = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for kind, target, service in tasks:
+            if kind == "http_candidate":
+                futures.append(
+                    executor.submit(
+                        _http_probe,
+                        workspace,
+                        target,
+                        service,
+                        timeout,
+                        unidentified_service=True,
+                    )
+                )
+                continue
             probe = {
                 "http": _http_probe,
                 "ssh": _ssh_probe,
