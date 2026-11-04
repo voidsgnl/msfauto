@@ -175,12 +175,41 @@ def _is_smb(service: Service) -> bool:
 
 def _is_smtp(service: Service) -> bool:
     label = f"{service.name} {service.product}".lower()
-    return (
-        service.protocol.lower() == "tcp"
-        and service.tunnel.lower() != "ssl"
-        and service.port != 465
-        and ("smtp" in label or service.port in {25, 587})
+    return service.protocol.lower() == "tcp" and (
+        "smtp" in label or service.port in {25, 465, 587}
     )
+
+
+def _is_pop3(service: Service) -> bool:
+    label = f"{service.name} {service.product}".lower()
+    return service.protocol.lower() == "tcp" and (
+        "pop3" in label or service.port in {110, 995}
+    )
+
+
+def _is_imap(service: Service) -> bool:
+    label = f"{service.name} {service.product}".lower()
+    return service.protocol.lower() == "tcp" and (
+        "imap" in label or service.port in {143, 993}
+    )
+
+
+def _implicit_tls(service: Service) -> bool:
+    return service.tunnel.lower() == "ssl" or service.port in {465, 993, 995}
+
+
+def _mail_tls_attributes(sock: ssl.SSLSocket | socket.socket) -> dict[str, object]:
+    if not isinstance(sock, ssl.SSLSocket):
+        return {}
+    certificate = sock.getpeercert(binary_form=True) or b""
+    cipher = sock.cipher()
+    return {
+        "tls_version": sock.version() or "",
+        "tls_cipher": cipher[0] if cipher else "",
+        "tls_certificate_present": bool(certificate),
+        "tls_certificate_sha256": hashlib.sha256(certificate).hexdigest() if certificate else "",
+        **_certificate_attributes(certificate),
+    }
 
 
 def _recv_exact(sock: socket.socket, size: int) -> bytes:
@@ -360,15 +389,25 @@ def _ftp_probe(
 
 
 def _smtp_probe(
-    workspace: str, target: str, service: Service, timeout: float
+    workspace: str, target: str, service: Service, timeout: float,
+    server_hostname: str | None = None,
 ) -> tuple[ServiceObservation, ...]:
     """Read SMTP greeting and EHLO capabilities; never authenticate or send mail."""
     client = smtplib.SMTP(timeout=timeout)
     stage = "tcp_connect"
     try:
-        client.sock = socket.create_connection(
-            (target, service.port), timeout=timeout
-        )
+        raw_socket = socket.create_connection((target, service.port), timeout=timeout)
+        if _implicit_tls(service):
+            stage = "tls_handshake"
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            client.sock = context.wrap_socket(
+                raw_socket, server_hostname=server_hostname or target,
+            )
+        else:
+            client.sock = raw_socket
+        client.sock.settimeout(timeout)
         client.file = client.sock.makefile("rb")
         stage = "smtp_greeting"
         welcome_code, welcome_message = client.getreply()
@@ -389,6 +428,7 @@ def _smtp_probe(
             "capabilities": features,
             "supports_starttls": "starttls" in features,
             "auth_mechanisms": auth_mechanisms[:16],
+            **_mail_tls_attributes(client.sock),
         }
         status = "completed" if welcome_code == 220 and ehlo_code == 250 else "partial"
         return (
@@ -412,6 +452,143 @@ def _smtp_probe(
                 client.close()
         except (OSError, smtplib.SMTPException):
             client.close()
+
+
+def _pop3_probe(
+    workspace: str, target: str, service: Service, timeout: float,
+    server_hostname: str | None = None,
+) -> tuple[ServiceObservation, ...]:
+    """Read POP3 greeting and CAPA capabilities without authenticating."""
+    sock: socket.socket | ssl.SSLSocket | None = None
+    stream = None
+    stage = "tcp_connect"
+    try:
+        sock = socket.create_connection((target, service.port), timeout=timeout)
+        if _implicit_tls(service):
+            stage = "tls_handshake"
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            sock = context.wrap_socket(sock, server_hostname=server_hostname or target)
+        sock.settimeout(timeout)
+        stream = sock.makefile("rb")
+        stage = "pop3_greeting"
+        greeting = stream.readline(MAX_VALUE_LENGTH + 2).decode("utf-8", errors="replace").strip()
+        attributes: dict[str, object] = {
+            "greeting": greeting[:MAX_VALUE_LENGTH],
+            "capabilities": [],
+            **_mail_tls_attributes(sock),
+        }
+        status = "completed" if greeting.upper().startswith("+OK") else "partial"
+        if status == "completed":
+            stage = "pop3_capa"
+            sock.sendall(b"CAPA\r\n")
+            first = stream.readline(MAX_VALUE_LENGTH + 2).decode("utf-8", errors="replace").strip()
+            if first.upper().startswith("+OK"):
+                capabilities = []
+                for _ in range(32):
+                    line = stream.readline(MAX_VALUE_LENGTH + 2).decode("utf-8", errors="replace").strip()
+                    if not line or line == ".":
+                        break
+                    capabilities.append(line[:MAX_VALUE_LENGTH])
+                attributes["capabilities"] = capabilities
+            else:
+                attributes["capa_response"] = first[:MAX_VALUE_LENGTH]
+                status = "partial"
+            try:
+                sock.sendall(b"QUIT\r\n")
+            except OSError:
+                pass
+        return (_observation(
+            workspace, target, service, "pop3", status, attributes,
+            confidence=9 if status == "completed" else 4,
+        ),)
+    except (OSError, ssl.SSLError, TimeoutError, ValueError) as exc:
+        return (_observation(
+            workspace, target, service, "pop3", "failed",
+            _error_attributes(exc, stage=stage),
+        ),)
+    finally:
+        if stream is not None:
+            try:
+                stream.close()
+            except OSError:
+                pass
+        if sock is not None:
+            try:
+                sock.close()
+            except OSError:
+                pass
+
+
+def _imap_probe(
+    workspace: str, target: str, service: Service, timeout: float,
+    server_hostname: str | None = None,
+) -> tuple[ServiceObservation, ...]:
+    """Read IMAP greeting and CAPABILITY response without authenticating."""
+    sock: socket.socket | ssl.SSLSocket | None = None
+    stream = None
+    stage = "tcp_connect"
+    try:
+        sock = socket.create_connection((target, service.port), timeout=timeout)
+        if _implicit_tls(service):
+            stage = "tls_handshake"
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            sock = context.wrap_socket(sock, server_hostname=server_hostname or target)
+        sock.settimeout(timeout)
+        stream = sock.makefile("rb")
+        stage = "imap_greeting"
+        greeting = stream.readline(MAX_VALUE_LENGTH + 2).decode("utf-8", errors="replace").strip()
+        attributes: dict[str, object] = {
+            "greeting": greeting[:MAX_VALUE_LENGTH],
+            "capabilities": [],
+            **_mail_tls_attributes(sock),
+        }
+        status = "completed" if greeting.upper().startswith("* OK") else "partial"
+        if status == "completed":
+            stage = "imap_capability"
+            sock.sendall(b"a001 CAPABILITY\r\n")
+            capabilities: list[str] = []
+            tagged_response = ""
+            for _ in range(40):
+                line = stream.readline(MAX_VALUE_LENGTH + 2).decode("utf-8", errors="replace").strip()
+                if not line:
+                    break
+                if line.upper().startswith("* CAPABILITY "):
+                    capabilities.extend(line.split()[2:34])
+                if line.upper().startswith("A001 "):
+                    tagged_response = line
+                    break
+            attributes["capabilities"] = capabilities[:32]
+            attributes["capability_status"] = tagged_response[:MAX_VALUE_LENGTH]
+            if not tagged_response.upper().startswith("A001 OK"):
+                status = "partial"
+            try:
+                sock.sendall(b"a002 LOGOUT\r\n")
+            except OSError:
+                pass
+        return (_observation(
+            workspace, target, service, "imap", status, attributes,
+            confidence=9 if status == "completed" else 4,
+        ),)
+    except (OSError, ssl.SSLError, TimeoutError, ValueError) as exc:
+        return (_observation(
+            workspace, target, service, "imap", "failed",
+            _error_attributes(exc, stage=stage),
+        ),)
+    finally:
+        if stream is not None:
+            try:
+                stream.close()
+            except OSError:
+                pass
+        if sock is not None:
+            try:
+                sock.close()
+            except OSError:
+                pass
 
 
 def _http_probe(
@@ -625,7 +802,7 @@ def enumerate_services(
         raise ValueError("Enumeration timeout must be greater than zero.")
     if not 1 <= max_workers <= MAX_WORKERS:
         raise ValueError(f"Enumeration workers must be between 1 and {MAX_WORKERS}.")
-    allowed_timeouts = {"http", "https", "tls", "ssh", "ftp", "smtp", "smb"}
+    allowed_timeouts = {"http", "https", "tls", "ssh", "ftp", "smtp", "pop3", "imap", "smb"}
     configured_timeouts = dict(protocol_timeouts or {})
     unknown_timeouts = set(configured_timeouts) - allowed_timeouts
     if unknown_timeouts:
@@ -654,6 +831,10 @@ def enumerate_services(
                 tasks.append(("ftp", str(host.address), host.hostname, service))
             elif _is_smtp(service):
                 tasks.append(("smtp", str(host.address), host.hostname, service))
+            elif _is_pop3(service):
+                tasks.append(("pop3", str(host.address), host.hostname, service))
+            elif _is_imap(service):
+                tasks.append(("imap", str(host.address), host.hostname, service))
             elif _is_smb(service):
                 tasks.append(("smb", str(host.address), host.hostname, service))
             elif _is_tls(service):
@@ -691,11 +872,13 @@ def enumerate_services(
                 "ssh": _ssh_probe,
                 "ftp": _ftp_probe,
                 "smtp": _smtp_probe,
+                "pop3": _pop3_probe,
+                "imap": _imap_probe,
                 "smb": _smb_probe,
             }[kind]
             futures.append(executor.submit(
                 _run_timed_probe, probe, workspace, target, service, selected_timeout,
-                timeout=selected_timeout,
+                timeout=selected_timeout, server_hostname=server_hostname or target,
             ))
         for future in as_completed(futures):
             try:
