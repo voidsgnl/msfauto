@@ -15,8 +15,8 @@ from rich.text import Text
 
 from ..assessment.approval import record_decision
 from ..assessment.planner import build_plan
+from ..cli import display_plan, run_safe_checks
 from ..core import AssessmentApplication
-from ..cli import display_plan, run_discovery, run_safe_checks
 from ..discovery import DiscoveryError, parse_nmap_xml
 from ..exploitation import authorize_opportunity, review_opportunity
 from ..reporting import ReportError, write_report
