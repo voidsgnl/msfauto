@@ -1,7 +1,7 @@
 import io
 import unittest
-from threading import Event
 from contextlib import redirect_stdout
+from threading import Event
 
 from msfauto.cli import display_next_steps
 from msfauto.interface.tasks import TaskManager
