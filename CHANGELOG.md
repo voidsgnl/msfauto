@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Added
+- Discovery-mode `observations` inspection commands: list stored service observations, filter by host, and show full attributes by observation ID or unique prefix. Inspection is read-only and restricted to the active workspace; it does not initiate probes or modify assessment records.
+
+
 ### Improved
 - Split FTP and SMTP TCP connection setup from protocol greeting reads and record explicit failure stages (`tcp_connect`, `ftp_greeting`, `ftp_feat`, `smtp_greeting`, `smtp_ehlo`) for actionable diagnostics. Existing timeout budgets and no-retry behavior are unchanged.
 
