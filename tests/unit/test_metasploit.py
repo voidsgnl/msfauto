@@ -199,3 +199,72 @@ class MetasploitClientTests(unittest.TestCase):
             restored = store.get_module_metadata("lab", "auxiliary", "scanner/example")
 
         self.assertEqual(restored, module)
+
+
+    def test_db_nmap_runs_through_metasploit_console_and_selects_workspace(self) -> None:
+        class DbNmapTransport(FakeTransport):
+            def request(self, method: str, arguments: tuple[Any, ...]) -> dict[str, Any]:
+                self.calls.append((method, arguments))
+                if method == "db.add_workspace":
+                    return {"result": "success"}
+                if method == "db.set_workspace":
+                    return {"result": "success"}
+                if method == "console.create":
+                    return {"id": "console-7", "busy": False}
+                if method == "console.read":
+                    if not hasattr(self, "reads"):
+                        self.reads = 0
+                    self.reads += 1
+                    if self.reads == 1:
+                        return {"data": "banner", "busy": False}
+                    if self.reads == 2:
+                        return {"data": "Nmap scan started", "busy": True}
+                    return {"data": "Nmap done", "busy": False}
+                if method == "console.write":
+                    return {"wrote": len(arguments[-1])}
+                if method == "console.destroy":
+                    return {"result": "success"}
+                return super().request(method, arguments)
+
+        transport = DbNmapTransport()
+        client = MetasploitClient(transport, "user", "password")
+        output = client.run_db_nmap(
+            "lab", ("192.0.2.10", "192.0.2.0/24"), "22,80,443",
+        )
+
+        self.assertIn("Nmap done", output)
+        methods = [method for method, _ in transport.calls]
+        self.assertIn("db.add_workspace", methods)
+        self.assertIn("db.set_workspace", methods)
+        write_call = next(args for method, args in transport.calls if method == "console.write")
+        self.assertEqual(
+            write_call,
+            ("token-1", "console-7", "db_nmap -n -Pn -sV --version-light -p 22,80,443 192.0.2.10 192.0.2.0/24\\n"),
+        )
+        self.assertIn(("console.destroy", ("token-1", "console-7")), transport.calls)
+
+    def test_db_nmap_rejects_shell_injection_and_invalid_ports(self) -> None:
+        client = MetasploitClient(FakeTransport(), "user", "password")
+        with self.assertRaisesRegex(MetasploitError, "validated IP/CIDR"):
+            client.run_db_nmap("lab", ("192.0.2.1; whoami",), "80")
+        with self.assertRaisesRegex(MetasploitError, "between 1 and 65535"):
+            client.run_db_nmap("lab", ("192.0.2.1",), "0,80")
+
+    def test_database_inventory_methods_validate_rpc_shapes(self) -> None:
+        class InventoryTransport(FakeTransport):
+            def request(self, method: str, arguments: tuple[Any, ...]) -> dict[str, Any]:
+                self.calls.append((method, arguments))
+                if method == "db.hosts":
+                    return {"hosts": [{"address": "192.0.2.10", "state": "alive"}]}
+                if method == "db.services":
+                    return {"services": [{"host": "192.0.2.10", "port": 443, "name": "https"}]}
+                return super().request(method, arguments)
+
+        transport = InventoryTransport()
+        client = MetasploitClient(transport, "user", "password")
+        hosts = client.database_hosts("lab", ("192.0.2.10",))
+        services = client.database_services("lab", ("192.0.2.10",))
+
+        self.assertEqual(hosts[0]["address"], "192.0.2.10")
+        self.assertEqual(services[0]["port"], 443)
+        self.assertEqual(transport.calls[-1][0], "db.services")
