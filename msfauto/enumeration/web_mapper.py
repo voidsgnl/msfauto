@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import http.client
 import ipaddress
+import re
 import socket
 import ssl
 from collections import deque
@@ -164,9 +165,24 @@ def map_web_application(
     if not 1 <= max_requests <= MAX_REQUESTS:
         raise ValueError("Web mapping request budget exceeds the supported limit.")
     address = str(ipaddress.ip_address(target))
-    host = (hostname or address).strip().rstrip(".")
-    if not host or any(char in host for char in "/@?#"):
-        raise ValueError("Invalid web hostname.")
+    host = (hostname or address).strip().rstrip(".").casefold()
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        try:
+            host = host.encode("idna").decode("ascii")
+        except UnicodeError as exc:
+            raise ValueError("Invalid web hostname.") from exc
+        labels = host.split(".")
+        if (
+            not host
+            or len(host) > 253
+            or any(
+                not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label)
+                for label in labels
+            )
+        ):
+            raise ValueError("Invalid web hostname.")
     origin = WebOrigin(scheme, host, port, address)
     queue = deque([(origin.root_url, 0)])
     visited: set[str] = set()
