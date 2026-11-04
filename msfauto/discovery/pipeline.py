@@ -4,11 +4,11 @@ import shutil
 import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
-from threading import Event
-from time import monotonic, sleep
 from datetime import datetime, timezone
 from ipaddress import ip_address
 from pathlib import Path
+from threading import Event
+from time import monotonic, sleep
 
 from ..storage.models import DiscoveryRun, Host, ScopePolicy, Service
 
@@ -55,7 +55,10 @@ def run_nmap(
         )
         while process.poll() is None:
             if cancel_event is not None and cancel_event.is_set():
-                process.terminate()
+                try:
+                    process.terminate()
+                except ProcessLookupError:
+                    pass
                 try:
                     process.wait(timeout=5)
                 except subprocess.TimeoutExpired:
