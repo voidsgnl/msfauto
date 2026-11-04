@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from ..integrations.metasploit import MetasploitClient, MetasploitError
+from ..integrations.metasploit import MetasploitClient
 
 
 @dataclass(frozen=True)
