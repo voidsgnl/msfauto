@@ -3,6 +3,7 @@
 The operator's job is to provide an authorized IP address, network, or URL and receive evidence-backed vulnerability findings with the best-matched exploitation path prepared for review. MSFAuto owns the decision-making between stages; operators should not need to manually chain scanners, protocol probes, fingerprinting, vulnerability checks, and module searches.
 
 - [x] Add authenticated Metasploit RPC primitives for temporary console use, bounded command output, `db_nmap` invocation, and host/service inventory reads.
+- [x] Correct console command submission to send a real newline (rather than the literal `\\n` characters); reject apparently completed commands that return no console output.
 - [x] Make Metasploit's `db_nmap` and database the default discovery and inventory path for the interactive assessment shell; preserve Nmap XML import as an optional interoperability path.
 - [x] Select/create a corresponding Metasploit database workspace and verify it through workspace selection plus subsequent inventory RPC reads.
 - [ ] Complete normalization of Metasploit host/service records into existing models, including native record IDs and run-level provenance (basic normalization and scan freshness filtering are implemented).
