@@ -105,7 +105,7 @@ class MetasploitClient:
 
     def _console_command(self, command: str, timeout: float = 300.0) -> str:
         """Run one bounded command in a temporary Metasploit RPC console."""
-        if not command or "\\n" in command or "\\r" in command:
+        if not command or "\n" in command or "\r" in command:
             raise MetasploitError("A single-line Metasploit console command is required.")
         if timeout <= 0:
             raise MetasploitError("Metasploit console timeout must be positive.")
@@ -120,7 +120,7 @@ class MetasploitClient:
         try:
             # Drain the initial banner before submitting the command.
             self._request("console.read", console_id)
-            written = self._request("console.write", console_id, command + "\\n")
+            written = self._request("console.write", console_id, command + "\n")
             if not isinstance(written.get("wrote"), int) or written["wrote"] <= 0:
                 raise MetasploitError("Metasploit did not accept the console command.")
             while monotonic() < deadline:
@@ -134,7 +134,13 @@ class MetasploitClient:
                 if chunk:
                     output.append(chunk)
                 if response.get("busy") is False:
-                    return "".join(output)
+                    result = "".join(output)
+                    if not result.strip():
+                        raise MetasploitError(
+                            "Metasploit console became idle without returning command output; "
+                            "the command may not have been submitted."
+                        )
+                    return result
                 sleep(0.1)
             raise MetasploitError(f"Metasploit command timed out after {timeout:g} seconds.")
         finally:
