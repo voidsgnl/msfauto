@@ -57,8 +57,8 @@ class MetasploitProcessManager:
             if self._is_listening(host, port):
                 return
             time.sleep(0.2)
-        self.stop()
         detail = self._read_startup_log()
+        self.stop()
         raise MetasploitError(
             f"Timed out waiting {self.startup_timeout:g}s for msfrpcd on {host}:{port}."
             + (f" Details: {detail}" if detail else "")
