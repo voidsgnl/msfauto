@@ -51,13 +51,18 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
         )
 
 
-def _error_attributes(exc: Exception) -> dict[str, str]:
+def _error_attributes(
+    exc: Exception, *, stage: str | None = None
+) -> dict[str, str]:
     """Return bounded diagnostic detail without storing an unbounded exception."""
     detail = " ".join(str(exc).split())[:160]
-    return {
+    attributes = {
         "error_type": type(exc).__name__,
         "error": detail or type(exc).__name__,
     }
+    if stage:
+        attributes["error_stage"] = stage
+    return attributes
 
 
 def _observation(
@@ -253,13 +258,21 @@ def _ftp_probe(
     workspace: str, target: str, service: Service, timeout: float
 ) -> tuple[ServiceObservation, ...]:
     client = ftplib.FTP()
+    stage = "tcp_connect"
     try:
-        welcome = client.connect(target, service.port, timeout=timeout)
+        client.sock = socket.create_connection(
+            (target, service.port), timeout=timeout
+        )
+        client.af = client.sock.family
+        client.file = client.sock.makefile("r", encoding=client.encoding)
+        stage = "ftp_greeting"
+        welcome = client.getresp()
         attributes: dict[str, object] = {
             "welcome": (welcome or "")[:MAX_VALUE_LENGTH],
             "features": [],
         }
         try:
+            stage = "ftp_feat"
             response = client.sendcmd("FEAT")
             lines = response.splitlines()
             attributes["features"] = [
@@ -279,7 +292,7 @@ def _ftp_probe(
         return (
             _observation(
                 workspace, target, service, "ftp", "failed",
-                _error_attributes(exc),
+                _error_attributes(exc, stage=stage),
             ),
         )
     finally:
@@ -294,8 +307,15 @@ def _smtp_probe(
 ) -> tuple[ServiceObservation, ...]:
     """Read SMTP greeting and EHLO capabilities; never authenticate or send mail."""
     client = smtplib.SMTP(timeout=timeout)
+    stage = "tcp_connect"
     try:
-        welcome_code, welcome_message = client.connect(target, service.port)
+        client.sock = socket.create_connection(
+            (target, service.port), timeout=timeout
+        )
+        client.file = client.sock.makefile("rb")
+        stage = "smtp_greeting"
+        welcome_code, welcome_message = client.getreply()
+        stage = "smtp_ehlo"
         ehlo_code, ehlo_message = client.ehlo()
         features = {
             name.lower(): value[:MAX_VALUE_LENGTH]
@@ -324,7 +344,7 @@ def _smtp_probe(
         return (
             _observation(
                 workspace, target, service, "smtp", "failed",
-                _error_attributes(exc),
+                _error_attributes(exc, stage=stage),
             ),
         )
     finally:
