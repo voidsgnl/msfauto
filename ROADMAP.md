@@ -1,3 +1,11 @@
+### Latest implementation milestone: root-level workspace onboarding
+
+- Added `workspace create` to root-console help so a new workspace can be created without first entering workspace mode.
+- Creation prompts for a workspace name, one IP address or CIDR, and optional allowed ports; the target is parsed and validated before it is saved.
+- A single IP address receives one bounded ICMP ping attempt. CIDR ranges are not pinged. No ping reply, timeout, or missing ping utility does not invalidate a syntactically valid target.
+- Existing workspace names are rejected rather than silently overwritten. On success, the new workspace is saved and becomes the active workspace; its scope/profile context is displayed.
+- Added tests for successful onboarding, non-responsive hosts, invalid targets, duplicate names, and CIDR ping behavior. CI verification pending.
+
 ### Latest implementation milestone: SMTP service intelligence and vulnerability evidence correlation
 
 - Added a bounded SMTP adapter for in-scope open TCP services identified as SMTP or on conventional ports 25/587. It records the greeting, EHLO response, advertised ESMTP capabilities, STARTTLS availability, and advertised AUTH mechanisms.

@@ -3,7 +3,9 @@ from __future__ import annotations
 import os
 import shlex
 import sqlite3
+import subprocess
 import time
+from ipaddress import ip_address
 from pathlib import Path
 
 try:
@@ -111,6 +113,32 @@ MODES = {
     },
 }
 
+def _ping_target(target: str) -> str:
+    """Perform one bounded ICMP echo for a single address; CIDRs are not probed."""
+    try:
+        address = ip_address(target)
+    except ValueError:
+        return "not attempted (network range)"
+
+    command = ["ping"]
+    if address.version == 6:
+        command.append("-6")
+    command.extend(["-c", "1", "-W", "1", str(address)])
+    try:
+        result = subprocess.run(
+            command,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=2.0,
+        )
+    except FileNotFoundError:
+        return "unavailable (ping command not installed)"
+    except subprocess.TimeoutExpired:
+        return "timed out"
+    return "reachable" if result.returncode == 0 else "no reply"
+
+
 COMMAND_WORDS = [
     "use", "show modes", "back", "help", "exit", "quit",
     *[command for mode in MODES.values() for command in mode["commands"]],
@@ -184,6 +212,7 @@ class CommandShell:
                 ("use exploit", "Enter exploit and Metasploit mode"),
                 ("use analysis", "Enter assessment analysis mode"),
                 ("use workspace", "Manage workspaces and authorized scope"),
+                ("workspace create", "Create and activate a workspace with a validated target scope"),
                 ("show modes", "List available operation modes"),
                 ("help", "Display root-console commands"),
                 ("exit", "Exit MSFAuto"),
@@ -381,15 +410,36 @@ class CommandShell:
                     names = [row[0] for row in db.execute("SELECT name FROM workspaces ORDER BY name")]
                 self._rows("WORKSPACES", ("NAME", "ACTIVE"), [(name, "*" if name == self.workspace.name else "") for name in names])
             elif command == "workspace create":
-                if not args:
-                    name = self.session.prompt("New workspace name: ").strip()
+                name = " ".join(args).strip() if args else self.session.prompt("New workspace name: ").strip()
+                if not name:
+                    self.console.print("[yellow]Workspace name cannot be empty.[/yellow]")
+                elif self.store.get(name) is not None:
+                    self.console.print(f"[yellow]Workspace already exists: {name}. Use 'workspace use {name}'.[/yellow]")
                 else:
-                    name = args[0]
-                raw_targets = self.session.prompt("Authorized IPs/CIDRs (comma-separated): ")
-                raw_ports = self.session.prompt("Allowed ports (comma-separated, blank for all): ")
-                policy = build_policy(raw_targets.split(","), raw_ports, self.workspace.policy.profile)
-                self.store.save(Workspace(name=name, policy=policy))
-                self.console.print(f"[green][+][/green] Workspace created: {name}")
+                    raw_target = self.session.prompt("Target IP address or CIDR: ").strip()
+                    target_policy = build_policy(
+                        [raw_target], profile=self.workspace.policy.profile
+                    )
+                    target = str(target_policy.addresses[0]) if target_policy.addresses else str(target_policy.networks[0])
+                    self.console.print(f"[green][+][/green] Valid target address/scope: {target}")
+                    reachability = _ping_target(target) if target_policy.addresses else "not attempted (CIDR target)"
+                    if reachability == "reachable":
+                        self.console.print("[green][+][/green] Ping: host is reachable.")
+                    elif reachability == "no reply":
+                        self.console.print("[yellow][!][/yellow] Ping: no reply. The IP is valid; ICMP may be filtered.")
+                    elif reachability == "timed out":
+                        self.console.print("[yellow][!][/yellow] Ping timed out. The IP is valid; continuing.")
+                    elif reachability.startswith("unavailable"):
+                        self.console.print(f"[yellow][!][/yellow] Ping check {reachability}; continuing.")
+                    else:
+                        self.console.print(f"[dim]Ping check: {reachability}.[/dim]")
+                    raw_ports = self.session.prompt("Allowed ports (comma-separated, blank for all): ")
+                    policy = build_policy([raw_target], raw_ports, self.workspace.policy.profile)
+                    created = Workspace(name=name, policy=policy)
+                    self.store.save(created)
+                    self.workspace = created
+                    self.console.print(f"[green][+][/green] Workspace created and activated: {name}")
+                    self._show_context()
             elif command == "workspace use":
                 if not args:
                     self.console.print("[yellow]Usage: workspace use <name>[/yellow]")
