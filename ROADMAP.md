@@ -1,3 +1,11 @@
+### Latest implementation milestone: SMTP service intelligence and vulnerability evidence correlation
+
+- Added a bounded SMTP adapter for in-scope open TCP services identified as SMTP or on conventional ports 25/587. It records the greeting, EHLO response, advertised ESMTP capabilities, STARTTLS availability, and advertised AUTH mechanisms.
+- The adapter does not authenticate, negotiate credentials, send mail, or automatically upgrade to STARTTLS. SMTPS on port 465 remains in the TLS-handshake path.
+- Wired persisted service observations into OSV vulnerability matching. Candidates now retain completed/partial observation IDs and identify correlated protocol context in their rationale.
+- Protocol observations remain supporting evidence only: they do not alter exact product/version matching, raise confidence, or turn a candidate into a confirmed vulnerability.
+- Added local SMTP fixture coverage and regression tests for observation-to-candidate correlation. CI verification is pending.
+
 ### Latest implementation milestone: operation modes and host-level discovery diffs
 
 - Split the persistent console into Metasploit-style operation modes: `discovery`, `exploit`, `analysis`, and `workspace`.

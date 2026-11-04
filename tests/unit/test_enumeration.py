@@ -16,6 +16,7 @@ from msfauto.enumeration.runner import (
     _ftp_probe,
     _http_probe,
     _smb_probe,
+    _smtp_probe,
     _ssh_probe,
     _tls_probe,
 )
@@ -176,6 +177,45 @@ class EnumerationTests(unittest.TestCase):
             thread.join(timeout=1)
         self.assertEqual(observations[0].status, "completed")
         self.assertEqual(observations[0].attributes["banner"], "SSH-2.0-OpenSSH_9.8")
+
+    def test_smtp_probe_records_greeting_and_ehlo_capabilities(self):
+        listener = socket.socket()
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+
+        def serve():
+            conn, _ = listener.accept()
+            with conn:
+                conn.sendall(b"220 test.example ESMTP ready\\r\\n")
+                data = conn.recv(2048)
+                self.assertTrue(data.upper().startswith(b"EHLO "))
+                conn.sendall(
+                    b"250-test.example\\r\\n"
+                    b"250-SIZE 10485760\\r\\n"
+                    b"250-STARTTLS\\r\\n"
+                    b"250-AUTH PLAIN LOGIN\\r\\n"
+                    b"250 HELP\\r\\n"
+                )
+                conn.recv(1024)
+                conn.sendall(b"221 Bye\\r\\n")
+            listener.close()
+
+        thread = threading.Thread(target=serve, daemon=True)
+        thread.start()
+        try:
+            service = Service(port, "tcp", "open", name="smtp")
+            observations = _smtp_probe("lab", "127.0.0.1", service, 1.0)
+        finally:
+            thread.join(timeout=1)
+            listener.close()
+        self.assertEqual(observations[0].status, "completed")
+        attrs = observations[0].attributes
+        self.assertEqual(attrs["greeting_code"], 220)
+        self.assertTrue(attrs["supports_starttls"])
+        self.assertEqual(attrs["auth_mechanisms"], ["PLAIN", "LOGIN"])
+        self.assertIn("size", attrs["capabilities"])
 
     def test_enumeration_respects_address_port_and_service_fingerprint(self):
         host = Host(

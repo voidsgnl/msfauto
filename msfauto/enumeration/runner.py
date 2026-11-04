@@ -4,6 +4,7 @@ import ftplib
 import hashlib
 import http.client
 import socket
+import smtplib
 import ssl
 import struct
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -77,6 +78,13 @@ def _is_smb(service: Service) -> bool:
     label = f"{service.name} {service.product}".lower()
     return service.protocol.lower() == "tcp" and (
         "smb" in label or service.port == 445
+    )
+
+
+def _is_smtp(service: Service) -> bool:
+    label = f"{service.name} {service.product}".lower()
+    return service.protocol.lower() == "tcp" and service.port != 465 and (
+        "smtp" in label or service.port in {25, 587}
     )
 
 
@@ -233,6 +241,51 @@ def _ftp_probe(
         return (
             _observation(
                 workspace, target, service, "ftp", "failed",
+                {"error_type": type(exc).__name__},
+            ),
+        )
+    finally:
+        try:
+            client.close()
+        except OSError:
+            pass
+
+
+def _smtp_probe(
+    workspace: str, target: str, service: Service, timeout: float
+) -> tuple[ServiceObservation, ...]:
+    """Read SMTP greeting and EHLO capabilities; never authenticate or send mail."""
+    client = smtplib.SMTP(timeout=timeout)
+    try:
+        welcome_code, welcome_message = client.connect(target, service.port)
+        ehlo_code, ehlo_message = client.ehlo()
+        features = {
+            name.lower(): value[:MAX_VALUE_LENGTH]
+            for name, value in client.esmtp_features.items()
+        }
+        auth_mechanisms = features.get("auth", "").upper().split()
+        attributes: dict[str, object] = {
+            "greeting_code": welcome_code,
+            "greeting": (welcome_message.decode("utf-8", errors="replace")
+                         if isinstance(welcome_message, bytes) else str(welcome_message))[:MAX_VALUE_LENGTH],
+            "ehlo_code": ehlo_code,
+            "ehlo_response": (ehlo_message.decode("utf-8", errors="replace")
+                              if isinstance(ehlo_message, bytes) else str(ehlo_message))[:MAX_VALUE_LENGTH],
+            "capabilities": features,
+            "supports_starttls": "starttls" in features,
+            "auth_mechanisms": auth_mechanisms[:16],
+        }
+        status = "completed" if welcome_code == 220 and ehlo_code == 250 else "partial"
+        return (
+            _observation(
+                workspace, target, service, "smtp", status, attributes,
+                confidence=9 if status == "completed" else 4,
+            ),
+        )
+    except (OSError, smtplib.SMTPException, TimeoutError) as exc:
+        return (
+            _observation(
+                workspace, target, service, "smtp", "failed",
                 {"error_type": type(exc).__name__},
             ),
         )
@@ -423,6 +476,8 @@ def enumerate_services(
                 tasks.append(("ssh", str(host.address), service))
             elif _is_ftp(service):
                 tasks.append(("ftp", str(host.address), service))
+            elif _is_smtp(service):
+                tasks.append(("smtp", str(host.address), service))
             elif _is_smb(service):
                 tasks.append(("smb", str(host.address), service))
             elif _is_tls(service):
@@ -452,6 +507,7 @@ def enumerate_services(
                 "http": _http_probe,
                 "ssh": _ssh_probe,
                 "ftp": _ftp_probe,
+                "smtp": _smtp_probe,
                 "smb": _smb_probe,
                 "tls": _tls_probe,
             }[kind]
