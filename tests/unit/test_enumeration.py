@@ -10,8 +10,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from msfauto.enumeration import enumerate_services
-from msfauto.enumeration.models import ServiceObservation
 from msfauto.enumeration.http_fingerprint import fingerprint_http_html
+from msfauto.enumeration.models import ServiceObservation
 from msfauto.enumeration.runner import (
     _ftp_probe,
     _http_probe,
