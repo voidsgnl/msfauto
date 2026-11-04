@@ -5,18 +5,20 @@ from threading import Event
 from uuid import uuid4
 
 from ..assessment.investigation import build_investigation_steps
+from ..assessment.metasploit_intelligence import discover_web_auxiliary_modules
 from ..assessment.planner import build_plan
 from ..discovery import DiscoveryError, run_metasploit_db_nmap, run_nmap
 from ..enumeration import enumerate_services
 from ..enumeration.models import ServiceObservation
 from ..exploitation.matcher import load_exploit_catalog, match_exploits
-from ..integrations.metasploit import MetasploitClient
+from ..integrations.metasploit import MetasploitClient, MetasploitError
 from ..storage import WorkspaceStore
 from ..storage.models import (
     AssessmentEvent,
     AssessmentPlan,
     AssessmentRun,
     Host,
+    ModuleMetadata,
     Workspace,
     utc_now,
 )
@@ -179,6 +181,67 @@ class AssessmentApplication:
                     )
             observations = tuple(collected)
             self.store.save_service_observations(observations, discovery_run_id)
+
+            if self.metasploit_client is not None:
+                technologies: list[str] = []
+                for observation in observations:
+                    if observation.kind != "http_application" or observation.status not in {"completed", "partial"}:
+                        continue
+                    raw_technologies = observation.attributes.get("technologies", [])
+                    if not isinstance(raw_technologies, list):
+                        continue
+                    for technology in raw_technologies:
+                        if not isinstance(technology, dict):
+                            continue
+                        name = technology.get("name")
+                        if isinstance(name, str) and name.strip():
+                            technologies.append(name.strip())
+                selected_technologies = tuple(dict.fromkeys(technologies))[:3]
+                if selected_technologies:
+                    transition(
+                        "metasploit_intelligence",
+                        "Matching observed web technologies against Metasploit auxiliary module metadata.",
+                    )
+                    try:
+                        module_candidates = discover_web_auxiliary_modules(
+                            self.metasploit_client,
+                            selected_technologies,
+                            max_technologies=3,
+                            max_modules=8,
+                        )
+                        for candidate in module_candidates:
+                            self.store.save_module_metadata(ModuleMetadata(
+                                workspace=self.workspace.name,
+                                module_type="auxiliary",
+                                module_name=candidate.module_name,
+                                metadata={
+                                    "technology": candidate.technology,
+                                    "rank": candidate.rank,
+                                    "description": candidate.description,
+                                    "check_supported": candidate.check_supported,
+                                    "required_options": list(candidate.required_options),
+                                },
+                                options=candidate.options,
+                                source="metasploit-rpc",
+                            ))
+                        emit(
+                            "metasploit_intelligence",
+                            f"Found {len(module_candidates)} auxiliary module candidate(s) "
+                            f"for {len(selected_technologies)} observed technology/ies. "
+                            "Metadata only; no module checks or executions were dispatched.",
+                        )
+                    except MetasploitError as exc:
+                        emit(
+                            "metasploit_intelligence",
+                            f"Metasploit module intelligence unavailable: {exc}",
+                            "warning",
+                        )
+                else:
+                    emit(
+                        "metasploit_intelligence",
+                        "No reliable web technology names were observed; module search skipped.",
+                    )
+
             investigation_steps = build_investigation_steps(
                 tuple((str(host.address), service) for host in hosts for service in host.services),
                 observations,
