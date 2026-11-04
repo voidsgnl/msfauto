@@ -289,13 +289,13 @@ def interactive(store: WorkspaceStore, workspace_name: str, profile: str) -> int
             print(f"Scope error: {exc}")
             return 2
 
-    from .interface import CommandShell
     from .integrations.metasploit import (
         MetasploitClient,
         MetasploitConfig,
         MsgpackHttpTransport,
     )
     from .integrations.metasploit.process import MetasploitProcessManager
+    from .interface import CommandShell
 
     rpc_url = os.environ.get(
         "MSFAUTO_METASPLOIT_URL", "http://127.0.0.1:55553/api/1.0"
