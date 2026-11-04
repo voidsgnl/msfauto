@@ -359,9 +359,9 @@ class CommandShell:
         elif item.protocol == "http_application":
             for label, key in (
                 ("Page title", "title"), ("Detected technologies", "technologies"),
-                ("Framework markers", "framework_markers"), ("Asset references", "assets"),
-                ("HTTP status", "status_code"), ("Fingerprint confidence", "fingerprint_confidence"),
-                ("Body truncated", "truncated"),
+                ("Meta tags", "meta"), ("Asset/resource references", "resources"),
+                ("HTTP status", "status_code"), ("Content type", "content_type"),
+                ("Body bytes inspected", "body_bytes"), ("Body truncated", "truncated"),
             ):
                 add(label, key)
         elif item.protocol == "smtp":
