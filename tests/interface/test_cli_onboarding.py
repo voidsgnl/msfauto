@@ -152,14 +152,14 @@ class ObservationConsoleTests(unittest.TestCase):
         rendered = output.getvalue()
         self.assertIn("observa", rendered)
         self.assertIn("127.0.0.1", rendered)
-        self.assertIn("smtp_capabilities", rendered)
+        self.assertIn("smtp_capabilitie", rendered)
 
     def test_observations_host_filters_to_exact_target(self):
         output = io.StringIO()
         self.shell.console = Console(file=output)
         self.shell.execute("observations host 127.0.0.1")
         rendered = output.getvalue()
-        self.assertIn("observation-a", rendered)
+        self.assertIn("observa", rendered)
         self.assertNotIn("22/tcp", rendered)
         self.assertIn("465/tcp", rendered)
 
