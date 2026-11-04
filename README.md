@@ -140,13 +140,20 @@ Metasploit framework state and target outcome are separate records. A framework-
 
 The current `ExploitOutcomeValidator` records append-only target outcome assessments with one of three verdicts: `confirmed`, `not_confirmed`, or `inconclusive`. Each assessment records the verifier, method, operator, rationale, timestamp, and evidence references. Conclusive verdicts require evidence stored for the exact execution workspace and target. Evidence attributed only to Metasploit is rejected as independent verification.
 
-This is an evidence-backed assessment record, not an automatic exploit-success detector. A module-specific verifier must define its expected target-side indicator and bounded verification procedure before it can produce a conclusive result. No generic target probe or live exploit validation is claimed yet.
+This is an evidence-backed assessment record, not an automatic exploit-success detector. A module-specific verifier must define its expected target-side indicator and bounded verification procedure before it can produce a conclusive result. No generic target probe or live exploit validation is claimed.
+
+The persistent command console exposes this workflow:
+
+```text
+exploits outcome record <execution-id> <confirmed|not_confirmed|inconclusive> <verifier> <method> <evidence-id[,id]|-> <actor> <rationale>
+exploits outcome list <execution-id>
+```
+
+Evidence IDs must already exist and belong to the same workspace and exact target as the execution. Use `-` only for an inconclusive assessment without evidence. Quoted arguments can contain spaces. Recording an outcome never changes the Metasploit execution state.
 
 ## Interface direction
 
-MSFAuto is a **terminal-only application**. Its primary interface is a full-screen, menu-driven Textual terminal experience inspired by the guided interaction style of tools such as Fluxion. It uses numbered workflows and keyboard navigation rather than clickable dashboard controls.
-
-The main menu opens dedicated views for targets and services, vulnerability candidates, exploit intelligence, execution lifecycle, findings and evidence, workspace scope, and assessment history. Running workflows display an animated activity indicator, elapsed time, and live stage messages. There is no web interface or native desktop GUI in the product plan.
+MSFAuto is a **terminal-only application** with a persistent Metasploit-style command prompt (`msfauto >`). Startup is intentionally minimal; type `help` to see the command catalogue. Operators use concise hierarchical commands such as `discovery run`, `scope show`, `plan build`, and `exploits poll`. Rich terminal output and live task messages provide feedback without turning the application into a menu-driven TUI. There is no web interface or native desktop GUI in the product plan.
 
 The CLI remains available for scripting, automation, imports, and diagnostics.
 
