@@ -1,3 +1,13 @@
+### Nmap scan history and result provenance
+
+- Every interactive assessment scan now writes XML to a unique workspace-scoped artifact path instead of overwriting the previous scan.
+- Discovery records have stable scan IDs and retain scanner, exact command arguments, output path, status, start/finish timestamps, and errors.
+- SQLite stores an immutable normalized host/service snapshot for each completed scan and XML import, while the existing workspace host/service tables continue to represent the latest observations.
+- Added `discovery history` and `discovery compare <older-scan-id> <newer-scan-id>` commands. Comparison reports added, removed, and changed service fingerprints and rejects cross-workspace comparisons.
+- Added tests for scan history ordering, service additions/removals/version changes, and workspace isolation.
+- Existing databases receive additive migrations; legacy scan records remain visible, but cannot be compared unless a normalized snapshot exists.
+- CI verification is pending.
+
 ### Latest milestone: command-driven approval and exploit authorization
 
 - Connected `checks approve <recommendation#> <approver> [rationale]` to the existing stable recommendation identity and persisted approval records.
