@@ -20,7 +20,6 @@ from ..scope import ScopeError, build_policy
 from ..storage import WorkspaceStore
 from ..storage.models import Workspace
 
-
 COMMANDS = {
     "workspace": ("create", "list", "show", "use"),
     "scope": ("show", "validate", "update"),
