@@ -227,7 +227,7 @@ class CommandShell:
                     ("show", "Show discovered hosts and services"),
                     ("history", "List scan history"),
                     ("compare <old-id> <new-id>", "Compare two scan snapshots"),
-                    ("observations [list|host <ip>]", "Browse saved service observations and select one by number"),
+                    ("observations [list|history|run <id>|all|host <ip>|show <id>]", "Browse observations grouped by discovery run"),
                 ],
                 "exploit": [
                     ("list [filter]", "List live Metasploit exploit modules"),
@@ -457,46 +457,96 @@ class CommandShell:
     def _observations(self, args: list[str]) -> None:
         """Inspect persisted service observations without initiating network activity."""
         action = args[0].casefold() if args else "list"
-        if action == "list":
-            observations = self.store.get_service_observations(self.workspace.name)
-            self._select_observation(observations, "STORED SERVICE OBSERVATIONS")
+        runs = self.store.get_discovery_runs(self.workspace.name)
+        latest = runs[0] if runs else None
+
+        if action == "all":
+            self._select_observation(
+                self.store.get_service_observations(self.workspace.name),
+                "ALL STORED SERVICE OBSERVATIONS",
+            )
+            return
+        if action == "history":
+            rows = []
+            for index, run in enumerate(runs, 1):
+                count = len(self.store.get_service_observations(
+                    self.workspace.name, discovery_run_id=run.scan_id,
+                ))
+                rows.append((index, run.scan_id[:12], run.status, run.started_at, count))
+            legacy = len(self.store.get_service_observations(
+                self.workspace.name, discovery_run_id="",
+            ))
+            if legacy:
+                rows.append((len(rows) + 1, "legacy", "unassigned", "—", legacy))
+            self._rows(
+                "OBSERVATION HISTORY BY DISCOVERY RUN",
+                ("#", "SCAN ID", "STATUS", "STARTED", "OBSERVATIONS"),
+                rows,
+            )
+            return
+        if action == "run":
+            if len(args) != 2:
+                self.console.print("[yellow]Usage: observations run <scan-id-prefix>[/yellow]")
+                return
+            matches = [run for run in runs if run.scan_id.startswith(args[1])]
+            if len(matches) != 1:
+                self.console.print("[yellow]Scan ID not found or prefix is ambiguous.[/yellow]")
+                return
+            run = matches[0]
+            observations = self.store.get_service_observations(
+                self.workspace.name, discovery_run_id=run.scan_id,
+            )
+            self._select_observation(observations, f"OBSERVATIONS — RUN {run.scan_id[:12]}")
+            return
+        if action in {"list", "latest"}:
+            if latest is None:
+                observations = self.store.get_service_observations(
+                    self.workspace.name, discovery_run_id="",
+                )
+                self._select_observation(observations, "LEGACY / UNASSIGNED SERVICE OBSERVATIONS")
+            else:
+                self.console.print(
+                    f"[bright_cyan][*][/bright_cyan] Latest run {latest.scan_id[:12]} "
+                    f"— {latest.status} — {latest.started_at}"
+                )
+                observations = self.store.get_service_observations(
+                    self.workspace.name, discovery_run_id=latest.scan_id,
+                )
+                self._select_observation(observations, "LATEST RUN SERVICE OBSERVATIONS")
             return
         if action == "host":
-            if len(args) != 2:
-                self.console.print("[yellow]Usage: observations host <ip>[/yellow]")
+            if len(args) not in {2, 3}:
+                self.console.print("[yellow]Usage: observations host <ip> [all][/yellow]")
                 return
+            run_id = None if len(args) == 3 and args[2].casefold() == "all" else (latest.scan_id if latest else "")
             observations = self.store.get_service_observations(
-                self.workspace.name, target=args[1],
+                self.workspace.name, target=args[1], discovery_run_id=run_id,
             )
-            self._select_observation(
-                observations, f"SERVICE OBSERVATIONS — {args[1]}",
-            )
+            self._select_observation(observations, f"SERVICE OBSERVATIONS — {args[1]}")
             return
         if action == "show":
             if len(args) != 2:
                 self.console.print("[yellow]Usage: observations show <number|id-prefix>[/yellow]")
                 return
-            observations = self.store.get_service_observations(self.workspace.name)
             if args[1].isdecimal():
+                current = self.store.get_service_observations(
+                    self.workspace.name, discovery_run_id=latest.scan_id if latest else "",
+                )
                 index = int(args[1])
-                if 1 <= index <= len(observations):
-                    self._show_observation(observations[index - 1])
+                if 1 <= index <= len(current):
+                    self._show_observation(current[index - 1])
                     return
-                self.console.print("[yellow]Selection is outside the observation list.[/yellow]")
+                self.console.print("[yellow]Selection is outside the latest-run list.[/yellow]")
                 return
-            matches = [
-                item for item in observations
-                if item.observation_id == args[1]
-                or item.observation_id.startswith(args[1])
-            ]
-            if len(matches) != 1:
-                reason = "No observation matches that ID." if not matches else "ID prefix is ambiguous; use a longer prefix."
-                self.console.print(f"[yellow]{reason}[/yellow]")
-                return
-            self._show_observation(matches[0])
+            records = self.store.get_service_observations(self.workspace.name)
+            matches = [item for item in records if item.observation_id.startswith(args[1])]
+            if len(matches) == 1:
+                self._show_observation(matches[0])
+            else:
+                self.console.print("[yellow]Observation ID not found or prefix is ambiguous.[/yellow]")
             return
         self.console.print(
-            "[yellow]Usage: observations [list|host <ip>|show <number|id-prefix>][/yellow]"
+            "[yellow]Usage: observations [list|history|run <scan-id>|all|host <ip> [all]|show <id>][/yellow]"
         )
 
     def _plan(self):
