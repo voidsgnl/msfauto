@@ -821,14 +821,17 @@ class WorkspaceStore:
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT scan_id, hosts_json FROM discovery_snapshots
-                WHERE workspace = ? AND scan_id IN (?, ?)
+                SELECT snapshots.scan_id, snapshots.hosts_json
+                FROM discovery_snapshots AS snapshots
+                JOIN discovery_runs AS runs ON runs.scan_id = snapshots.scan_id
+                WHERE snapshots.workspace = ? AND snapshots.scan_id IN (?, ?)
+                  AND runs.status = 'completed'
                 """,
                 (workspace, older_scan_id, newer_scan_id),
             ).fetchall()
         snapshots = {row["scan_id"]: json.loads(row["hosts_json"]) for row in rows}
         if older_scan_id not in snapshots or newer_scan_id not in snapshots:
-            raise ValueError("Both scan snapshots must exist in the active workspace.")
+            raise ValueError("Both completed scan snapshots must exist in the active workspace.")
         def index(snapshot: list[dict[str, object]]) -> dict[tuple[str, int, str], str]:
             result: dict[tuple[str, int, str], str] = {}
             for host in snapshot:
