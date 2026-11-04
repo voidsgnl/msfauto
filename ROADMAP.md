@@ -9,6 +9,15 @@
 
 # MSFAuto Roadmap
 
+### Metasploit RPC setup clarity
+
+- Documented that MSFAuto currently expects an externally started `msfrpcd`; it does not launch or supervise the daemon.
+- Clarified that authenticated RPC credentials are required for read-only module catalogue queries as well as execution-related operations.
+- Improved the missing-credentials error so it identifies the RPC configuration requirement and does not misleadingly label catalogue listing as exploit execution.
+- Added regression coverage for the setup error.
+- Future consideration: an explicit, opt-in RPC service manager with lifecycle/status checks; do not silently start a daemon or manage credentials as a side effect of launching the console.
+
+
 ### Latest implementation milestone: live Metasploit exploit inventory in the console
 
 - Corrected the empty-list confusion by separating the live framework module inventory from target-matched exploit opportunities.
