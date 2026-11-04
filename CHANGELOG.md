@@ -7,6 +7,7 @@
 
 ### Improved
 - The default assessment now runs service enumeration with one worker so discovered services are investigated sequentially rather than concurrently.
+- Every discovered open service without a matching enumeration observation now receives a persisted `unsupported` service-fingerprint record with its Nmap fingerprint and a manual-review next action.
 - Assessment discovery uses the standard prioritized TCP profile by default; broad all-port discovery is opt-in.
 
 ### Added
