@@ -7,6 +7,10 @@ import smtplib
 import socket
 import ssl
 import struct
+from datetime import datetime, timezone
+
+from cryptography import x509
+from cryptography.exceptions import UnsupportedAlgorithm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -63,6 +67,54 @@ def _error_attributes(
     if stage:
         attributes["error_stage"] = stage
     return attributes
+
+
+def _certificate_attributes(certificate: bytes) -> dict[str, object]:
+    """Decode public X.509 metadata without attempting trust or hostname validation."""
+    if not certificate:
+        return {}
+    try:
+        cert = x509.load_der_x509_certificate(certificate)
+        try:
+            san_extension = cert.extensions.get_extension_for_class(
+                x509.SubjectAlternativeName
+            )
+            subject_alt_names = [
+                {
+                    "type": type(name).__name__,
+                    "value": str(name.value)[:MAX_VALUE_LENGTH],
+                }
+                for name in san_extension.value
+            ][:64]
+        except x509.ExtensionNotFound:
+            subject_alt_names = []
+
+        try:
+            signature_hash = cert.signature_hash_algorithm
+            signature_hash_name = signature_hash.name if signature_hash else ""
+        except UnsupportedAlgorithm:
+            signature_hash_name = "unsupported"
+
+        not_before = cert.not_valid_before_utc
+        not_after = cert.not_valid_after_utc
+        now = datetime.now(timezone.utc)
+        common_names = cert.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)
+        return {
+            "certificate_subject": cert.subject.rfc4514_string()[:MAX_VALUE_LENGTH],
+            "certificate_issuer": cert.issuer.rfc4514_string()[:MAX_VALUE_LENGTH],
+            "certificate_common_name": (
+                common_names[0].value[:MAX_VALUE_LENGTH] if common_names else ""
+            ),
+            "certificate_subject_alt_names": subject_alt_names,
+            "certificate_not_before": not_before.isoformat(),
+            "certificate_not_after": not_after.isoformat(),
+            "certificate_valid_now": not_before <= now <= not_after,
+            "certificate_serial_number": format(cert.serial_number, "x"),
+            "certificate_signature_algorithm": cert.signature_algorithm_oid.dotted_string,
+            "certificate_signature_hash": signature_hash_name,
+        }
+    except (ValueError, TypeError, UnsupportedAlgorithm) as exc:
+        return {"certificate_parse_error": type(exc).__name__}
 
 
 def _observation(
@@ -214,14 +266,17 @@ def _tls_probe(
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
+    stage = "tcp_connect"
     try:
         with socket.create_connection(
             (target, service.port), timeout=timeout
         ) as raw_socket:
             raw_socket.settimeout(timeout)
+            stage = "tls_handshake"
             with context.wrap_socket(
                 raw_socket, server_hostname=server_hostname or target
             ) as tls_socket:
+                stage = "tls_metadata"
                 cipher = tls_socket.cipher()
                 certificate = tls_socket.getpeercert(binary_form=True) or b""
                 attributes: dict[str, object] = {
@@ -238,6 +293,7 @@ def _tls_probe(
                     "alpn_protocol": tls_socket.selected_alpn_protocol() or "",
                     "compression": tls_socket.compression() or "",
                     "session_reused": tls_socket.session_reused,
+                    **_certificate_attributes(certificate),
                 }
         return (
             _observation(
@@ -249,7 +305,7 @@ def _tls_probe(
         return (
             _observation(
                 workspace, target, service, "tls", "failed",
-                _error_attributes(exc),
+                _error_attributes(exc, stage=stage),
             ),
         )
 
@@ -378,8 +434,10 @@ def _http_probe(
         connection = http.client.HTTPConnection(target, service.port, timeout=timeout)
         protocol = "http"
 
+    stage = "tls_handshake_and_http_head" if secure else "http_head"
     try:
         connection.request("HEAD", "/", headers={"User-Agent": "MSFAuto/0.1"})
+        stage = "http_head_response"
         response = connection.getresponse()
         headers = {
             key.lower(): value[:MAX_VALUE_LENGTH]
@@ -394,6 +452,8 @@ def _http_probe(
             "reason": (response.reason or "")[:MAX_VALUE_LENGTH],
             "http_version": f"HTTP/{response.version // 10}.{response.version % 10}",
             "headers": headers,
+            "redirect": 300 <= response.status < 400,
+            "redirect_location": headers.get("location", ""),
             "method": "HEAD",
             "path": "/",
             "detected_by": (
@@ -414,19 +474,23 @@ def _http_probe(
         ]
         # Fetch a small HTML prefix only when the endpoint advertises HTML.
         # Redirects are not followed; the observed origin remains unambiguous.
+        stage = "http_head_body_drain"
         response.read()
+        stage = "http_get"
         connection.request(
             "GET", "/", headers={
                 "User-Agent": "MSFAuto/0.1",
                 "Range": f"bytes=0-{MAX_HTML_BYTES - 1}",
             },
         )
+        stage = "http_application_response"
         page = connection.getresponse()
         page_headers = {
             key.lower(): value[:MAX_VALUE_LENGTH]
             for key, value in page.getheaders()[:MAX_HEADERS]
         }
         if page.status < 300 or page.status >= 400:
+            stage = "http_application_body"
             body = page.read(MAX_HTML_BYTES + 1)
             truncated = len(body) > MAX_HTML_BYTES
             page_fingerprint = fingerprint_http_html(
@@ -458,6 +522,7 @@ def _http_probe(
                     "certificate_sha256": hashlib.sha256(certificate).hexdigest()
                     if certificate else "",
                     "certificate_size": len(certificate),
+                    **_certificate_attributes(certificate),
                 }
                 observations.append(
                     _observation(
@@ -474,7 +539,7 @@ def _http_probe(
         return (
             _observation(
                 workspace, target, service, protocol, "failed",
-                _error_attributes(exc),
+                _error_attributes(exc, stage=stage),
             ),
         )
     finally:
