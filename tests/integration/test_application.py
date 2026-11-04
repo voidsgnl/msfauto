@@ -28,10 +28,11 @@ class AssessmentApplicationTests(unittest.TestCase):
             )
             service = AssessmentApplication(workspace, store)
             with patch("msfauto.core.orchestrator.run_nmap", return_value=(run, (host,))):
-                status, hosts = service.discover()
+                status, hosts, scan_id = service.discover()
 
             self.assertEqual(status, "completed")
             self.assertEqual(hosts, (host,))
+            self.assertEqual(scan_id, run.scan_id)
             self.assertEqual(store.get_hosts("lab"), (host,))
 
     def test_plan_is_persisted_by_application_service(self) -> None:
