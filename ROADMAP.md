@@ -50,13 +50,21 @@ Supporting platform capabilities:
 - Inspected the red CI checks on run #529. All three Python versions failed the same pre-existing reconciliation test because it supplied a job ID without the UUID now required for a `running` record.
 - Updated that test to provide and assert both framework references; this preserves the stricter lifecycle invariant rather than weakening the implementation.
 - Added lifecycle regression tests for running → cancelling → cancelled and for recovery of a process interrupted while cancellation was pending. Interrupted cancellation remains uncertain and retains its Metasploit job ID/UUID for operator reconciliation.
-- CI for the reconciliation-test correction and the additional cancellation tests is pending; do not treat this milestone as verified until the run is green.
+- GitHub Actions run #535 passed on Python 3.10, 3.12, and 3.14: 170 tests passed plus 5 subtests; Ruff passed on all versions.
 
 ### Latest implementation milestone: independent outcome verification regression coverage
 - Added tests proving target evidence must match both the execution workspace and exact target.
 - Added append-only history coverage for multiple independent assessments of one execution.
 - Asserted that recording target-side verdicts does not mutate the Metasploit framework execution state.
 - GitHub Actions run #535 passed on Python 3.10, 3.12, and 3.14: 170 tests passed plus 5 subtests; Ruff passed on all versions.
+
+### Latest implementation milestone: command-console target outcome assessment
+- Exposed the existing append-only `ExploitOutcomeValidator` through `exploits outcome record` and `exploits outcome list`.
+- Recording requires an explicit verdict, independent verifier, method, actor, rationale, and evidence IDs for conclusive verdicts. Use `-` only when recording an inconclusive assessment without evidence.
+- Commands resolve the execution in the active workspace before reading or writing assessments.
+- Outcome assessments remain separate from Metasploit framework state; the console does not infer exploit success or run generic target probes.
+- Added command-level tests for recording, listing, and cross-workspace rejection.
+- The latest verified baseline before this console addition is CI run #535 (170 tests, 5 subtests; Ruff passed on Python 3.10, 3.12, and 3.14). The new console change still requires CI verification.
 
 ## Current implementation baseline
 
