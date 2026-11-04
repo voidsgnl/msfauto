@@ -29,7 +29,7 @@ class InvestigationPlannerTests(unittest.TestCase):
         })
         step = plan_service_investigation("192.0.2.10", self.web, (item,))
         self.assertEqual(step.state, "NEEDS_REVIEW")
-        self.assertEqual(step.action, "inspect_incomplete_observation")
+        self.assertEqual(step.action, "inspect_incomplete_observation:tls_handshake")
         self.assertIn("No automatic retry", step.rationale)
 
     def test_web_fingerprint_selects_technology_review(self) -> None:
