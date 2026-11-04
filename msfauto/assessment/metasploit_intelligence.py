@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
-from ..integrations.metasploit import MetasploitClient, MetasploitError
+from ..integrations.metasploit import MetasploitClient
 
 
 @dataclass(frozen=True)
