@@ -218,6 +218,10 @@ class MetasploitClientTests(unittest.TestCase):
                     if self.reads == 1:
                         return {"data": "banner", "busy": False}
                     if self.reads == 2:
+                        # The RPC console can report idle immediately after
+                        # console.write while its worker is still dispatching.
+                        return {"data": "", "busy": False}
+                    if self.reads == 3:
                         return {"data": "Nmap scan started", "busy": True}
                     return {"data": "Nmap done", "busy": False}
                 if method == "console.write":
