@@ -4,7 +4,7 @@
 
 MSFAuto is an automated security assessment platform. Development priority is the capability to discover and enumerate assets, assess vulnerabilities, support authorized exploitation, assess authorized post-exploitation impact, validate outcomes, and correlate evidence.
 
-The intended primary interface is a graphical application. The user-supplied UI reference informs visual language and interaction feel; it is not a request to build a terminal application. The current Textual screen is an implementation prototype, not the final product direction. Keep domain/application services independent of Textual so the graphical frontend can replace it without rewriting assessment logic.
+The intended primary interface is a terminal-only, full-screen Textual application with numbered menus and keyboard navigation. There is no web interface or native desktop GUI in the product plan. Keep domain and application services independent of Textual widgets so the terminal presentation can evolve without rewriting assessment logic.
 
 ## Baseline audit
 
@@ -86,8 +86,8 @@ Keep the application and domain services decoupled from the current Textual inte
 - [ ] Add end-to-end success and failure-path tests.
 
 ## Phase 7 — Terminal interaction
-- [ ] Define graphical frontend/backend architecture.
-- [ ] Replace the Textual prototype as the primary interface.
+- [x] Define terminal interaction architecture around numbered menus and keyboard navigation.
+- [x] Make the Textual application the primary operator interface.
 - [ ] Build connected asset, service, vulnerability, exploit, execution/session, evidence, and findings views.
 - [ ] Add interactive assessment workflows and clear execution progress.
 - [ ] Retain CLI for scripting, automation, imports, and diagnostics.
