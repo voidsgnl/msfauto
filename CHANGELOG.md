@@ -4,6 +4,14 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Exact-match module verification registry
+- Added a registry for module-specific target-side verifiers, selected only by exact persisted Metasploit module name.
+- Verifiers receive a bounded timeout budget and must return structured conclusions with independently stored target evidence references.
+- Unsupported modules and verifier timeouts produce append-only inconclusive assessments; unsupported modules do not trigger probes.
+- Reuses the existing outcome validator for terminal-state, workspace/target, and evidence-provenance enforcement.
+- Added tests for exact module selection, evidence-backed results, unsupported modules, timeout handling, and timeout bounds.
+- No concrete module verifier is registered yet; the first built-in verifier requires a documented, non-destructive target-side indicator for a specific module.
+
 ### Command-console target outcome assessment
 - Added `exploits outcome record` and `exploits outcome list` commands backed by the existing append-only `ExploitOutcomeValidator`.
 - Conclusive verdicts require independent target-side evidence; framework-originated evidence and framework-only verifiers remain rejected.
