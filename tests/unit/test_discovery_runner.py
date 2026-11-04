@@ -33,6 +33,7 @@ class DiscoveryRunnerTests(unittest.TestCase):
         self.assertIn("22,445", command)
         self.assertIn("-sV", command)
         self.assertIn("--version-light", command)
+        self.assertIn("-Pn", command)
         run.assert_called_once()
 
     def test_runner_terminates_process_when_cancelled(self) -> None:
