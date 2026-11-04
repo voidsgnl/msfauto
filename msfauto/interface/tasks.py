@@ -67,8 +67,12 @@ class TaskManager:
                 return result
             except Exception as exc:
                 task.error = str(exc)
-                task.status = "failed"
-                emit(f"{name} failed: {exc}", "error")
+                if task.cancel_event.is_set():
+                    task.status = "cancelled"
+                    emit(f"{name} cancelled: {exc}", "warning")
+                else:
+                    task.status = "failed"
+                    emit(f"{name} failed: {exc}", "error")
                 raise
 
         task.future = self._pool.submit(run)
