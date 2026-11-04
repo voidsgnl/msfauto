@@ -82,7 +82,7 @@ from .tasks import ConsoleTask, TaskManager
 COMMANDS = {
     "workspace": ("create", "list", "show", "use"),
     "scope": ("show", "validate", "update"),
-    "discovery": ("run", "import", "show", "history", "compare", "observations"),
+    "discovery": ("run", "import", "show", "history", "compare", "observations", "investigate"),
     "plan": ("build", "show"),
     "checks": ("list", "review", "approve", "run"),
     "vulnerabilities": ("list", "show"),
