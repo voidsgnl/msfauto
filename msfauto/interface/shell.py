@@ -51,6 +51,7 @@ else:
     WordCompleter = _WordCompleter
     FileHistory = _FileHistory
 
+from ..assessment.investigation import build_investigation_steps
 from ..assessment.approval import record_decision
 from ..assessment.planner import build_plan
 from ..cli import display_plan, run_safe_checks
@@ -585,7 +586,7 @@ class CommandShell:
         )
 
     def _investigate(self, args: list[str]) -> None:
-        """Show evidence-driven next actions for each open service in the latest run."""
+        """Show the evidence-driven next action for each open service in the latest run."""
         if len(args) > 1:
             self.console.print("[yellow]Usage: investigate [target-ip][/yellow]")
             return
@@ -594,76 +595,60 @@ class CommandShell:
         if latest is None:
             self.console.print("[yellow]No discovery run is available; run 'discover run' first.[/yellow]")
             return
-        observations = self.store.get_service_observations(
+        observations = tuple(self.store.get_service_observations(
             self.workspace.name, discovery_run_id=latest.scan_id,
+        ))
+        services = tuple(
+            (str(host.address), service)
+            for host in self.store.get_hosts(self.workspace.name)
+            for service in host.services
+            if not args or str(host.address) == args[0]
         )
-        if args:
-            observations = [item for item in observations if item.target == args[0]]
+        if args and not any(target == args[0] for target, _ in services):
+            self.console.print("[yellow]Target is not present in the latest workspace inventory.[/yellow]")
+            return
+        steps = build_investigation_steps(services, observations)
         candidates = self.store.get_vulnerability_candidates(self.workspace.name)
         opportunities = self.store.get_exploit_opportunities(self.workspace.name)
         rows = []
-        for host in self.store.get_hosts(self.workspace.name):
-            target = str(host.address)
-            if args and target != args[0]:
-                continue
-            for service in host.services:
-                endpoint = [
-                    item for item in observations
-                    if item.target == target and item.port == service.port
-                    and item.transport == service.protocol
-                ]
-                endpoint_candidates = [
-                    item for item in candidates
-                    if item.target == target and item.port == service.port
-                ]
-                endpoint_opportunities = [
-                    item for item in opportunities
-                    if item.target == target and item.port == service.port
-                ]
-                fingerprint = " ".join(filter(None, (service.product, service.version, service.name))) or "unknown"
-                if not endpoint:
-                    state = "INSUFFICIENT"
-                    action = "No adapter observation; inspect service fingerprint manually."
-                else:
-                    latest_observation = endpoint[0]
-                    attrs = latest_observation.attributes or {}
-                    if latest_observation.status in {"failed", "partial"}:
-                        state = "NEEDS_REVIEW"
-                        stage = attrs.get("error_stage", "protocol response")
-                        explanation = attrs.get("failure_explanation") or attrs.get("error") or "Incomplete protocol evidence."
-                        action = f"Review {stage} result; {explanation}"
-                    elif latest_observation.status == "unsupported":
-                        state = "NEEDS_REVIEW"
-                        action = str(attrs.get("next_action") or "Manually identify this service and collect protocol evidence.")
-                    elif endpoint_opportunities:
-                        state = "READY"
-                        action = "Review exploit prerequisites and compatibility: " + ", ".join(
-                            item.opportunity_id[:12] for item in endpoint_opportunities[:3]
-                        )
-                    elif endpoint_candidates:
-                        state = "READY"
-                        action = "Review vulnerability candidates: " + ", ".join(
-                            item.candidate_id[:12] for item in endpoint_candidates[:3]
-                        )
-                    elif not service.product or not service.version:
-                        state = "NEEDS_REVIEW"
-                        action = "Improve product/version identification before vulnerability matching."
-                    else:
-                        state = "INSUFFICIENT"
-                        action = "Fingerprint recorded; vulnerability/package mappings or exploit intelligence are missing."
-                rows.append((target, f"{service.port}/{service.protocol}", fingerprint, state, action))
+        for step in steps:
+            endpoint_candidates = [
+                item for item in candidates
+                if item.target == step.target and item.port == step.port
+            ]
+            endpoint_opportunities = [
+                item for item in opportunities
+                if item.target == step.target and item.port == step.port
+            ]
+            action = step.action
+            state = step.state
+            if endpoint_opportunities:
+                state = "READY"
+                action = "Review exploit opportunity prerequisites: " + ", ".join(
+                    item.opportunity_id[:12] for item in endpoint_opportunities[:3]
+                )
+            elif endpoint_candidates:
+                state = "READY"
+                action = "Review vulnerability candidates: " + ", ".join(
+                    item.candidate_id[:12] for item in endpoint_candidates[:3]
+                )
+            rows.append((
+                step.target, f"{step.port}/{step.transport}", step.service[:48],
+                state, action, step.expected_evidence[:100],
+            ))
         self.console.print(
-            f"[bright_cyan][*][/bright_cyan] Evidence review for run {latest.scan_id[:12]} ({latest.status})."
+            f"[bright_cyan][*][/bright_cyan] Evidence-driven investigation plan for "
+            f"run {latest.scan_id[:12]} ({latest.status})."
         )
         self._rows(
             "SERVICE INVESTIGATION — NEXT ACTIONS",
-            ("TARGET", "PORT", "FINGERPRINT", "STATE", "NEXT ACTION"),
+            ("TARGET", "PORT", "SERVICE", "STATE", "NEXT ACTION", "EXPECTED EVIDENCE"),
             rows,
         )
         self.console.print(
-            "[dim]This view is advisory and read-only. READY means evidence is ready for human review, "
-            "not that a vulnerability is confirmed or exploitation is authorized. Use observations "
-            "to inspect the recorded protocol evidence.[/dim]"
+            "[dim]This plan is read-only. No Metasploit module or probe is dispatched here. "
+            "READY means evidence is ready for human review, not that a vulnerability is confirmed "
+            "or exploitation is authorized. Failed observations are not automatically retried.[/dim]"
         )
 
     def _plan(self):
