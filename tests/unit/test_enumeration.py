@@ -329,6 +329,7 @@ class EnumerationTests(unittest.TestCase):
         host = Host(
             address=ipaddress.ip_address("127.0.0.1"),
             status="up",
+            hostname="mail.example.test",
             services=(service,),
         )
         policy = build_policy(["127.0.0.1"], "636")
@@ -338,7 +339,10 @@ class EnumerationTests(unittest.TestCase):
             "msfauto.enumeration.runner._http_probe"
         ) as http_probe:
             enumerate_services("lab", (host,), policy)
-        tls_probe.assert_called_once()
+        tls_probe.assert_called_once_with(
+            "lab", "127.0.0.1", service, 3.0,
+            server_hostname="mail.example.test",
+        )
         http_probe.assert_not_called()
 
     def test_ftp_probe_records_greeting_and_features(self):
