@@ -1,3 +1,12 @@
+## Unreleased
+
+### Added
+- Automatically start and supervise a local Metasploit RPC daemon for interactive sessions when the configured loopback endpoint is not already listening.
+- Generate ephemeral RPC credentials for an MSFAuto-managed daemon and pass them through child environment variables rather than process arguments.
+- Reuse existing RPC services, avoid starting remote endpoints, and stop only the daemon process owned by the current MSFAuto session.
+- Keep the command shell available when Metasploit startup is unavailable, with a clear startup diagnostic.
+- Add tests for RPC daemon lifecycle and credential handling.
+
 # Changelog
 
 All notable changes to MSFAuto are documented here.
