@@ -4,7 +4,8 @@ from unittest.mock import Mock, patch
 
 from msfauto.interface.shell import CommandShell, _ping_target
 from msfauto.scope import build_policy
-from msfauto.storage.models import Workspace
+from msfauto.enumeration.models import ServiceObservation
+from msfauto.storage.models import DiscoveryRun, Host, Service, Workspace
 
 
 def make_shell(prompts: list[str]) -> CommandShell:
@@ -79,3 +80,35 @@ def test_ping_uses_one_bounded_echo_request() -> None:
     args, kwargs = run.call_args
     assert args[0] == ["ping", "-c", "1", "-W", "1", "192.0.2.15"]
     assert kwargs["timeout"] == 2.0
+
+def test_investigate_shows_evidence_driven_next_action_for_failed_service() -> None:
+    shell = make_shell([])
+    run = DiscoveryRun(
+        "default", "nmap", ("nmap",), "/tmp/scan.xml",
+        "completed", "start", "finish",
+    )
+    host = Host(
+        ip_address("127.0.0.1"), "up", "",
+        (Service(25, "tcp", "open", "smtp", "Exim", "4.100"),),
+    )
+    observation = ServiceObservation(
+        "observation-1", "default", "127.0.0.1", 25, "tcp",
+        "smtp", "smtp_response", "failed",
+        {
+            "error_stage": "smtp_greeting",
+            "failure_explanation": "Server greeting timed out.",
+        },
+    )
+    shell.store.get_discovery_runs.return_value = [run]
+    shell.store.get_service_observations.return_value = [observation]
+    shell.store.get_vulnerability_candidates.return_value = []
+    shell.store.get_exploit_opportunities.return_value = []
+    shell.store.get_hosts.return_value = [host]
+    shell._rows = Mock()
+
+    shell._investigate([])
+
+    args = shell._rows.call_args.args
+    assert args[0] == "SERVICE INVESTIGATION — NEXT ACTIONS"
+    assert args[2][0][3] == "NEEDS_REVIEW"
+    assert "smtp_greeting" in args[2][0][4]
