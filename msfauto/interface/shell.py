@@ -12,6 +12,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from ..assessment.approval import record_decision
 from ..assessment.planner import build_plan
 from ..cli import display_plan, run_discovery, run_safe_checks
 from ..discovery import DiscoveryError, parse_nmap_xml
@@ -232,9 +233,26 @@ class CommandShell:
                     for i, item in enumerate(plan.recommendations, 1)
                 ])
             elif command == "checks approve":
-                self.console.print("[yellow]Approval is recorded per exact recommendation during 'checks run'. No checks are dispatched by this command.[/yellow]")
+                if len(args) < 2:
+                    self.console.print("[yellow]Usage: checks approve <recommendation#> <approver> [rationale][/yellow]")
+                else:
+                    plan = self._plan()
+                    try:
+                        recommendation = plan.recommendations[int(args[0]) - 1]
+                    except (ValueError, IndexError):
+                        self.console.print("[red]Recommendation number is not present in the current plan.[/red]")
+                    else:
+                        rationale = " ".join(args[2:]).strip() or "Explicit console approval."
+                        record = record_decision(
+                            self.store, self.workspace.name, recommendation,
+                            "approved", args[1], rationale,
+                        )
+                        self.console.print(f"[green][+][/green] Approval recorded: {record.action_id[:12]}")
             elif command == "checks run":
-                run_safe_checks(self.store, self.workspace, 10, 2, use_metasploit=False)
+                run_safe_checks(
+                    self.store, self.workspace, 10, 2,
+                    use_metasploit=False, prompt_for_approval=False,
+                )
             elif command in {"vulnerabilities list", "vulnerabilities show"}:
                 items = self.store.get_vulnerability_candidates(self.workspace.name)
                 if args and command.endswith("show"):
