@@ -1,6 +1,14 @@
 ## Unreleased
 
 ### Added
+- Added read-only POP3 and IMAP service adapters. They collect protocol greetings and CAPA/CAPABILITY data without authentication; implicit TLS services on ports 993 and 995 are negotiated as protocol-aware mail endpoints, with certificate metadata retained. SMTP on implicit-TLS port 465 now receives SMTP greeting/EHLO enumeration after TLS negotiation.
+- Added `investigate [target-ip]` to summarize each discovered service's evidence state and evidence-driven next action, including manual-review and missing-intelligence gaps.
+
+### Improved
+- Observation details now show POP3/IMAP greeting, capabilities, and TLS metadata; FTP FEAT status is derived from its stored capability list when no explicit status field exists.
+- Failure details label the configured timeout accurately as a per-socket-operation timeout, not a whole-probe deadline.
+
+### Added
 - Added prioritized TCP discovery profiles: `quick`, `standard` (default), and `full`. The standard profile scans a curated set of commonly exposed remote-access, web, mail, file-sharing, directory, database, and infrastructure ports; full uses Nmap's all-TCP-port selection.
 - Added `discover run` as an alias for the end-to-end assessment command, with `--profile quick|standard|full` and `--full` options. The one-shot CLI accepts `--scan-profile`.
 - Kept saved workspace port allowlists authoritative: an explicit list is scanned exactly as configured and is never expanded by a profile.
