@@ -4,6 +4,12 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Console approval workflows
+- Added direct per-recommendation approval using the stable persisted action identity; `checks run` now consumes only matching approved records in the interactive console.
+- Added persisted exploit review commands for accepted, rejected, and deferred decisions, bound to the exact opportunity.
+- Added short-lived exploit authorization from the latest accepted review, subject to the dangerous-actions profile and current saved scope. Authorization does not dispatch an exploit.
+
+
 ### Metasploit-style command console
 - Made a persistent Rich + prompt_toolkit command shell the primary interactive experience, with Fluxion-inspired ASCII branding and a clean `msfauto >` prompt.
 - Moved the full command catalogue behind `help`; grouped commands follow the workspace, scope, discovery, plan, checks, vulnerabilities, exploits, findings, report, and dashboard hierarchy.
