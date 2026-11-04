@@ -18,7 +18,7 @@ The intended platform is organized around these core capabilities:
 - **Validation:** verify suspected weaknesses and exploit outcomes using evidence.
 - **Analysis and correlation:** connect observations and results across assessment stages and produce meaningful findings.
 
-Supporting capabilities include assessment orchestration, authorization and approvals, session/job lifecycle management, evidence integrity, reporting, and a full-screen, keyboard-driven terminal interface.
+Supporting capabilities include assessment orchestration, authorization and approvals, session/job lifecycle management, evidence integrity, reporting, and a persistent Metasploit-style command console.
 
 ## Current implementation status
 
@@ -132,13 +132,13 @@ The dispatcher now has a separate framework-job reconciler:
 
 Polling is an explicit one-shot operation, not an automatic retry loop. It does not stop jobs, create sessions, or perform post-exploitation validation.
 
-**Important limitation:** exploit dispatch is now implemented for this narrow target-only option profile, but it is not a general-purpose Metasploit console. Modules requiring payload selection, handlers, local listener configuration, credentials, or additional options are deliberately unsupported. A returned job/UUID confirms framework acceptance, not exploit success or security impact. Independent target-outcome assessments can be recorded and reviewed separately; automated module-specific verification and post-exploitation/session management remain future work.
+**Important limitation:** exploit dispatch is now implemented for this narrow target-only option profile, but it is not a general-purpose Metasploit console. Modules requiring payload selection, handlers, local listener configuration, credentials, or additional options are deliberately unsupported. A returned job/UUID confirms framework acceptance, not exploit success or security impact. Independent target-outcome assessments can be recorded and reviewed separately. The exact-match module-verifier registry is implemented, but no built-in module verifier is registered yet; post-exploitation/session management also remains future work.
 
 ## Exploit outcome verification
 
 Metasploit framework state and target outcome are separate records. A framework-reported `completed` state means only that the module run ended; it does not establish exploit success or security impact.
 
-The current `ExploitOutcomeValidator` records append-only target outcome assessments with one of three verdicts: `confirmed`, `not_confirmed`, or `inconclusive`. Each assessment records the verifier, method, operator, rationale, timestamp, and evidence references. Conclusive verdicts require evidence stored for the exact execution workspace and target. Evidence attributed only to Metasploit is rejected as independent verification.
+The current `ExploitOutcomeValidator` records append-only target outcome assessments with one of three verdicts: `confirmed`, `not_confirmed`, or `inconclusive`. Each assessment records the verifier, method, operator, rationale, timestamp, and evidence references. Conclusive verdicts require evidence stored for the exact execution workspace and target. Evidence attributed only to Metasploit is rejected as independent verification. `ModuleVerifierRegistry` selects a verifier only by exact Metasploit module name and passes it a bounded timeout budget. Missing registrations and verifier timeouts produce `inconclusive` assessments; an unsupported module causes no probe to be sent. No built-in verifier is currently registered because each one must be grounded in a documented, non-destructive target-side indicator.
 
 This is an evidence-backed assessment record, not an automatic exploit-success detector. A module-specific verifier must define its expected target-side indicator and bounded verification procedure before it can produce a conclusive result. No generic target probe or live exploit validation is claimed.
 
