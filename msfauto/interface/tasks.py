@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from queue import Queue
 from threading import Event, RLock
-from typing import Callable, TypeVar
+from typing import TypeVar
 from uuid import uuid4
 
 T = TypeVar("T")
