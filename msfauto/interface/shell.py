@@ -73,13 +73,13 @@ from ..integrations.metasploit import (
 from ..reporting import ReportError, write_report
 from ..scope import ScopeError, build_policy
 from ..storage import WorkspaceStore
-from ..storage.models import Workspace
+from ..storage.models import DiscoveryRun, Workspace, utc_now
 from .tasks import ConsoleTask, TaskManager
 
 COMMANDS = {
     "workspace": ("create", "list", "show", "use"),
     "scope": ("show", "validate", "update"),
-    "discovery": ("run", "import", "show"),
+    "discovery": ("run", "import", "show", "history", "compare"),
     "plan": ("build", "show"),
     "checks": ("list", "review", "approve", "run"),
     "vulnerabilities": ("list", "show"),
@@ -159,7 +159,7 @@ class CommandShell:
         groups = [
             ("WORKSPACE", [("workspace create", "Create a workspace"), ("workspace list", "List saved workspaces"), ("workspace show", "Show current workspace"), ("workspace use", "Switch workspace")]),
             ("SCOPE", [("scope show", "Display authorized scope"), ("scope validate", "Validate saved scope"), ("scope update", "Replace scope and port limits")]),
-            ("DISCOVERY", [("discovery run", "Run discovery, enumeration and read-only planning"), ("discovery import", "Import an Nmap XML file"), ("discovery show", "Show discovered hosts and services")]),
+            ("DISCOVERY", [("discovery run", "Run discovery, enumeration and read-only planning"), ("discovery import", "Import an Nmap XML file"), ("discovery show", "Show discovered hosts and services"), ("discovery history", "List previous scans and their status"), ("discovery compare <old-id> <new-id>", "Compare two scan snapshots")]),
             ("PLANNING", [("plan build", "Build an assessment plan"), ("plan show", "Display the current plan")]),
             ("SECURITY CHECKS", [("checks list", "List planned checks"), ("checks review", "Review check recommendations"), ("checks approve <#>", "Approve one exact planned check"), ("checks run", "Run approved bounded checks")]),
             ("VULNERABILITIES", [("vulnerabilities list", "List vulnerability candidates"), ("vulnerabilities show", "Show candidate details")]),
@@ -348,11 +348,72 @@ class CommandShell:
                 if not args:
                     self.console.print("[yellow]Usage: discovery import <nmap.xml>[/yellow]")
                 else:
-                    hosts = parse_nmap_xml(Path(args[0]), self.workspace.policy)
+                    source_path = Path(args[0]).expanduser().resolve()
+                    hosts = parse_nmap_xml(source_path, self.workspace.policy)
+                    timestamp = utc_now()
+                    run = DiscoveryRun(
+                        workspace=self.workspace.name,
+                        scanner="nmap-import",
+                        command=("import", str(source_path)),
+                        output_path=str(source_path),
+                        status="completed",
+                        started_at=timestamp,
+                        finished_at=timestamp,
+                    )
+                    self.store.save_discovery_run(run, hosts)
                     self.store.save_hosts(self.workspace.name, hosts)
-                    self.console.print(f"[green][+][/green] Imported {len(hosts)} host(s).")
+                    self.console.print(
+                        f"[green][+][/green] Imported {len(hosts)} host(s); "
+                        f"scan ID {run.scan_id[:12]}."
+                    )
             elif command == "discovery show":
                 self._hosts()
+            elif command == "discovery history":
+                runs = self.store.get_discovery_runs(self.workspace.name)
+                self._rows(
+                    "DISCOVERY SCAN HISTORY",
+                    ("SCAN ID", "SCANNER", "STATUS", "STARTED", "FINISHED", "HOSTS XML"),
+                    [
+                        (
+                            item.scan_id[:12], item.scanner, item.status,
+                            item.started_at, item.finished_at,
+                            item.output_path,
+                        )
+                        for item in runs
+                    ],
+                )
+            elif command == "discovery compare":
+                if len(args) < 2:
+                    self.console.print(
+                        "[yellow]Usage: discovery compare <older-scan-id> <newer-scan-id>[/yellow]"
+                    )
+                else:
+                    runs = self.store.get_discovery_runs(self.workspace.name)
+                    matches = [
+                        [item for item in runs if item.scan_id.startswith(prefix)]
+                        for prefix in args[:2]
+                    ]
+                    if any(len(items) != 1 for items in matches):
+                        self.console.print(
+                            "[red]Each scan ID must uniquely identify one scan in this workspace.[/red]"
+                        )
+                    else:
+                        older, newer = matches[0][0], matches[1][0]
+                        changes = self.store.compare_discovery_runs(
+                            self.workspace.name, older.scan_id, newer.scan_id
+                        )
+                        for category, title in (
+                            ("added", "ADDED SERVICES"),
+                            ("removed", "REMOVED SERVICES"),
+                            ("changed", "CHANGED SERVICES"),
+                        ):
+                            self._rows(
+                                title, ("ENDPOINT", "FINGERPRINT / CHANGE"),
+                                changes[category],
+                            )
+                        total = sum(len(items) for items in changes.values())
+                        if not total:
+                            self.console.print("[green]No service changes between these snapshots.[/green]")
             elif command == "plan build":
                 display_plan(self.store, self.workspace)
             elif command == "plan show":
