@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import shlex
 import sqlite3
@@ -81,7 +82,7 @@ from .tasks import ConsoleTask, TaskManager
 COMMANDS = {
     "workspace": ("create", "list", "show", "use"),
     "scope": ("show", "validate", "update"),
-    "discovery": ("run", "import", "show", "history", "compare"),
+    "discovery": ("run", "import", "show", "history", "compare", "observations"),
     "plan": ("build", "show"),
     "checks": ("list", "review", "approve", "run"),
     "vulnerabilities": ("list", "show"),
@@ -97,7 +98,7 @@ COMMANDS = {
 MODES = {
     "discovery": {
         "description": "Host discovery, Nmap imports, service inventory and scan comparisons.",
-        "commands": {"run": "discovery run", "scan": "discovery run", "import": "discovery import", "show": "discovery show", "history": "discovery history", "compare": "discovery compare"},
+        "commands": {"run": "discovery run", "scan": "discovery run", "import": "discovery import", "show": "discovery show", "history": "discovery history", "compare": "discovery compare", "observations": "observations"},
     },
     "exploit": {
         "description": "Metasploit module inventory and the controlled exploit lifecycle.",
@@ -302,6 +303,75 @@ class CommandShell:
                 rows.append((host.address, f"{service.port}/{service.protocol}", service.name, " ".join(filter(None, (service.product, service.version))) or "—"))
         self._rows("DISCOVERED HOSTS & SERVICES", ("TARGET", "PORT", "SERVICE", "FINGERPRINT"), rows)
 
+    def _observations(self, args: list[str]) -> None:
+        """Inspect persisted service observations without initiating network activity."""
+        action = args[0].casefold() if args else "list"
+        if action == "list":
+            observations = self.store.get_service_observations(self.workspace.name)
+            rows = [
+                (
+                    item.observation_id[:12], item.target,
+                    f"{item.port}/{item.transport}", item.protocol,
+                    item.kind, item.status, item.observed_at,
+                )
+                for item in observations
+            ]
+            self._rows(
+                "STORED SERVICE OBSERVATIONS",
+                ("ID", "TARGET", "PORT", "PROTOCOL", "KIND", "STATUS", "OBSERVED"),
+                rows,
+            )
+            return
+        if action == "host":
+            if len(args) != 2:
+                self.console.print("[yellow]Usage: observations host <ip>[/yellow]")
+                return
+            observations = self.store.get_service_observations(
+                self.workspace.name, target=args[1],
+            )
+            self._rows(
+                f"SERVICE OBSERVATIONS — {args[1]}",
+                ("ID", "PORT", "PROTOCOL", "KIND", "STATUS", "OBSERVED"),
+                [
+                    (
+                        item.observation_id[:12], f"{item.port}/{item.transport}",
+                        item.protocol, item.kind, item.status, item.observed_at,
+                    )
+                    for item in observations
+                ],
+            )
+            return
+        if action == "show":
+            if len(args) != 2:
+                self.console.print("[yellow]Usage: observations show <id>[/yellow]")
+                return
+            matches = [
+                item for item in self.store.get_service_observations(self.workspace.name)
+                if item.observation_id == args[1]
+                or item.observation_id.startswith(args[1])
+            ]
+            if len(matches) != 1:
+                reason = "No observation matches that ID." if not matches else "ID prefix is ambiguous; use a longer prefix."
+                self.console.print(f"[yellow]{reason}[/yellow]")
+                return
+            item = matches[0]
+            self.console.print(Panel(
+                json.dumps(item.attributes, indent=2, sort_keys=True, default=str),
+                title=f"{item.protocol.upper()} / {item.kind}",
+                subtitle=f"{item.target}:{item.port}/{item.transport} • {item.status} • {item.observation_id}",
+                border_style="cyan",
+            ))
+            self._rows("OBSERVATION METADATA", ("FIELD", "VALUE"), [
+                ("Workspace", item.workspace),
+                ("Source", item.source),
+                ("Confidence", f"{item.confidence}/10"),
+                ("Observed at", item.observed_at or "—"),
+            ])
+            return
+        self.console.print(
+            "[yellow]Usage: observations [list|show <id>|host <ip>][/yellow]"
+        )
+
     def _plan(self):
         plan = self.store.get_plan(self.workspace.name)
         if plan is None:
@@ -503,6 +573,8 @@ class CommandShell:
                     )
             elif command == "discovery show":
                 self._hosts()
+            elif command == "observations":
+                self._observations(args)
             elif command == "discovery history":
                 runs = self.store.get_discovery_runs(self.workspace.name)
                 self._rows(
