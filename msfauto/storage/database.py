@@ -305,6 +305,17 @@ class WorkspaceStore:
                 )
                 """
             )
+            observation_columns = {
+                row["name"] for row in connection.execute("PRAGMA table_info(service_observations)")
+            }
+            if "discovery_run_id" not in observation_columns:
+                connection.execute(
+                    "ALTER TABLE service_observations ADD COLUMN discovery_run_id TEXT NOT NULL DEFAULT ''"
+                )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_service_observations_run "
+                "ON service_observations(workspace, discovery_run_id, observed_at)"
+            )
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS exploit_opportunities (
@@ -568,37 +579,44 @@ class WorkspaceStore:
                 hosts.append(Host(ip_address(row["address"]), row["status"], row["hostname"], services))
         return tuple(hosts)
 
-    def save_service_observations(self, observations: tuple) -> None:
-        """Append immutable protocol observations without overwriting Nmap fingerprints."""
+    def save_service_observations(
+        self, observations: tuple, discovery_run_id: str = ""
+    ) -> None:
+        """Append immutable protocol observations and associate them with their scan run."""
         with self._connect() as connection:
             for item in observations:
                 connection.execute(
                     """
                     INSERT INTO service_observations(
                         observation_id, workspace, target, port, transport, protocol,
-                        kind, status, attributes_json, source, confidence, observed_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        kind, status, attributes_json, source, confidence, observed_at,
+                        discovery_run_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         item.observation_id, item.workspace, item.target, item.port,
                         item.transport, item.protocol, item.kind, item.status,
                         json.dumps(item.attributes, sort_keys=True), item.source,
-                        item.confidence, item.observed_at,
+                        item.confidence, item.observed_at, discovery_run_id,
                     ),
                 )
 
     def get_service_observations(
-        self, workspace: str, target: str | None = None
+        self, workspace: str, target: str | None = None,
+        discovery_run_id: str | None = None,
     ) -> tuple:
-        """Return protocol observations in collection order for one workspace."""
+        """Return newest-first observations, optionally filtered to a discovery run."""
         query = (
             "SELECT * FROM service_observations WHERE workspace = ?"
         )
         parameters: tuple = (workspace,)
         if target is not None:
             query += " AND target = ?"
-            parameters = (workspace, target)
-        query += " ORDER BY observed_at, observation_id"
+            parameters += (target,)
+        if discovery_run_id is not None:
+            query += " AND discovery_run_id = ?"
+            parameters += (discovery_run_id,)
+        query += " ORDER BY observed_at DESC, observation_id DESC"
         with self._connect() as connection:
             rows = connection.execute(query, parameters).fetchall()
         from ..enumeration.models import ServiceObservation
