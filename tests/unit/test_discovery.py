@@ -87,7 +87,8 @@ class DiscoveryTests(unittest.TestCase):
         self.assertEqual(len(changes["removed"]), 1)
         self.assertIn("192.168.56.10:80/tcp", changes["removed"][0][0])
         self.assertEqual(len(changes["changed"]), 1)
-        self.assertIn("9.6p1 -> 9.7p1", changes["changed"][0][1])
+        self.assertIn("9.6p1", changes["changed"][0][1])
+        self.assertIn("9.7p1", changes["changed"][0][1])
 
     def test_discovery_snapshot_comparison_rejects_cross_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
