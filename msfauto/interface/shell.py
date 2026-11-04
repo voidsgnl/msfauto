@@ -392,19 +392,21 @@ class CommandShell:
                 if len(args) < 3:
                     self.console.print("[yellow]Usage: exploits prepare <opportunity-id> <authorization-id> <actor>[/yellow]")
                 else:
-                    opportunity = next(
-                        (item for item in self.store.get_exploit_opportunities(self.workspace.name)
-                         if item.opportunity_id.startswith(args[0])),
-                        None,
-                    )
-                    authorization = next(
-                        (item for item in self.store.get_exploit_authorizations(self.workspace.name)
-                         if item.authorization_id.startswith(args[1])),
-                        None,
-                    )
-                    if opportunity is None or authorization is None:
+                    opportunity_matches = [
+                        item for item in self.store.get_exploit_opportunities(self.workspace.name)
+                        if item.opportunity_id.startswith(args[0])
+                    ]
+                    authorization_matches = [
+                        item for item in self.store.get_exploit_authorizations(self.workspace.name)
+                        if item.authorization_id.startswith(args[1])
+                    ]
+                    if len(opportunity_matches) > 1 or len(authorization_matches) > 1:
+                        self.console.print("[red]Identifier prefix is ambiguous; use a longer ID.[/red]")
+                    elif not opportunity_matches or not authorization_matches:
                         self.console.print("[red]Opportunity or authorization not found in this workspace.[/red]")
                     else:
+                        opportunity = opportunity_matches[0]
+                        authorization = authorization_matches[0]
                         record = prepare_exploit_execution(
                             self.store, opportunity, authorization, actor=args[2],
                         )
