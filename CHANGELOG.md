@@ -2,6 +2,7 @@
 
 ### Added
 - Added authenticated Metasploit RPC support for creating/destroying temporary consoles, running bounded single-line console commands, invoking scoped `db_nmap`, selecting an isolated Metasploit database workspace, and reading host/service inventory.
+- Wired the interactive `run` assessment path to execute `db_nmap` through Metasploit RPC and normalize in-scope host/open-service records from the selected Metasploit database workspace. The legacy standalone Nmap path remains for non-interactive/one-shot use and XML import remains available.
 - Validated `db_nmap` inputs as IP/CIDR targets and bounded port specifications; console output is capped and timed, and temporary consoles are destroyed after use.
 
 ### Product direction
