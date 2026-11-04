@@ -142,8 +142,10 @@ class CommandShell:
         policy = self.workspace.policy
         targets = [str(item) for item in (*policy.networks, *policy.addresses)]
         ports = ", ".join(map(str, policy.allowed_ports)) or "discovered ports"
+        rpc_connected = os.environ.get("MSFAUTO_METASPLOIT_CONNECTED") == "1"
+        rpc_label = "[green]connected[/green]" if rpc_connected else "[yellow]unavailable[/yellow]"
         self.console.print(
-            f"[bright_cyan][*][/bright_cyan] Metasploit RPC : [green]configured[/green]\n"
+            f"[bright_cyan][*][/bright_cyan] Metasploit RPC : {rpc_label}\n"
             f"[bright_cyan][*][/bright_cyan] Workspace      : [bold]{self.workspace.name}[/bold]\n"
             f"[bright_cyan][*][/bright_cyan] Profile        : {policy.profile}\n"
             f"[bright_cyan][*][/bright_cyan] Scope          : {', '.join(targets) or 'not configured'}\n"
