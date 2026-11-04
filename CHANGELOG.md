@@ -1,6 +1,14 @@
 ## Unreleased
 
 ### Fixed
+- Import only Nmap ports explicitly reported as open into the current host/service inventory; closed and filtered ports are excluded from service enumeration while remaining in the raw scan artifact and historical snapshot.
+- Use the discovered hostname for TLS SNI in direct TLS and HTTPS probes while pinning the TCP connection to the discovered IP address.
+- Preserve bounded exception messages across protocol adapters and unexpected adapter failures to make enumeration diagnostics actionable.
+
+### Tests
+- Added regression coverage for closed/filtered port exclusion, TLS SNI selection, and forwarding discovered hostnames into TLS probes.
+
+### Fixed
 - Run scoped Nmap discovery with `-Pn` so targets are scanned even when host-discovery probes receive no response.
 - Replace the current workspace host/service inventory after a completed scan, removing stale records that were absent from the latest result while retaining historical snapshots.
 
