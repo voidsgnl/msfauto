@@ -227,6 +227,7 @@ class CommandShell:
                     ("show", "Show discovered hosts and services"),
                     ("history", "List scan history"),
                     ("compare <old-id> <new-id>", "Compare two scan snapshots"),
+                    ("observations [list|host <ip>]", "Browse saved service observations and select one by number"),
                 ],
                 "exploit": [
                     ("list [filter]", "List live Metasploit exploit modules"),
