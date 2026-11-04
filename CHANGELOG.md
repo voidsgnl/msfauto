@@ -4,6 +4,12 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Command-console target outcome assessment
+- Added `exploits outcome record` and `exploits outcome list` commands backed by the existing append-only `ExploitOutcomeValidator`.
+- Conclusive verdicts require independent target-side evidence; framework-originated evidence and framework-only verifiers remain rejected.
+- Commands enforce active-workspace execution lookup and preserve the separation between Metasploit execution state and target outcome assessments.
+- Added command tests for recording, listing, and cross-workspace access rejection. CI verification for this new console surface is pending.
+
 ### Metasploit execution reference integrity
 - Require both a positive-integer framework job ID and a non-empty UUID before any execution can enter `running`.
 - Enforce the invariant for dispatch acknowledgements and operator reconciliation, keeping incomplete references in a non-running state. A malformed acknowledgement after the single RPC attempt is recorded as uncertain and cannot be retried.
@@ -12,7 +18,7 @@ All notable changes to MSFAuto are documented here.
 ### Exploit lifecycle CI correction and cancellation recovery
 - Fixed the reconciliation regression exposed by CI: the legacy test now supplies and asserts both the Metasploit job ID and UUID required for a `running` execution.
 - Added coverage for running → cancelling → cancelled and for recovery of an interrupted cancellation. Recovery leaves the execution uncertain and retains framework references for operator reconciliation.
-- CI verification is pending.
+- GitHub Actions run #535 passed on Python 3.10, 3.12, and 3.14: 170 tests passed plus 5 subtests; Ruff passed on all versions.
 
 ### Independent outcome verification regression coverage
 - Added workspace-binding checks alongside exact-target evidence validation.
