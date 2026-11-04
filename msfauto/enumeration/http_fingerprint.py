@@ -82,7 +82,7 @@ def fingerprint_http_html(headers: dict[str, str], body: bytes, *, truncated: bo
     markers = parser.markers
     if "__next_data__" in text.lower() or any("_next/" in item for item in parser.resources):
         add("Next.js", "Next.js document or asset marker", 9)
-    if "angular:ng-version" in markers or "html:ng-app" in markers:
+    if "angular:ng-version" in markers or "html:ng-version" in markers or "html:ng-app" in markers:
         add("Angular", "Angular DOM marker", 9)
     if "react:data-reactroot" in markers or "data-reactroot" in text.lower():
         add("React", "React DOM marker", 8)
