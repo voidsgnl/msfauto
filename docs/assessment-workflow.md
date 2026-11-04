@@ -2,9 +2,9 @@
 
 ## Product workflow
 
-MSFAuto's primary workflow is an end-to-end security assessment, not a sequence of disconnected scanner commands. The intended primary interface is graphical. The current Textual console is a prototype and is not the target UI.
+MSFAuto's primary workflow is an end-to-end security assessment, not a sequence of disconnected scanner commands. The intended primary interface is a terminal-only, full-screen Textual application with keyboard-driven numbered menus.
 
-The graphical experience should let an operator move between an assessment overview, assets, services, vulnerability candidates, exploit opportunities, execution/session activity, evidence, and findings while retaining clear context about the active workspace and authorized scope.
+The terminal experience lets an operator move between an assessment overview, assets, services, vulnerability candidates, exploit opportunities, execution/session activity, evidence, and findings while retaining clear context about the active workspace and authorized scope.
 
 ## Assessment stages
 
@@ -83,13 +83,13 @@ Dispatch uncertainty must be represented explicitly and require operator reconci
 
 ## Interface behavior
 
-- Use a graphical application as the primary experience.
+- Use the full-screen Textual terminal application as the primary experience.
 - Present assets, services, vulnerability candidates, exploit opportunities, execution/session activity, evidence, and findings as connected views.
 - Keep workspace and authorization context visible.
 - Show meaningful progress and actionable status, not raw log floods.
 - Make technical details, command output, and evidence accessible on demand.
 - Keep the interface independent of assessment decisions and execution enforcement; application services and execution adapters own those responsibilities.
-- The existing Textual prototype is not the design target and should not be expanded as the final UI.
+- Use numbered menu choices and keyboard navigation; do not introduce clickable dashboard controls or a browser interface.
 
 ## Authorization boundary
 
