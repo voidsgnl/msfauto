@@ -303,24 +303,60 @@ class CommandShell:
                 rows.append((host.address, f"{service.port}/{service.protocol}", service.name, " ".join(filter(None, (service.product, service.version))) or "—"))
         self._rows("DISCOVERED HOSTS & SERVICES", ("TARGET", "PORT", "SERVICE", "FINGERPRINT"), rows)
 
+    def _show_observation(self, item) -> None:
+        self.console.print(Panel(
+            json.dumps(item.attributes, indent=2, sort_keys=True, default=str),
+            title=f"{item.protocol.upper()} / {item.kind}",
+            subtitle=f"{item.target}:{item.port}/{item.transport} • {item.status} • {item.observation_id}",
+            border_style="cyan",
+        ))
+        self._rows("OBSERVATION METADATA", ("FIELD", "VALUE"), [
+            ("Workspace", item.workspace),
+            ("Source", item.source),
+            ("Confidence", f"{item.confidence}/10"),
+            ("Observed at", item.observed_at or "—"),
+        ])
+
+    def _select_observation(self, observations, title: str) -> None:
+        """Render a numbered observation list and optionally inspect one entry."""
+        if not observations:
+            self.console.print("[dim]No service observations found.[/dim]")
+            return
+        rows = [
+            (
+                index, item.observation_id[:8], item.target,
+                f"{item.port}/{item.transport}", item.protocol,
+                item.kind, item.status, item.observed_at[:16].replace("T", " "),
+            )
+            for index, item in enumerate(observations, start=1)
+        ]
+        self._rows(
+            title,
+            ("#", "ID", "TARGET", "PORT", "PROTOCOL", "KIND", "STATUS", "OBSERVED"),
+            rows,
+        )
+        try:
+            selected = self.session.prompt("Select observation number (Enter to cancel): ").strip()
+        except (EOFError, KeyboardInterrupt):
+            self.console.print("[dim]Selection cancelled.[/dim]")
+            return
+        if not selected:
+            return
+        if not selected.isdecimal():
+            self.console.print("[yellow]Enter a number from the list, or press Enter to cancel.[/yellow]")
+            return
+        index = int(selected)
+        if index < 1 or index > len(observations):
+            self.console.print("[yellow]Selection is outside the displayed list.[/yellow]")
+            return
+        self._show_observation(observations[index - 1])
+
     def _observations(self, args: list[str]) -> None:
         """Inspect persisted service observations without initiating network activity."""
         action = args[0].casefold() if args else "list"
         if action == "list":
             observations = self.store.get_service_observations(self.workspace.name)
-            rows = [
-                (
-                    item.observation_id[:8], item.target,
-                    f"{item.port}/{item.transport}", item.protocol,
-                    item.kind[:16], item.status, item.observed_at[:10],
-                )
-                for item in observations
-            ]
-            self._rows(
-                "STORED SERVICE OBSERVATIONS",
-                ("ID", "TARGET", "PORT", "PROTOCOL", "KIND", "STATUS", "OBSERVED"),
-                rows,
-            )
+            self._select_observation(observations, "STORED SERVICE OBSERVATIONS")
             return
         if action == "host":
             if len(args) != 2:
@@ -329,24 +365,24 @@ class CommandShell:
             observations = self.store.get_service_observations(
                 self.workspace.name, target=args[1],
             )
-            self._rows(
-                f"SERVICE OBSERVATIONS — {args[1]}",
-                ("ID", "PORT", "PROTOCOL", "KIND", "STATUS", "OBSERVED"),
-                [
-                    (
-                        item.observation_id[:8], f"{item.port}/{item.transport}",
-                        item.protocol, item.kind[:16], item.status, item.observed_at[:10],
-                    )
-                    for item in observations
-                ],
+            self._select_observation(
+                observations, f"SERVICE OBSERVATIONS — {args[1]}",
             )
             return
         if action == "show":
             if len(args) != 2:
-                self.console.print("[yellow]Usage: observations show <id>[/yellow]")
+                self.console.print("[yellow]Usage: observations show <number|id-prefix>[/yellow]")
+                return
+            observations = self.store.get_service_observations(self.workspace.name)
+            if args[1].isdecimal():
+                index = int(args[1])
+                if 1 <= index <= len(observations):
+                    self._show_observation(observations[index - 1])
+                    return
+                self.console.print("[yellow]Selection is outside the observation list.[/yellow]")
                 return
             matches = [
-                item for item in self.store.get_service_observations(self.workspace.name)
+                item for item in observations
                 if item.observation_id == args[1]
                 or item.observation_id.startswith(args[1])
             ]
@@ -354,22 +390,10 @@ class CommandShell:
                 reason = "No observation matches that ID." if not matches else "ID prefix is ambiguous; use a longer prefix."
                 self.console.print(f"[yellow]{reason}[/yellow]")
                 return
-            item = matches[0]
-            self.console.print(Panel(
-                json.dumps(item.attributes, indent=2, sort_keys=True, default=str),
-                title=f"{item.protocol.upper()} / {item.kind}",
-                subtitle=f"{item.target}:{item.port}/{item.transport} • {item.status} • {item.observation_id}",
-                border_style="cyan",
-            ))
-            self._rows("OBSERVATION METADATA", ("FIELD", "VALUE"), [
-                ("Workspace", item.workspace),
-                ("Source", item.source),
-                ("Confidence", f"{item.confidence}/10"),
-                ("Observed at", item.observed_at or "—"),
-            ])
+            self._show_observation(matches[0])
             return
         self.console.print(
-            "[yellow]Usage: observations [list|show <id>|host <ip>][/yellow]"
+            "[yellow]Usage: observations [list|host <ip>|show <number|id-prefix>][/yellow]"
         )
 
     def _plan(self):
