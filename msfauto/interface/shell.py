@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shlex
+import os
 import sqlite3
 import time
 from pathlib import Path
@@ -19,6 +20,21 @@ from ..cli import display_plan, run_safe_checks
 from ..core import AssessmentApplication
 from ..discovery import DiscoveryError, parse_nmap_xml
 from ..exploitation import authorize_opportunity, review_opportunity
+from ..execution import (
+    ExploitDispatchUncertain,
+    ExploitExecutionError,
+    MetasploitExploitDispatcher,
+    MetasploitExploitReconciler,
+    prepare_exploit_execution,
+    reconcile_uncertain_execution,
+    request_exploit_cancellation,
+)
+from ..integrations.metasploit import (
+    MetasploitClient,
+    MetasploitConfig,
+    MetasploitError,
+    MsgpackHttpTransport,
+)
 from ..reporting import ReportError, write_report
 from ..scope import ScopeError, build_policy
 from ..storage import WorkspaceStore
@@ -32,7 +48,7 @@ COMMANDS = {
     "plan": ("build", "show"),
     "checks": ("list", "review", "approve", "run"),
     "vulnerabilities": ("list", "show"),
-    "exploits": ("list", "review", "authorize"),
+    "exploits": ("list", "review", "authorize", "executions", "prepare", "dispatch", "poll", "cancel", "reconcile"),
     "findings": ("list", "show"),
     "report": ("generate", "show"),
     "tasks": ("list", "show"),
@@ -104,7 +120,17 @@ class CommandShell:
             ("PLANNING", [("plan build", "Build an assessment plan"), ("plan show", "Display the current plan")]),
             ("SECURITY CHECKS", [("checks list", "List planned checks"), ("checks review", "Review check recommendations"), ("checks approve <#>", "Approve one exact planned check"), ("checks run", "Run approved bounded checks")]),
             ("VULNERABILITIES", [("vulnerabilities list", "List vulnerability candidates"), ("vulnerabilities show", "Show candidate details")]),
-            ("EXPLOIT INTELLIGENCE", [("exploits list", "List matched exploit opportunities"), ("exploits review <id>", "Record an explicit opportunity review"), ("exploits authorize <id>", "Authorize an accepted opportunity")]),
+            ("EXPLOIT INTELLIGENCE", [
+                ("exploits list", "List matched exploit opportunities"),
+                ("exploits review <id>", "Record an explicit opportunity review"),
+                ("exploits authorize <id>", "Authorize an accepted opportunity"),
+                ("exploits prepare <opportunity> <authorization> <actor>", "Create a durable prepared execution"),
+                ("exploits executions", "List persisted exploit execution records"),
+                ("exploits dispatch <execution> <actor>", "Dispatch one prepared execution after confirmation"),
+                ("exploits poll <execution> <actor>", "Poll a running Metasploit job"),
+                ("exploits cancel <execution> <actor> <reason>", "Request cancellation of a running job"),
+                ("exploits reconcile <execution> <state> <actor> <reason>", "Resolve an uncertain dispatch explicitly"),
+            ]),
             ("FINDINGS", [("findings list", "List recorded findings"), ("findings show", "Show finding details")]),
             ("REPORTING", [("report generate", "Generate a JSON or Markdown report"), ("report show", "Show the latest report location")]),
             ("TASKS", [("tasks list", "List recent background tasks"), ("tasks show <id>", "Show task status and pending output")]),
@@ -144,7 +170,17 @@ class CommandShell:
 
     def _wait_task(self, task: ConsoleTask) -> None:
         self.console.print(f"[bright_cyan][*][/bright_cyan] Task {task.task_id}: {task.name}")
-        with self.console.status("[bold bright_cyan]Working…[/bold bright_cyan]", spinner="dots"):
+        try:
+            with self.console.status("[bold bright_cyan]Working…[/bold bright_cyan]", spinner="dots"):
+                while task.future is not None and not task.future.done():
+                    self._drain_task_events(task)
+                    time.sleep(0.08)
+                self._drain_task_events(task)
+        except KeyboardInterrupt:
+            if self.tasks.cancel(task.task_id):
+                self.console.print("[yellow][!][/yellow] Cancellation requested; waiting for Nmap to stop.")
+            else:
+                self.console.print("[yellow][!][/yellow] This task is not cancellable.")
             while task.future is not None and not task.future.done():
                 self._drain_task_events(task)
                 time.sleep(0.08)
@@ -159,6 +195,21 @@ class CommandShell:
             event = task.events.get_nowait()
             style = {"error": "red", "warning": "yellow", "success": "green"}.get(event.level, "white")
             self.console.print(f"[{style}][{event.level}][/{style}] {event.message}")
+
+    def _metasploit_client(self) -> MetasploitClient:
+        username = os.environ.get("MSFAUTO_METASPLOIT_USERNAME", "")
+        password = os.environ.get("MSFAUTO_METASPLOIT_PASSWORD", "")
+        if not username or not password:
+            raise MetasploitError(
+                "Set MSFAUTO_METASPLOIT_USERNAME and MSFAUTO_METASPLOIT_PASSWORD before using exploit execution commands."
+            )
+        config = MetasploitConfig(
+            url=os.environ.get("MSFAUTO_METASPLOIT_URL", "http://127.0.0.1:55553/api/1.0"),
+            timeout=5.0,
+        )
+        return MetasploitClient(
+            MsgpackHttpTransport(config), username=username, password=password,
+        )
 
     def _dashboard(self) -> None:
         hosts = self.store.get_hosts(self.workspace.name)
@@ -236,9 +287,11 @@ class CommandShell:
                 application = AssessmentApplication(self.workspace, self.store)
                 task = self.tasks.submit(
                     "assessment",
-                    lambda _cancel, emit: application.run_assessment(
-                        lambda event: emit(f"[{event.stage}] {event.message}", event.level)
+                    lambda cancel, emit: application.run_assessment(
+                        lambda event: emit(f"[{event.stage}] {event.message}", event.level),
+                        cancel_event=cancel,
                     ),
+                    cancellable=True,
                 )
                 self._wait_task(task)
             elif command == "discovery import":
@@ -326,6 +379,131 @@ class CommandShell:
                             )
                             self.store.save_exploit_authorization(authorization)
                             self.console.print(f"[green][+][/green] Authorization recorded: {authorization.authorization_id[:12]} (expires {authorization.expires_at}).")
+            elif command == "exploits executions":
+                records = self.store.get_exploit_executions(self.workspace.name)
+                self._rows("EXPLOIT EXECUTIONS", ("ID", "TARGET", "PORT", "MODULE", "STATE", "JOB"), [
+                    (
+                        item.execution_id[:12], item.target, item.port,
+                        item.module_name, item.state, item.external_job_id or "—",
+                    )
+                    for item in records
+                ])
+            elif command == "exploits prepare":
+                if len(args) < 3:
+                    self.console.print("[yellow]Usage: exploits prepare <opportunity-id> <authorization-id> <actor>[/yellow]")
+                else:
+                    opportunity = next(
+                        (item for item in self.store.get_exploit_opportunities(self.workspace.name)
+                         if item.opportunity_id.startswith(args[0])),
+                        None,
+                    )
+                    authorization = next(
+                        (item for item in self.store.get_exploit_authorizations(self.workspace.name)
+                         if item.authorization_id.startswith(args[1])),
+                        None,
+                    )
+                    if opportunity is None or authorization is None:
+                        self.console.print("[red]Opportunity or authorization not found in this workspace.[/red]")
+                    else:
+                        record = prepare_exploit_execution(
+                            self.store, opportunity, authorization, actor=args[2],
+                        )
+                        self.console.print(
+                            f"[green][+][/green] Prepared execution {record.execution_id[:12]} "
+                            f"for {record.target}:{record.port}. No module dispatched."
+                        )
+            elif command == "exploits dispatch":
+                if len(args) < 2:
+                    self.console.print("[yellow]Usage: exploits dispatch <execution-id> <actor>[/yellow]")
+                else:
+                    record = self.store.get_exploit_execution(args[0])
+                    if record is None or record.workspace != self.workspace.name:
+                        self.console.print("[red]Execution record not found in this workspace.[/red]")
+                    elif record.state != "prepared":
+                        self.console.print(f"[red]Execution is {record.state}; only prepared records can be dispatched.[/red]")
+                    else:
+                        self.console.print(
+                            f"[bold yellow]Dispatch confirmation required[/bold yellow]\n"
+                            f"Module: {record.module_name}\nTarget: {record.target}:{record.port}/{record.protocol}\n"
+                            f"Authorization: {record.authorization_id[:12]}"
+                        )
+                        confirmation = self.session.prompt("Type DISPATCH to make the single Metasploit RPC attempt: ").strip()
+                        if confirmation != "DISPATCH":
+                            self.console.print("[yellow]Dispatch cancelled; execution remains prepared.[/yellow]")
+                        else:
+                            client = self._metasploit_client()
+                            dispatcher = MetasploitExploitDispatcher(self.store, client)
+                            try:
+                                updated = dispatcher.dispatch(record.execution_id, actor=args[1])
+                                self.console.print(
+                                    f"[green][+][/green] Metasploit acknowledged job {updated.external_job_id} "
+                                    f"(UUID {updated.external_uuid}); state={updated.state}."
+                                )
+                            except ExploitDispatchUncertain as exc:
+                                self.console.print(
+                                    f"[red][!][/red] {exc} Execution remains {exc.execution.state}; "
+                                    "do not retry. Use exploits reconcile only after checking Metasploit."
+                                )
+            elif command == "exploits poll":
+                if len(args) < 2:
+                    self.console.print("[yellow]Usage: exploits poll <execution-id> <actor>[/yellow]")
+                else:
+                    record = self.store.get_exploit_execution(args[0])
+                    if record is None or record.workspace != self.workspace.name:
+                        self.console.print("[red]Execution record not found in this workspace.[/red]")
+                    else:
+                        result = MetasploitExploitReconciler(
+                            self.store, self._metasploit_client()
+                        ).poll(record.execution_id, actor=args[1])
+                        self.console.print(
+                            f"[bright_cyan][*][/bright_cyan] Framework={result.framework_status}; "
+                            f"active={result.job_active}; lifecycle={result.execution.state}\n{result.detail}"
+                        )
+            elif command == "exploits cancel":
+                if len(args) < 3:
+                    self.console.print("[yellow]Usage: exploits cancel <execution-id> <actor> <reason>[/yellow]")
+                else:
+                    record = self.store.get_exploit_execution(args[0])
+                    if record is None or record.workspace != self.workspace.name:
+                        self.console.print("[red]Execution record not found in this workspace.[/red]")
+                    else:
+                        cancelling = request_exploit_cancellation(
+                            self.store, record.execution_id, actor=args[1],
+                            detail="Operator requested Metasploit job cancellation: " + " ".join(args[2:]),
+                        )
+                        try:
+                            self._metasploit_client().stop_job(int(cancelling.external_job_id))
+                            self.console.print(
+                                f"[yellow][!][/yellow] Stop request acknowledged for job "
+                                f"{cancelling.external_job_id}. Poll to reconcile terminal state."
+                            )
+                        except (MetasploitError, ValueError) as exc:
+                            self.console.print(
+                                f"[yellow][!][/yellow] Stop outcome not confirmed: {exc}. "
+                                "Lifecycle remains cancelling until reconciliation."
+                            )
+            elif command == "exploits reconcile":
+                if len(args) < 4:
+                    self.console.print(
+                        "[yellow]Usage: exploits reconcile <execution-id> "
+                        "<not_dispatched|running|completed|failed|timed_out|cancelled> "
+                        "<actor> <reason>[/yellow]"
+                    )
+                else:
+                    record = self.store.get_exploit_execution(args[0])
+                    if record is None or record.workspace != self.workspace.name:
+                        self.console.print("[red]Execution record not found in this workspace.[/red]")
+                    elif record.state != "dispatch_uncertain":
+                        self.console.print("[red]Only dispatch_uncertain records can be operator-reconciled.[/red]")
+                    else:
+                        updated = reconcile_uncertain_execution(
+                            self.store, record.execution_id, args[1], actor=args[2],
+                            rationale=" ".join(args[3:]),
+                        )
+                        self.console.print(
+                            f"[green][+][/green] Reconciliation recorded: {updated.execution_id[:12]} "
+                            f"-> {updated.state}."
+                        )
             elif command in {"findings list", "findings show"}:
                 items = self.store.get_findings(self.workspace.name)
                 if args and command.endswith("show"):
@@ -363,7 +541,7 @@ class CommandShell:
                 self._dashboard()
             else:
                 self.console.print(f"[red]Unknown command:[/red] {line}. Type [bright_cyan]help[/bright_cyan].")
-        except (ScopeError, DiscoveryError, ReportError, OSError, ValueError) as exc:
+        except (ScopeError, DiscoveryError, ReportError, MetasploitError, ExploitExecutionError, OSError, ValueError, RuntimeError) as exc:
             self.console.print(f"[red]Command failed:[/red] {exc}")
         return True
 
