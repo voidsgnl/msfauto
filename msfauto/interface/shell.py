@@ -916,7 +916,14 @@ class CommandShell:
                 if scan_profile not in {"quick", "standard", "full"}:
                     self.console.print("[yellow]Usage: discover run [--profile quick|standard|full][/yellow]")
                     return True
-                application = AssessmentApplication(self.workspace, self.store)
+                try:
+                    metasploit_client = self._metasploit_client()
+                except MetasploitError as exc:
+                    self.console.print(f"[red]Metasploit connection required for assessment: {exc}[/red]")
+                    return True
+                application = AssessmentApplication(
+                    self.workspace, self.store, metasploit_client=metasploit_client,
+                )
                 task = self.tasks.submit(
                     f"{scan_profile} assessment",
                     lambda cancel, emit: application.run_assessment(
@@ -924,7 +931,7 @@ class CommandShell:
                         cancel_event=cancel,
                         scan_profile=scan_profile,
                     ),
-                    cancellable=True,
+                    cancellable=False,
                 )
                 self._wait_task(task)
                 if task.status == "completed":
