@@ -38,7 +38,7 @@ class _FingerprintParser(HTMLParser):
             rel = values.get("rel", "").lower()
             if href and any(token in rel for token in ("stylesheet", "manifest", "icon")):
                 self.resources.append(href[:MAX_TEXT_LENGTH])
-        for key in ("ng-app", "data-reactroot", "data-v-app", "x-data"):
+        for key in ("ng-app", "ng-version", "data-reactroot", "data-v-app", "x-data"):
             if key in values:
                 self.markers.add(f"html:{key}")
 
