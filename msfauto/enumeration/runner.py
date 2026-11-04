@@ -593,12 +593,16 @@ def _run_timed_probe(probe, *args, timeout: float, **kwargs) -> tuple[ServiceObs
             error_type = str(attributes.get("error_type", ""))
             error = str(attributes.get("error", "")).lower()
             stage = str(attributes.get("error_stage", ""))
-            if error_type in {"TimeoutError", "socket.timeout"} or "timed out" in error:
-                category = "timeout"
-                explanation = "The endpoint did not complete this operation within the configured timeout."
+            timed_out = error_type in {"TimeoutError", "socket.timeout"} or "timed out" in error
+            if stage == "tcp_connect" and timed_out:
+                category = "connection_timeout"
+                explanation = "TCP connection establishment exceeded the configured timeout."
             elif stage == "tcp_connect":
-                category = "connection"
+                category = "connection_error"
                 explanation = "A TCP connection could not be established."
+            elif timed_out:
+                category = "protocol_timeout"
+                explanation = "The TCP connection progressed, but the protocol operation exceeded its configured timeout."
             else:
                 category = "protocol_response"
                 explanation = "The connection reached the protocol probe, but a usable response was not completed."
