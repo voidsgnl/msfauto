@@ -4,11 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
-### Live command-console task output
-- Added a task registry for background workflows with task IDs, status, progress-event queues, captured results/errors, and a cooperative cancellation primitive.
-- Routed interactive `discovery run` through the shared assessment application in a worker task and streamed real workflow-stage events to the terminal alongside a Rich activity indicator.
-- Added `tasks list` and `tasks show <id>` console commands.
-- Discovery remains non-cancellable until Nmap process management and orchestrator stage-boundary cancellation are implemented; no false cancellation guarantee is exposed.
+### Live command-console task output and execution controls
+- Added a task registry for background workflows with task IDs, lifecycle status, progress-event queues, captured results/errors, and cooperative cancellation.
+- Routed interactive `discovery run` through the shared assessment application and streamed real workflow-stage events to the terminal alongside a Rich activity indicator.
+- Replaced the blocking Nmap runner with bounded process monitoring, timeout enforcement, stderr capture, and operator cancellation (terminate, bounded wait, then kill if necessary).
+- Propagated cancellation into durable assessment-run state and stage-boundary checks. Ctrl-C during the live task indicator requests cancellation; long-running enumeration/advisory operations are not interrupted mid-request.
+- Added console commands for preparing and listing exploit executions, explicitly confirmed dispatch of prepared records, polling Metasploit jobs, requesting cancellation, and operator reconciliation of uncertain dispatches.
+- Reused the existing lifecycle, narrow target-only TCP dispatcher, and UUID-specific reconciler. No arbitrary module options are accepted, ambiguous dispatches are never retried, and no exploit was dispatched during implementation.
 
 ### Console approval workflows
 - Added direct per-recommendation approval using the stable persisted action identity; `checks run` now consumes only matching approved records in the interactive console.
