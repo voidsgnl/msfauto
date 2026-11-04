@@ -41,7 +41,17 @@ def plan_service_investigation(
         if item.target == target and item.port == service.port
         and item.transport == service.protocol
     )
-    latest = endpoint[0] if endpoint else None
+    web_service = _is_web_service(service, endpoint)
+    app_observation = next(
+        (
+            item for item in endpoint
+            if item.protocol == "http_application" and item.status == "completed"
+        ),
+        None,
+    ) if web_service else None
+    # A successful application response is more useful than a failed TLS-only
+    # side observation on the same HTTPS endpoint.
+    latest = app_observation or (endpoint[0] if endpoint else None)
     fingerprint = " ".join(
         value for value in (service.product, service.version, service.name) if value
     ) or "unidentified service"
