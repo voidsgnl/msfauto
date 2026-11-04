@@ -9,6 +9,11 @@ All notable changes to MSFAuto are documented here.
 - Enforce the invariant for dispatch acknowledgements and operator reconciliation, keeping incomplete references in a non-running state. A malformed acknowledgement after the single RPC attempt is recorded as uncertain and cannot be retried.
 - Added regression tests for missing and malformed references, including malformed dispatch acknowledgements.
 
+### Exploit lifecycle CI correction and cancellation recovery
+- Fixed the reconciliation regression exposed by CI: the legacy test now supplies and asserts both the Metasploit job ID and UUID required for a `running` execution.
+- Added coverage for running → cancelling → cancelled and for recovery of an interrupted cancellation. Recovery leaves the execution uncertain and retains framework references for operator reconciliation.
+- CI verification is pending.
+
 ### Live command-console task output and execution controls
 - Added a task registry for background workflows with task IDs, lifecycle status, progress-event queues, captured results/errors, and cooperative cancellation.
 - Routed interactive `discovery run` through the shared assessment application and streamed real workflow-stage events to the terminal alongside a Rich activity indicator.
