@@ -4,7 +4,7 @@
 - The adapter does not authenticate, negotiate credentials, send mail, or automatically upgrade to STARTTLS. SMTPS on port 465 remains in the TLS-handshake path.
 - Wired persisted service observations into OSV vulnerability matching. Candidates now retain completed/partial observation IDs and identify correlated protocol context in their rationale.
 - Protocol observations remain supporting evidence only: they do not alter exact product/version matching, raise confidence, or turn a candidate into a confirmed vulnerability.
-- Added local SMTP fixture coverage and regression tests for observation-to-candidate correlation. Initial CI caught an escaped-line-ending error in the mock SMTP server; the fixture and connection cleanup were corrected in the follow-up commit. Final CI verification is pending.
+- Added local SMTP fixture coverage and regression tests for observation-to-candidate correlation. CI caught and drove fixes for the SMTP fixture's CRLF framing and one Ruff import-order issue. The corrected commit passes the full test suite on Python 3.10 (192 tests plus 5 subtests); cross-version CI is running.
 
 ### Latest implementation milestone: operation modes and host-level discovery diffs
 

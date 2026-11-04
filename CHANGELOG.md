@@ -6,6 +6,7 @@
 
 ### Fixed
 - Corrected SMTP test-server CRLF framing and made the SMTP adapter send QUIT when a connection was established, with a close fallback.
+- Applied Ruff's required import ordering for the SMTP adapter.
 
 ### Tests
 - Added a local SMTP protocol fixture and coverage for protocol observation propagation into vulnerability candidates.

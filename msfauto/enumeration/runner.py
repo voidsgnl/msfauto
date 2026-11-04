@@ -3,8 +3,8 @@ from __future__ import annotations
 import ftplib
 import hashlib
 import http.client
-import socket
 import smtplib
+import socket
 import ssl
 import struct
 from concurrent.futures import ThreadPoolExecutor, as_completed
