@@ -83,6 +83,7 @@ def run_safe_checks(
     max_checks: int,
     workers: int,
     use_metasploit: bool = False,
+    prompt_for_approval: bool = True,
 ) -> int:
     plan = store.get_plan(workspace.name)
     if plan is None:
@@ -127,31 +128,49 @@ def run_safe_checks(
         adapter = MetasploitSafeAdapter(client)
 
     selected = plan.recommendations[:max_checks]
-    print("Each recommendation requires a separate, recorded decision.")
-    approver = input("Approver identifier: ").strip()
-    if not approver:
-        print("No approver identifier supplied; no checks were dispatched.")
-        return 2
-
     approved = []
-    for index, recommendation in enumerate(selected, start=1):
-        module_name = f"{recommendation.module_type}/{recommendation.module_name}"
+    if prompt_for_approval:
+        print("Each recommendation requires a separate, recorded decision.")
+        approver = input("Approver identifier: ").strip()
+        if not approver:
+            print("No approver identifier supplied; no checks were dispatched.")
+            return 2
+        for index, recommendation in enumerate(selected, start=1):
+            module_name = f"{recommendation.module_type}/{recommendation.module_name}"
+            print(
+                f"\\n[{index}/{len(selected)}] {recommendation.target}:"
+                f"{recommendation.port}/{recommendation.protocol} -> {module_name}"
+            )
+            print(f"Risk: {recommendation.risk} | Confidence: {recommendation.confidence}%")
+            print(f"Reason: {recommendation.reason}")
+            answer = input("Type APPROVE to authorize this exact action, or anything else to reject: ").strip()
+            decision = "approved" if answer == "APPROVE" else "rejected"
+            record = record_decision(
+                store, workspace.name, recommendation, decision, approver,
+                "Operator entered the exact APPROVE confirmation." if decision == "approved"
+                else "Operator did not enter the exact APPROVE confirmation.",
+            )
+            print(f"Decision recorded: {record.decision} ({record.action_id[:12]}).")
+            if decision == "approved":
+                approved.append(recommendation)
+    else:
+        for recommendation in selected:
+            approval = store.get_approval(action_id(workspace.name, recommendation))
+            expected_module = f"{recommendation.module_type}/{recommendation.module_name}"
+            if (
+                approval is not None
+                and approval.decision == "approved"
+                and approval.workspace == workspace.name
+                and approval.target == recommendation.target
+                and approval.port == recommendation.port
+                and approval.protocol == recommendation.protocol
+                and approval.module_name == expected_module
+            ):
+                approved.append(recommendation)
         print(
-            f"\n[{index}/{len(selected)}] {recommendation.target}:"
-            f"{recommendation.port}/{recommendation.protocol} -> {module_name}"
+            f"Using persisted approvals: {len(approved)} approved, "
+            f"{len(selected) - len(approved)} not approved."
         )
-        print(f"Risk: {recommendation.risk} | Confidence: {recommendation.confidence}%")
-        print(f"Reason: {recommendation.reason}")
-        answer = input("Type APPROVE to authorize this exact action, or anything else to reject: ").strip()
-        decision = "approved" if answer == "APPROVE" else "rejected"
-        record = record_decision(
-            store, workspace.name, recommendation, decision, approver,
-            "Operator entered the exact APPROVE confirmation." if decision == "approved"
-            else "Operator did not enter the exact APPROVE confirmation.",
-        )
-        print(f"Decision recorded: {record.decision} ({record.action_id[:12]}).")
-        if decision == "approved":
-            approved.append(recommendation)
 
     if not approved:
         print("No recommendations were approved; no checks were dispatched.")
