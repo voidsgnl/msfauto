@@ -12,6 +12,7 @@ dependencies = [
     "textual>=0.58,<2",
     "rich>=13.7,<15",
     "prompt-toolkit>=3.0.43,<4",
+    "cryptography>=44,<47",
 ]
 
 [project.optional-dependencies]
