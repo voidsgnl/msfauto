@@ -6,6 +6,7 @@ from pathlib import Path
 from msfauto.discovery import DiscoveryError, parse_nmap_xml
 from msfauto.scope import build_policy
 from msfauto.storage import WorkspaceStore
+from msfauto.storage.models import DiscoveryRun
 
 NMAP_XML = "<nmaprun>\n  <host>\n    <status state=\"up\"/>\n    <address addr=\"192.168.56.10\" addrtype=\"ipv4\"/>\n    <hostnames><hostname name=\"lab-host\"/></hostnames>\n    <ports>\n      <port protocol=\"tcp\" portid=\"22\">\n        <state state=\"open\"/>\n        <service name=\"ssh\" product=\"OpenSSH\" version=\"9.6p1\" method=\"probed\" conf=\"10\" extrainfo=\"Ubuntu 2ubuntu2\">\n          <cpe>cpe:/a:openbsd:openssh:9.6p1</cpe>\n        </service>\n      </port>\n      <port protocol=\"tcp\" portid=\"80\">\n        <state state=\"open\"/>\n        <service name=\"http\"/>\n      </port>\n    </ports>\n  </host>\n</nmaprun>\n"
 
@@ -50,6 +51,55 @@ class DiscoveryTests(unittest.TestCase):
             restored = store.get_hosts("lab")
             self.assertEqual(restored[0].address, hosts[0].address)
             self.assertEqual(restored[0].services[0], hosts[0].services[0])
+
+    def test_discovery_history_and_snapshot_comparison(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = WorkspaceStore(Path(directory) / "state.sqlite3")
+            policy = build_policy(["192.168.56.0/24"])
+            older_path = Path(directory) / "older.xml"
+            newer_path = Path(directory) / "newer.xml"
+            older_path.write_text(NMAP_XML, encoding="utf-8")
+            newer_xml = NMAP_XML.replace('portid="80"', 'portid="443"').replace(
+                'version="9.6p1"', 'version="9.7p1"'
+            )
+            newer_path.write_text(newer_xml, encoding="utf-8")
+            older_hosts = parse_nmap_xml(older_path, policy)
+            newer_hosts = parse_nmap_xml(newer_path, policy)
+            older = DiscoveryRun(
+                "lab", "nmap", ("nmap",), str(older_path), "completed",
+                "2026-11-01T10:00:00+00:00", "2026-11-01T10:00:10+00:00",
+                scan_id="scan-older",
+            )
+            newer = DiscoveryRun(
+                "lab", "nmap", ("nmap",), str(newer_path), "completed",
+                "2026-11-02T10:00:00+00:00", "2026-11-02T10:00:10+00:00",
+                scan_id="scan-newer",
+            )
+            store.save_discovery_run(older, older_hosts)
+            store.save_discovery_run(newer, newer_hosts)
+
+            history = store.get_discovery_runs("lab")
+            changes = store.compare_discovery_runs("lab", "scan-older", "scan-newer")
+
+        self.assertEqual([item.scan_id for item in history], ["scan-newer", "scan-older"])
+        self.assertEqual(len(changes["added"]), 1)
+        self.assertIn("192.168.56.10:443/tcp", changes["added"][0][0])
+        self.assertEqual(len(changes["removed"]), 1)
+        self.assertIn("192.168.56.10:80/tcp", changes["removed"][0][0])
+        self.assertEqual(len(changes["changed"]), 1)
+        self.assertIn("9.6p1 -> 9.7p1", changes["changed"][0][1])
+
+    def test_discovery_snapshot_comparison_rejects_cross_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = WorkspaceStore(Path(directory) / "state.sqlite3")
+            run = DiscoveryRun(
+                "lab", "nmap", (), "scan.xml", "completed",
+                "2026-11-01T10:00:00+00:00", "2026-11-01T10:00:10+00:00",
+                scan_id="scan-lab",
+            )
+            store.save_discovery_run(run, ())
+            with self.assertRaisesRegex(ValueError, "active workspace"):
+                store.compare_discovery_runs("other", "scan-lab", "scan-lab")
 
     def test_parser_rejects_invalid_service_confidence(self) -> None:
         xml = NMAP_XML.replace('conf="10"', 'conf="eleven"')
