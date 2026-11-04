@@ -1,7 +1,7 @@
 import threading
 import unittest
-from typing import ClassVar
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import ClassVar
 
 from msfauto.enumeration.web_mapper import map_web_application
 
