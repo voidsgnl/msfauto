@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from ..integrations.metasploit import MetasploitClient
+from ..integrations.metasploit import MetasploitClient, MetasploitError
 
 
 @dataclass(frozen=True)
@@ -15,6 +15,7 @@ class AuxiliaryModuleCandidate:
     description: str
     check_supported: bool
     required_options: tuple[str, ...]
+    options: dict[str, object] = field(default_factory=dict)
 
 
 def discover_web_auxiliary_modules(
@@ -65,6 +66,7 @@ def discover_web_auxiliary_modules(
                 description=str(metadata.get("description") or result.get("description") or ""),
                 check_supported=metadata.get("check") is True,
                 required_options=required,
+                options=options,
             ))
             if len(candidates) >= max_modules:
                 return tuple(candidates)
