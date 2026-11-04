@@ -832,7 +832,15 @@ class WorkspaceStore:
         snapshots = {row["scan_id"]: json.loads(row["hosts_json"]) for row in rows}
         if older_scan_id not in snapshots or newer_scan_id not in snapshots:
             raise ValueError("Both completed scan snapshots must exist in the active workspace.")
-        def index(snapshot: list[dict[str, object]]) -> dict[tuple[str, int, str], str]:
+        def host_index(snapshot: list[dict[str, object]]) -> dict[str, str]:
+            return {
+                str(host["address"]): (
+                    f"status={host['status']} hostname={host['hostname'] or '—'}"
+                )
+                for host in snapshot
+            }
+
+        def service_index(snapshot: list[dict[str, object]]) -> dict[tuple[str, int, str], str]:
             result: dict[tuple[str, int, str], str] = {}
             for host in snapshot:
                 address = str(host["address"])
@@ -843,15 +851,33 @@ class WorkspaceStore:
                     ).strip()
                     result[key] = fingerprint
             return result
-        old = index(snapshots[older_scan_id])
-        new = index(snapshots[newer_scan_id])
+
+        old_hosts = host_index(snapshots[older_scan_id])
+        new_hosts = host_index(snapshots[newer_scan_id])
+        added_hosts = [(address, new_hosts[address]) for address in sorted(new_hosts.keys() - old_hosts.keys())]
+        removed_hosts = [(address, old_hosts[address]) for address in sorted(old_hosts.keys() - new_hosts.keys())]
+        changed_hosts = [
+            (address, f"{old_hosts[address]} -> {new_hosts[address]}")
+            for address in sorted(old_hosts.keys() & new_hosts.keys())
+            if old_hosts[address] != new_hosts[address]
+        ]
+
+        old = service_index(snapshots[older_scan_id])
+        new = service_index(snapshots[newer_scan_id])
         added = [(f"{key[0]}:{key[1]}/{key[2]}", new[key]) for key in sorted(new.keys() - old.keys())]
         removed = [(f"{key[0]}:{key[1]}/{key[2]}", old[key]) for key in sorted(old.keys() - new.keys())]
         changed = [
             (f"{key[0]}:{key[1]}/{key[2]}", f"{old[key]} -> {new[key]}")
             for key in sorted(old.keys() & new.keys()) if old[key] != new[key]
         ]
-        return {"added": added, "removed": removed, "changed": changed}
+        return {
+            "added_hosts": added_hosts,
+            "removed_hosts": removed_hosts,
+            "changed_hosts": changed_hosts,
+            "added": added,
+            "removed": removed,
+            "changed": changed,
+        }
 
     def save_module_metadata(self, module: ModuleMetadata) -> None:
         with self._connect() as connection:
