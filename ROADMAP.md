@@ -6,7 +6,7 @@
 - Added `discovery history` and `discovery compare <older-scan-id> <newer-scan-id>` commands. Comparison reports added, removed, and changed service fingerprints and rejects cross-workspace comparisons.
 - Added tests for scan history ordering, service additions/removals/version changes, and workspace isolation.
 - Existing databases receive additive migrations; legacy scan records remain visible, but cannot be compared unless a normalized snapshot exists.
-- CI verification is pending.
+- GitHub Actions run #598 passed on Python 3.10, 3.12, and 3.14: 187 tests passed plus 5 subtests; Ruff passed on all three versions.
 
 ### Latest milestone: command-driven approval and exploit authorization
 
