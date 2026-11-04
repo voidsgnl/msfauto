@@ -200,7 +200,12 @@ def map_web_application(
             status, headers, body = _request(origin, current, timeout)
             content_type = headers.get("content-type", "").casefold()
             parser = _PageParser()
-            if ("text/html" in content_type or "application/xhtml+xml" in content_type) and body:
+            is_redirect = 300 <= status < 400
+            if (
+                not is_redirect
+                and ("text/html" in content_type or "application/xhtml+xml" in content_type)
+                and body
+            ):
                 parser.feed(body.decode("utf-8", errors="replace"))
                 parser.close()
             forms: list[dict[str, object]] = []
@@ -219,6 +224,8 @@ def map_web_application(
                 "url": current,
                 "path": urlsplit(current).path or "/",
                 "status_code": status,
+                "redirect": is_redirect,
+                "redirect_location": headers.get("location", "")[:2048],
                 "content_type": content_type[:160],
                 "response_bytes": len(body),
                 "truncated": len(body) >= MAX_RESPONSE_BYTES,
@@ -242,7 +249,11 @@ def map_web_application(
                 source="msfauto:web-mapper",
                 confidence=8,
             ))
-            if depth < max_depth and ("text/html" in content_type or "application/xhtml+xml" in content_type):
+            if (
+                not is_redirect
+                and depth < max_depth
+                and ("text/html" in content_type or "application/xhtml+xml" in content_type)
+            ):
                 for link in parser.links:
                     candidate = _canonical_url(urljoin(current, link))
                     if _same_origin(candidate, origin) and not _skip_path(candidate):
