@@ -1,5 +1,15 @@
 ## Unreleased
 
+### Nmap discovery history and comparison
+
+- Assign stable IDs to discovery runs and retain each Nmap XML artifact at a unique workspace-scoped path rather than overwriting the previous scan.
+- Persist scanner command, status, timestamps, errors, and immutable normalized host/service snapshots in SQLite.
+- Record manually imported Nmap XML as a completed discovery run with the same provenance and snapshot handling.
+- Add `discovery history` and `discovery compare <older-scan-id> <newer-scan-id>` console commands to inspect runs and identify added, removed, and changed service fingerprints.
+- Keep latest workspace observations compatible with existing assessment workflows; snapshots preserve per-scan history independently.
+- Add regression tests for scan history, comparison results, and workspace isolation.
+
+
 ### Added
 - Automatically start and supervise a local Metasploit RPC daemon for interactive sessions when the configured loopback endpoint is not already listening.
 - Generate ephemeral RPC credentials for an MSFAuto-managed daemon and pass them through child environment variables rather than process arguments.
