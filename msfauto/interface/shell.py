@@ -358,7 +358,7 @@ class CommandShell:
                         self.store.save_exploit_review(review)
                         self.console.print(f"[green][+][/green] Review recorded: {review.review_id[:12]}")
                 self._rows("EXPLOIT OPPORTUNITIES", ("ID", "TARGET", "PORT", "MODULE", "RANK", "STATUS"), [
-                    (item.opportunity_id[:12], item.target, f"{item.port}/{item.protocol}", item.module_name, item.rank, item.status) for item in items
+                    (item.opportunity_id, item.target, f"{item.port}/{item.protocol}", item.module_name, item.rank, item.status) for item in items
                 ])
             elif command == "exploits authorize":
                 if len(args) < 3:
@@ -378,12 +378,12 @@ class CommandShell:
                                 " ".join(args[2:]), review=latest,
                             )
                             self.store.save_exploit_authorization(authorization)
-                            self.console.print(f"[green][+][/green] Authorization recorded: {authorization.authorization_id[:12]} (expires {authorization.expires_at}).")
+                            self.console.print(f"[green][+][/green] Authorization recorded: {authorization.authorization_id} (expires {authorization.expires_at}).")
             elif command == "exploits executions":
                 records = self.store.get_exploit_executions(self.workspace.name)
                 self._rows("EXPLOIT EXECUTIONS", ("ID", "TARGET", "PORT", "MODULE", "STATE", "JOB"), [
                     (
-                        item.execution_id[:12], item.target, item.port,
+                        item.execution_id, item.target, item.port,
                         item.module_name, item.state, item.external_job_id or "—",
                     )
                     for item in records
@@ -409,7 +409,7 @@ class CommandShell:
                             self.store, opportunity, authorization, actor=args[2],
                         )
                         self.console.print(
-                            f"[green][+][/green] Prepared execution {record.execution_id[:12]} "
+                            f"[green][+][/green] Prepared execution {record.execution_id} "
                             f"for {record.target}:{record.port}. No module dispatched."
                         )
             elif command == "exploits dispatch":
