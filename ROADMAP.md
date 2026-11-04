@@ -1,3 +1,11 @@
+### Latest implementation milestone: open-port inventory and hostname-aware TLS enumeration
+
+- Nmap XML import now stores only ports whose reported state is open. Closed and filtered ports remain available in the raw scan XML and immutable scan history, but are excluded from the current exposed-service inventory and protocol enumeration.
+- TLS and HTTPS probes continue connecting directly to the discovered target IP while using the host's discovered DNS name as TLS SNI. This supports virtual-hosted TLS endpoints without resolving the target hostname to a potentially different address.
+- FTP, SMTP, HTTP(S), SSH, and TLS adapter failures now retain bounded exception messages as well as exception classes, improving the distinction between connection timeouts, handshake failures, and protocol-level errors. Unexpected adapter failures use the same bounded diagnostic format.
+- Added parser coverage for closed/filtered port exclusion and TLS SNI coverage for the direct TLS adapter and hostname forwarding.
+- Next validation: pull main, run the affected workspace discovery again, and inspect the newly detailed per-service errors. A failed protocol handshake remains an enumeration failure, not proof that the port is closed.
+
 ### Latest implementation milestone: service enumeration failure diagnostics
 
 - Service adapter failures now persist a bounded exception type and diagnostic message rather than only the exception class, making connection refusals, timeouts, TLS negotiation errors, and protocol rejections distinguishable.
