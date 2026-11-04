@@ -1,5 +1,13 @@
 ## Unreleased
 
+### Improved
+- TLS observations now decode X.509 subject, issuer, common name, subject alternative names, validity window, current date validity, serial number, signature algorithm, and signature hash from the presented DER certificate. This is certificate metadata only; trust-chain and hostname validation are not implied.
+- HTTP observations now expose redirect status and destination while deliberately not following redirects. HTTP failures record the stage that failed (request, response, or bounded application-body collection); TLS failures distinguish TCP connect, handshake, and metadata stages.
+- Existing bounded HTTP header/status and application-technology fingerprints, SMTP greeting/EHLO/STARTTLS/auth capability details, and FTP greeting/FEAT details remain the source for those protocol observations.
+
+### Tests
+- Added TLS certificate-decoding assertions, HTTP redirect capture coverage, and a delayed-response fixture verifying HTTP failure-stage diagnostics.
+
 ### Added
 - Discovery-mode `observations` now presents numbered saved-observation lists, prompts for a row selection, and opens the selected observation's full attributes and metadata. Host-filtered lists support the same flow; `observations show <number|id-prefix>` supports direct lookup. Inspection is read-only, workspace-scoped, and does not initiate probes or modify assessment records.
 
