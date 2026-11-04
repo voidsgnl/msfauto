@@ -6,6 +6,7 @@ from pathlib import Path
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.history import FileHistory
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -47,10 +48,12 @@ class CommandShell:
         self.store = store
         self.workspace = workspace
         self.console = Console()
+        history_path = Path(self.store.path).parent / "command_history"
+        history_path.parent.mkdir(parents=True, exist_ok=True)
         self.session: PromptSession[str] = PromptSession(
             completer=WordCompleter(COMMAND_WORDS, sentence=True, ignore_case=True),
             complete_while_typing=True,
-            history=None,
+            history=FileHistory(str(history_path)),
         )
         self.running = True
 
