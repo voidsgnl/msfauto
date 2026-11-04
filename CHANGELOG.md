@@ -3,7 +3,7 @@
 ### Added
 - Added prioritized TCP discovery profiles: `quick`, `standard` (default), and `full`. The standard profile scans a curated set of commonly exposed remote-access, web, mail, file-sharing, directory, database, and infrastructure ports; full uses Nmap's all-TCP-port selection.
 - Added `discover run` as an alias for the end-to-end assessment command, with `--profile quick|standard|full` and `--full` options. The one-shot CLI accepts `--scan-profile`.
-- Kept saved workspace port allowlists authoritative: scan profiles cannot expand a workspace's configured port scope.
+- Kept saved workspace port allowlists authoritative: an explicit list is scanned exactly as configured and is never expanded by a profile.
 
 ### Improved
 - The default assessment now runs service enumeration with one worker so discovered services are investigated sequentially rather than concurrently.
