@@ -3,8 +3,8 @@ from __future__ import annotations
 import ipaddress
 import json
 import re
-from time import monotonic, sleep
 from dataclasses import dataclass
+from time import monotonic, sleep
 from typing import Any, Protocol
 from urllib.error import URLError
 from urllib.request import Request, urlopen
