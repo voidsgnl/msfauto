@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from msfauto.enumeration import enumerate_services
 from msfauto.enumeration.models import ServiceObservation
+from msfauto.enumeration.http_fingerprint import fingerprint_http_html
 from msfauto.enumeration.runner import (
     _ftp_probe,
     _http_probe,
@@ -25,10 +26,23 @@ from msfauto.storage.models import Host, Service
 
 class _HTTPHandler(BaseHTTPRequestHandler):
     def do_HEAD(self):
-        self.send_response(204)
+        self.send_response(200)
         self.send_header("Server", "MSFAuto-Test")
         self.send_header("X-Test", "enumeration")
         self.end_headers()
+
+    def do_GET(self):
+        body = (
+            b"<!doctype html><html><head><title>OWASP Juice Shop</title>"
+            b'<meta name="generator" content="Angular">'
+            b'<script src="/runtime.js"></script><script src="/main.js"></script>'
+            b"</head><body><app-root ng-version='18.0'></app-root></body></html>"
+        )
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def log_message(self, *_args):
         pass
@@ -48,8 +62,38 @@ class EnumerationTests(unittest.TestCase):
             thread.join(timeout=1)
         self.assertEqual(observations[0].status, "completed")
         self.assertEqual(observations[0].attributes["method"], "HEAD")
-        self.assertEqual(observations[0].attributes["status_code"], 204)
+        self.assertEqual(observations[0].attributes["status_code"], 200)
         self.assertIn("server", observations[0].attributes["headers"])
+        app = next(item for item in observations if item.kind == "http_application_response")
+        self.assertEqual(app.attributes["title"], "OWASP Juice Shop")
+        names = [item["name"] for item in app.attributes["technologies"]]
+        self.assertIn("OWASP Juice Shop", names)
+        self.assertIn("Angular", names)
+
+    def test_html_fingerprint_extracts_title_metadata_and_technology_evidence(self):
+        result = fingerprint_http_html(
+            {"content-type": "text/html", "server": "nginx"},
+            b'<html><head><title>Example</title><meta name="generator" content="CMS"></head>'
+            b'<body><div id="root" data-reactroot></div><script src="/assets/jquery.min.js"></script></body></html>',
+            truncated=False,
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result["title"], "Example")
+        self.assertEqual(result["meta"]["generator"], "CMS")
+        names = [item["name"] for item in result["technologies"]]
+        self.assertIn("React", names)
+        self.assertIn("jQuery", names)
+
+    def test_non_html_response_is_not_fingerprinted_as_an_application(self):
+        self.assertIsNone(fingerprint_http_html(
+            {"content-type": "application/json"}, b'{"ok":true}', truncated=False
+        ))
+
+    def test_html_fingerprint_marks_body_truncation(self):
+        result = fingerprint_http_html(
+            {"content-type": "text/html"}, b"<html><title>Partial</title>", truncated=True
+        )
+        self.assertTrue(result["truncated"])
 
     def test_unknown_tcp_service_is_identified_as_http_by_bounded_probe(self):
         server = ThreadingHTTPServer(("127.0.0.1", 0), _HTTPHandler)
