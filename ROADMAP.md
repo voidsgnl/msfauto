@@ -401,3 +401,10 @@ The dispatcher, framework reconciler, and evidence-backed outcome-assessment rec
 - Historical discovery snapshots remain separate and available for history and comparison.
 - Added regression coverage for the `-Pn` command option and removal of stale services/hosts, including an empty completed result.
 - Next validation: run discovery against the user's authorized workspace and compare imported services with the same Nmap command using `-Pn`.
+
+## Observation history milestone (2026-11-04)
+
+- [x] Persist the originating discovery scan ID on each newly collected service observation.
+- [x] Default `observations` to the latest run; add `observations history`, `observations run <id>`, and `observations all`.
+- [x] Keep pre-migration records accessible as legacy/unassigned observations; retain all historical data.
+- [ ] Add dedicated shell regression coverage for latest-run, run-specific, and archive views; validate against a workspace with multiple live scans.
