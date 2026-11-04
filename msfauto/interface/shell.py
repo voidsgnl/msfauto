@@ -304,9 +304,101 @@ class CommandShell:
                 rows.append((host.address, f"{service.port}/{service.protocol}", service.name, " ".join(filter(None, (service.product, service.version))) or "—"))
         self._rows("DISCOVERED HOSTS & SERVICES", ("TARGET", "PORT", "SERVICE", "FINGERPRINT"), rows)
 
+    @staticmethod
+    def _observation_summary(item) -> list[tuple[str, str]]:
+        """Build a concise, evidence-faithful summary from stored attributes."""
+        attrs = item.attributes or {}
+        rows: list[tuple[str, str]] = []
+
+        def add(label: str, key: str, *, default: str = "Not recorded") -> None:
+            value = attrs.get(key)
+            if value is None or value == "":
+                rendered = default
+            elif isinstance(value, (dict, list, tuple)):
+                rendered = json.dumps(value, sort_keys=True, default=str)
+            else:
+                rendered = str(value)
+            rows.append((label, rendered))
+
+        if item.status == "failed" or attrs.get("error_type"):
+            add("Failure stage", "error_stage")
+            add("Error type", "error_type")
+            add("Error detail", "error")
+        elif item.protocol == "tls":
+            for label, key in (
+                ("TLS version", "tls_version"), ("Cipher", "cipher"),
+                ("Cipher strength", "cipher_bits"), ("Certificate subject", "certificate_subject"),
+                ("Certificate issuer", "certificate_issuer"),
+                ("Common name", "certificate_common_name"),
+                ("Subject alternative names", "certificate_subject_alt_names"),
+                ("Valid from", "certificate_not_before"),
+                ("Valid until", "certificate_not_after"),
+                ("Valid at observation time", "certificate_valid_now"),
+                ("Signature algorithm", "certificate_signature_algorithm"),
+                ("Signature hash", "certificate_signature_hash"),
+                ("SHA-256 fingerprint", "certificate_sha256"),
+                ("ALPN", "alpn_protocol"),
+            ):
+                add(label, key)
+            rows.append(("Validation limitation", "Certificate metadata only; trust chain and hostname are not validated."))
+        elif item.protocol in {"http", "https"}:
+            for label, key in (
+                ("HTTP status", "status_code"), ("Reason", "reason"),
+                ("HTTP version", "http_version"), ("Server", "server"),
+                ("Powered by", "x-powered-by"), ("Redirect", "redirect"),
+                ("Redirect destination", "redirect_location"),
+            ):
+                if key in attrs or key in {"status_code", "http_version"}:
+                    add(label, key)
+            headers = attrs.get("headers")
+            if isinstance(headers, dict):
+                rows.append(("Relevant headers", json.dumps({
+                    key: value for key, value in headers.items()
+                    if key in {"server", "x-powered-by", "www-authenticate", "strict-transport-security", "content-security-policy"}
+                }, sort_keys=True) or "None recorded"))
+        elif item.protocol == "http_application":
+            for label, key in (
+                ("Page title", "title"), ("Detected technologies", "technologies"),
+                ("Framework markers", "framework_markers"), ("Asset references", "assets"),
+                ("HTTP status", "status_code"), ("Fingerprint confidence", "fingerprint_confidence"),
+                ("Body truncated", "truncated"),
+            ):
+                add(label, key)
+        elif item.protocol == "smtp":
+            for label, key in (
+                ("Greeting", "greeting"), ("Greeting code", "greeting_code"),
+                ("EHLO response", "ehlo_response"), ("EHLO code", "ehlo_code"),
+                ("STARTTLS advertised", "supports_starttls"),
+                ("AUTH mechanisms", "auth_mechanisms"), ("Capabilities", "capabilities"),
+            ):
+                add(label, key)
+            rows.append(("Probe limitation", "No SMTP authentication or mail delivery was attempted."))
+        elif item.protocol == "ftp":
+            for label, key in (("Server greeting", "welcome"), ("FEAT capabilities", "features"), ("FEAT status", "feat_status")):
+                add(label, key)
+            rows.append(("Probe limitation", "No FTP authentication or file operations were attempted."))
+        elif item.protocol == "ssh":
+            add("SSH banner", "banner")
+            add("Banner valid", "banner_valid")
+        elif item.protocol == "smb":
+            for label, key in (
+                ("SMB2 dialect", "dialect"), ("Security mode", "security_mode"),
+                ("Server GUID", "server_guid"), ("Capabilities", "capabilities"),
+                ("Negotiation status", "status_code"),
+            ):
+                add(label, key)
+        else:
+            rows.append(("Recorded attributes", json.dumps(attrs, sort_keys=True, default=str)))
+        return rows
+
     def _show_observation(self, item) -> None:
+        summary = Table(show_header=False, box=None, padding=(0, 1), expand=True)
+        summary.add_column("Field", style="bright_cyan", no_wrap=True)
+        summary.add_column("Observed value", overflow="fold")
+        for label, value in self._observation_summary(item):
+            summary.add_row(label, value)
         self.console.print(Panel(
-            json.dumps(item.attributes, indent=2, sort_keys=True, default=str),
+            summary,
             title=f"{item.protocol.upper()} / {item.kind}",
             subtitle=f"{item.target}:{item.port}/{item.transport} • {item.status} • {item.observation_id}",
             border_style="cyan",
@@ -317,6 +409,16 @@ class CommandShell:
             ("Confidence", f"{item.confidence}/10"),
             ("Observed at", item.observed_at or "—"),
         ])
+        self.console.print(Panel(
+            json.dumps(item.attributes, indent=2, sort_keys=True, default=str),
+            title="RAW OBSERVATION ATTRIBUTES",
+            border_style="dim",
+        ))
+        self.console.print(
+            "[dim]Correlation note: protocol observations describe the exposed service and are "
+            "supporting evidence for advisory/exploit matching; they do not independently prove "
+            "a vulnerability or exploitability.[/dim]"
+        )
 
     def _select_observation(self, observations, title: str) -> None:
         """Render a numbered observation list and optionally inspect one entry."""
