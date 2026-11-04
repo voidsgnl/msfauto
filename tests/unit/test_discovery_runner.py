@@ -38,6 +38,7 @@ class DiscoveryRunnerTests(unittest.TestCase):
     def test_runner_terminates_process_when_cancelled(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "scan.xml"
+            output.write_text("<nmaprun>", encoding="utf-8")
             process = unittest.mock.Mock(returncode=-15)
             process.poll.return_value = None
             cancel = Event()
@@ -54,6 +55,7 @@ class DiscoveryRunnerTests(unittest.TestCase):
 
         self.assertEqual(result.status, "cancelled")
         self.assertEqual(hosts, ())
+        self.assertFalse(output.exists())
         process.terminate.assert_called_once()
         process.wait.assert_called_once_with(timeout=5)
 
