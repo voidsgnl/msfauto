@@ -687,6 +687,38 @@ class EnumerationTests(unittest.TestCase):
             ["IMAP4rev1", "STARTTLS", "AUTH=PLAIN"],
         )
 
+    def test_implicit_tls_mail_services_use_protocol_specific_adapters(self):
+        host = Host(
+            ipaddress.ip_address("192.0.2.20"),
+            "up",
+            "mail.example.test",
+            (
+                Service(465, "tcp", "open", "ssl/smtps"),
+                Service(993, "tcp", "open", "ssl/imap"),
+                Service(995, "tcp", "open", "ssl/pop3"),
+            ),
+        )
+
+        def observation(protocol, port):
+            return ServiceObservation(
+                f"{protocol}-{port}", "lab", "192.0.2.20", port, "tcp",
+                protocol, f"{protocol}_response", "completed", {},
+            )
+
+        with (
+            patch("msfauto.enumeration.runner._smtp_probe", return_value=(observation("smtp", 465),)) as smtp,
+            patch("msfauto.enumeration.runner._imap_probe", return_value=(observation("imap", 993),)) as imap,
+            patch("msfauto.enumeration.runner._pop3_probe", return_value=(observation("pop3", 995),)) as pop3,
+        ):
+            results = enumerate_services(
+                "lab", (host,), build_policy(["192.0.2.20"], "465,993,995"),
+                max_workers=1,
+            )
+
+        self.assertEqual({item.protocol for item in results}, {"smtp", "imap", "pop3"})
+        for probe in (smtp, imap, pop3):
+            self.assertEqual(probe.call_args.kwargs["server_hostname"], "mail.example.test")
+
     def test_invalid_worker_count_is_rejected(self):
         with self.assertRaises(ValueError):
             enumerate_services("lab", (), build_policy(["127.0.0.1"]), max_workers=99)
