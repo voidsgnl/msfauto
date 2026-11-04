@@ -420,3 +420,19 @@ The dispatcher, framework reconciler, and evidence-backed outcome-assessment rec
 - [x] Keep pre-migration records accessible as legacy/unassigned observations; retain all historical data.
 - [ ] Add dedicated shell regression coverage for latest-run, run-specific, and archive views; validate against a workspace with multiple live scans.
 - [x] Add elapsed-time and timeout-budget metadata plus connection/timeout/protocol-response failure classification to service observations; expose per-protocol timeout overrides in the enumeration API.
+
+
+## Assessment-first service investigation milestone (2026-11-04)
+
+- [x] Keep `discover run` as the primary end-to-end assessment entry point, using the prioritized standard port profile by default and all TCP ports only when explicitly requested.
+- [x] Investigate discovered open services sequentially within the same persisted assessment run.
+- [x] Preserve unsupported services as explicit manual-review records rather than silently skipping them.
+- [x] Add a read-only `investigate [target-ip]` view that maps each service's current evidence, vulnerability candidates, and exploit opportunities to a next action and an evidence state (`READY`, `NEEDS_REVIEW`, or `INSUFFICIENT`).
+- [x] Add POP3/POP3S and IMAP/IMAPS greeting/capability enumeration without authentication or mailbox access.
+- [x] Run SMTP greeting/EHLO enumeration after implicit TLS negotiation on SMTPS endpoints.
+- [x] Clarify that configured timeout values apply to individual socket operations rather than the complete multi-operation probe.
+- [ ] Expand protocol adapters for DNS, LDAP, database handshakes, and remote-management services using bounded, unauthenticated identification only.
+- [ ] Add richer evidence-to-advisory mappings and curated exploit catalog coverage so service investigations can produce more actionable, evidence-backed vulnerability candidates.
+- [ ] Validate the complete sequence against authorized local lab services, including Dovecot POP3/IMAP and implicit-TLS variants.
+
+Exploitation remains a separate, explicitly authorized stage. An assessment run may identify and prioritize possible entry points, but it must not automatically dispatch exploit modules. Each candidate requires human review, action-specific authorization, and independent outcome validation.
