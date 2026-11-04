@@ -267,12 +267,16 @@ class CommandShell:
         mode = getattr(self, "mode", None)
         if mode is None:
             first = parts[0].casefold()
+            if first == "discover" and len(parts) > 1 and parts[1].casefold() == "run":
+                return "discovery run", parts[2:]
             if first == "use":
                 return "use", parts[1:]
             if first == "show" and len(parts) > 1 and parts[1].casefold() == "modes":
                 return "show modes", parts[2:]
             return (" ".join(parts[:2]) if len(parts) > 1 else parts[0], parts[2:] if len(parts) > 1 else [])
         first = parts[0].casefold()
+        if first == "discover" and len(parts) > 1 and parts[1].casefold() == "run":
+            return "discovery run", parts[2:]
         if first in {"help", "back", "exit", "quit"}:
             return first, parts[1:]
         commands = MODES[mode]["commands"]
