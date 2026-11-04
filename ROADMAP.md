@@ -44,6 +44,7 @@ Supporting platform capabilities:
 - [x] Explicit IP/CIDR scope and optional port allowlists.
 - [x] Scope-enforced Nmap XML import and normalized service storage.
 - [x] Bounded HTTP/HTTPS and SSH service enumeration with append-only structured observations.
+- [x] Bounded HTTP confirmation probes for unrecognized open TCP services, preserving the original Nmap fingerprint and rejecting non-HTTP responses.
 - [x] Bounded Nmap execution adapter.
 - [x] Read-only Metasploit RPC module metadata integration.
 - [x] Explicit RPC execution for an allowlist of passive service-version checks.
@@ -67,7 +68,7 @@ OSV workflow integration is active when explicit mappings are configured, but th
 - Updated the MessagePack transport to recursively decode valid UTF-8 binary strings in map keys and values before processing responses. Non-UTF-8 binary values remain bytes.
 - Error maps are normalized before error extraction, so byte-encoded framework errors retain their useful messages.
 - Added regression tests covering byte-encoded authentication tokens, nested module-result data, and RPC error responses.
-- Local live authentication confirmed that Metasploit returns a successful token; the code fix is committed, but CI and the user's post-update live integration check are still pending.
+- Local live read-only integration confirmed authentication, discovery of 2,715 exploit modules, and active-job listing. No exploit was executed.
 
 ### Latest implementation milestone: Metasploit job polling and reconciliation
 - Added `MetasploitClient.job_list()` to validate and normalize the active framework job map.
@@ -174,6 +175,13 @@ OSV workflow integration is active when explicit mappings are configured, but th
    - Design the interface around assets, services, assessment results, exploit opportunities, execution/session activity, evidence, and findings.
    - Keep dense technical detail accessible without making the product a terminal emulator.
    - Do not begin by merely porting the current TUI screen layout.
+
+## Latest implementation milestone: protocol confirmation for unknown TCP services
+- Nmap may return an unrecognized service label even when the endpoint speaks HTTP, as observed with the local OWASP Juice Shop instance on TCP/3000.
+- Added a bounded HTTP HEAD confirmation attempt for otherwise-unclassified open TCP services that are not already routed to a known protocol adapter.
+- Unknown services are classified as HTTP only when the HTTP client parses a valid HTTP response. Non-HTTP responses are ignored rather than stored as failed HTTP observations.
+- Structured observations record the active detection method and retain the original Nmap service name, product, version, probe method, confidence, and tunnel metadata.
+- Added local-server tests for successful unknown-port HTTP detection and rejection of non-HTTP responses. Live Juice Shop re-test and full local CI verification remain pending.
 
 ## Immediate next milestone: live isolated-lab validation and module-specific verifiers
 
