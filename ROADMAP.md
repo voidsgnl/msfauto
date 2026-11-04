@@ -1,3 +1,10 @@
+### Latest implementation milestone: phase-specific FTP and SMTP diagnostics
+
+- FTP and SMTP adapters now separate TCP connection establishment from the protocol greeting read, so failures identify whether the socket connection or server greeting timed out.
+- FTP FEAT and SMTP EHLO failures are separately tagged as protocol stages; exception class and bounded detail remain available.
+- The adapters retain the same timeout budget and make no automatic retries. No timeout policy changes are made based on one target's behavior.
+- Added local fixture tests that deliberately withhold FTP/SMTP greetings and assert the recorded failure stage.
+
 ### Latest implementation milestone: open-port inventory and hostname-aware TLS enumeration
 
 - Nmap XML import now stores only ports whose reported state is open. Closed and filtered ports remain available in the raw scan XML and immutable scan history, but are excluded from the current exposed-service inventory and protocol enumeration.
