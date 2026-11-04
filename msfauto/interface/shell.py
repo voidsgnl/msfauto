@@ -233,7 +233,8 @@ class CommandShell:
         self.console.print(table)
 
     def _resolve_mode_command(self, parts: list[str]) -> tuple[str, list[str]]:
-        if self.mode is None:
+        mode = getattr(self, "mode", None)
+        if mode is None:
             first = parts[0].casefold()
             if first == "use":
                 return "use", parts[1:]
@@ -243,7 +244,7 @@ class CommandShell:
         first = parts[0].casefold()
         if first in {"help", "back", "exit", "quit"}:
             return first, parts[1:]
-        commands = MODES[self.mode]["commands"]
+        commands = MODES[mode]["commands"]
         if first not in commands:
             return first, parts[1:]
         root = commands[first]
