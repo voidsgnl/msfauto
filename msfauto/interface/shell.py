@@ -22,6 +22,7 @@ from ..discovery import DiscoveryError, parse_nmap_xml
 from ..execution import (
     ExploitDispatchUncertain,
     ExploitExecutionError,
+    ExploitOutcomeValidator,
     MetasploitExploitDispatcher,
     MetasploitExploitReconciler,
     prepare_exploit_execution,
@@ -48,7 +49,7 @@ COMMANDS = {
     "plan": ("build", "show"),
     "checks": ("list", "review", "approve", "run"),
     "vulnerabilities": ("list", "show"),
-    "exploits": ("list", "review", "authorize", "executions", "prepare", "dispatch", "poll", "cancel", "reconcile"),
+    "exploits": ("list", "review", "authorize", "executions", "prepare", "dispatch", "poll", "cancel", "reconcile", "outcome"),
     "findings": ("list", "show"),
     "report": ("generate", "show"),
     "tasks": ("list", "show"),
@@ -130,6 +131,8 @@ class CommandShell:
                 ("exploits poll <execution> <actor>", "Poll a running Metasploit job"),
                 ("exploits cancel <execution> <actor> <reason>", "Request cancellation of a running job"),
                 ("exploits reconcile <execution> <state> <actor> <reason>", "Resolve an uncertain dispatch explicitly"),
+                ("exploits outcome list <execution>", "Show independent target outcome assessments"),
+                ("exploits outcome record <execution> <verdict> <verifier> <method> <evidence|-> <actor> <rationale>", "Record an evidence-backed target outcome"),
             ]),
             ("FINDINGS", [("findings list", "List recorded findings"), ("findings show", "Show finding details")]),
             ("REPORTING", [("report generate", "Generate a JSON or Markdown report"), ("report show", "Show the latest report location")]),
@@ -388,6 +391,59 @@ class CommandShell:
                     )
                     for item in records
                 ])
+            elif command == "exploits outcome":
+                if not args or args[0] not in {"list", "record"}:
+                    self.console.print(
+                        "[yellow]Usage: exploits outcome list <execution-id> | "
+                        "exploits outcome record <execution-id> <confirmed|not_confirmed|inconclusive> "
+                        "<verifier> <method> <evidence-id[,id]|-> <actor> <rationale>[/yellow]"
+                    )
+                elif len(args) < 2:
+                    self.console.print("[yellow]An execution ID is required.[/yellow]")
+                else:
+                    record = self.store.get_exploit_execution(args[1])
+                    if record is None or record.workspace != self.workspace.name:
+                        self.console.print("[red]Execution record not found in this workspace.[/red]")
+                    elif args[0] == "list":
+                        assessments = ExploitOutcomeValidator(
+                            self.store
+                        ).get_for_execution(record.execution_id)
+                        self._rows(
+                            "INDEPENDENT TARGET OUTCOME ASSESSMENTS",
+                            ("ID", "VERDICT", "VERIFIER", "METHOD", "EVIDENCE", "ACTOR", "ASSESSED"),
+                            [
+                                (
+                                    item.assessment_id, item.verdict, item.verifier,
+                                    item.method, ", ".join(item.evidence_ids) or "—",
+                                    item.actor, item.assessed_at,
+                                )
+                                for item in assessments
+                            ],
+                        )
+                    elif len(args) < 8:
+                        self.console.print(
+                            "[yellow]Usage: exploits outcome record <execution-id> "
+                            "<confirmed|not_confirmed|inconclusive> <verifier> <method> "
+                            "<evidence-id[,id]|-> <actor> <rationale>[/yellow]"
+                        )
+                    else:
+                        evidence_ids = () if args[5] == "-" else tuple(
+                            item for item in args[5].split(",") if item
+                        )
+                        assessment = ExploitOutcomeValidator(self.store).record(
+                            record.execution_id,
+                            verdict=args[2],
+                            verifier=args[3],
+                            method=args[4],
+                            evidence_ids=evidence_ids,
+                            actor=args[6],
+                            rationale=" ".join(args[7:]),
+                        )
+                        self.console.print(
+                            f"[green][+][/green] Target outcome recorded: "
+                            f"{assessment.assessment_id} ({assessment.verdict}). "
+                            "Framework execution state was not changed."
+                        )
             elif command == "exploits prepare":
                 if len(args) < 3:
                     self.console.print("[yellow]Usage: exploits prepare <opportunity-id> <authorization-id> <actor>[/yellow]")
