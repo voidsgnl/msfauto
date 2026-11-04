@@ -1,7 +1,7 @@
 ## Unreleased
 
 ### Fixed
-- Fixed Metasploit RPC console submission: commands now end with an actual newline, allowing `db_nmap` to execute instead of leaving the command text unsubmitted. The console adapter now treats an idle response with no command output as a submission failure rather than a successful scan.
+- Fixed Metasploit RPC console submission and asynchronous dispatch handling: commands end with an actual newline, and an immediate idle response after `console.write` is treated as a pending dispatch rather than command completion. The adapter waits for evidence that execution started before accepting an idle state; commands that never start fail explicitly instead of producing false completed scans.
 - Updated the Metasploit console regression test to assert the actual newline terminator.
 
 
