@@ -46,6 +46,12 @@ Supporting platform capabilities:
 - Findings review and reporting.
 - Terminal navigation, configuration prompts, technical tables, and live execution feedback.
 
+### Latest implementation milestone: exploit lifecycle CI correction and cancellation recovery tests
+- Inspected the red CI checks on run #529. All three Python versions failed the same pre-existing reconciliation test because it supplied a job ID without the UUID now required for a `running` record.
+- Updated that test to provide and assert both framework references; this preserves the stricter lifecycle invariant rather than weakening the implementation.
+- Added lifecycle regression tests for running → cancelling → cancelled and for recovery of a process interrupted while cancellation was pending. Interrupted cancellation remains uncertain and retains its Metasploit job ID/UUID for operator reconciliation.
+- CI for the reconciliation-test correction and the additional cancellation tests is pending; do not treat this milestone as verified until the run is green.
+
 ## Current implementation baseline
 
 - [x] Interactive application entry point and workspace onboarding.
