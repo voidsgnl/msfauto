@@ -361,7 +361,7 @@ OSV workflow integration is active when explicit mappings are configured, but th
 - [x] Add the discover run alias and profile selection to the interactive shell and one-shot CLI.
 - [x] Run service enumeration sequentially during the full assessment.
 - [ ] Add protocol adapters for the remaining prioritized service families.
-- [ ] Persist explicit unsupported/manual-review records for open services without an adapter.
+- [x] Persist explicit unsupported/manual-review records for open services without an adapter.
 - [ ] Add a per-port next-action view connecting collected evidence to analyst review.
 - [ ] Validate profile coverage and sequential execution in the authorized lab.
 
