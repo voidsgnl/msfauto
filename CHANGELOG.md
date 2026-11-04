@@ -1,6 +1,14 @@
 ## Unreleased
 
 ### Improved
+- Observation detail now renders concise protocol-specific summaries for TLS/X.509, HTTP(S), HTTP application fingerprints, SMTP, FTP, SSH, SMB2, and failed probes while preserving the complete raw attribute payload for deeper inspection.
+- Added an explicit evidence-correlation note in observation details. Exploit opportunity rationales now show linked vulnerability-candidate IDs and clarify that those candidate records retain service-observation references as supporting evidence, not proof of vulnerability or permission to execute.
+
+### Tests
+- Added coverage for TLS certificate summaries and limitations, HTTP application fingerprint fields, and protocol failure-stage diagnostics.
+
+
+### Improved
 - TLS observations now decode X.509 subject, issuer, common name, subject alternative names, validity window, current date validity, serial number, signature algorithm, and signature hash from the presented DER certificate. This is certificate metadata only; trust-chain and hostname validation are not implied.
 - HTTP observations now expose redirect status and destination while deliberately not following redirects. HTTP failures record the stage that failed (request, response, or bounded application-body collection); TLS failures distinguish TCP connect, handshake, and metadata stages.
 - Existing bounded HTTP header/status and application-technology fingerprints, SMTP greeting/EHLO/STARTTLS/auth capability details, and FTP greeting/FEAT details remain the source for those protocol observations.
