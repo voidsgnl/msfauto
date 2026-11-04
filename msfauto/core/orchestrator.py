@@ -123,7 +123,6 @@ class AssessmentApplication:
                 hosts,
                 self.workspace.policy,
                 max_workers=1,
-                on_progress=lambda message, level: emit("enumeration", message, level),
             )
             self.store.save_service_observations(observations, discovery_run_id)
             for item in observations:
