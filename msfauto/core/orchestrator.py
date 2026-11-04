@@ -7,6 +7,7 @@ from uuid import uuid4
 from ..assessment.planner import build_plan
 from ..discovery import DiscoveryError, run_nmap
 from ..enumeration import enumerate_services
+from ..enumeration.models import ServiceObservation
 from ..exploitation.matcher import load_exploit_catalog, match_exploits
 from ..storage import WorkspaceStore
 from ..storage.models import (
@@ -116,14 +117,55 @@ class AssessmentApplication:
             emit("discovery", f"Discovery completed; {len(hosts)} host(s) imported.")
             transition(
                 "enumeration",
-                "Investigating every discovered open service individually; unsupported protocols are recorded for manual review.",
+                "Investigating discovered open services individually; unmatched services will be recorded for manual review.",
             )
-            observations = enumerate_services(
+            collected = list(enumerate_services(
                 self.workspace.name,
                 hosts,
                 self.workspace.policy,
                 max_workers=1,
-            )
+            ))
+            observed_endpoints = {
+                (item.target, item.port, item.transport)
+                for item in collected
+            }
+            for host in hosts:
+                for service in host.services:
+                    endpoint = (str(host.address), service.port, service.protocol)
+                    if service.state != "open" or endpoint in observed_endpoints:
+                        continue
+                    collected.append(ServiceObservation(
+                        observation_id=uuid4().hex,
+                        workspace=self.workspace.name,
+                        target=str(host.address),
+                        port=service.port,
+                        transport=service.protocol,
+                        protocol=service.name or "unknown",
+                        kind="service_fingerprint",
+                        status="unsupported",
+                        attributes={
+                            "nmap_fingerprint": {
+                                "name": service.name,
+                                "product": service.product,
+                                "version": service.version,
+                                "method": service.method,
+                                "confidence": service.confidence,
+                                "tunnel": service.tunnel,
+                                "cpes": list(service.cpes),
+                            },
+                            "reason": "No matching protocol adapter produced an observation.",
+                            "next_action": "Review the service fingerprint and investigate manually until a dedicated adapter is available.",
+                        },
+                        confidence=0,
+                        observed_at=utc_now(),
+                    ))
+                    emit(
+                        "enumeration",
+                        f"MANUAL REVIEW: {host.address}:{service.port}/{service.protocol} "
+                        f"({service.product or service.name or 'unidentified service'}) has no matching adapter.",
+                        "warning",
+                    )
+            observations = tuple(collected)
             self.store.save_service_observations(observations, discovery_run_id)
             for item in observations:
                 if item.status in {"failed", "partial"}:
