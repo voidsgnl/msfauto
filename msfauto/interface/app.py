@@ -240,7 +240,7 @@ class Dashboard(App[None]):
         table.clear()
         if rows:
             for index, row in enumerate(rows, start=1):
-                table.add_row(str(index), *[str(value) for value in row], key=f"{view}-{index}")
+                table.add_row(str(index), *[str(value) for value in row], key=str(row[0]) if view == "targets" else f"{view}-{index}")
             table.display = True
             self.query_one("#screen-content", Static).styles.height = 5
         else:
@@ -461,7 +461,7 @@ class Dashboard(App[None]):
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         if event.data_table.id != "records" or self._current_view != "targets":
             return
-        address = str(event.row_key.value).split("-", 1)[-1]
+        address = str(event.row_key.value)
         host = self._hosts.get(address)
         if host is None:
             return
