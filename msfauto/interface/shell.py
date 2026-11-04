@@ -83,7 +83,7 @@ COMMANDS = {
     "plan": ("build", "show"),
     "checks": ("list", "review", "approve", "run"),
     "vulnerabilities": ("list", "show"),
-    "exploits": ("list", "review", "authorize", "executions", "prepare", "dispatch", "poll", "cancel", "reconcile", "outcome"),
+    "exploits": ("list", "opportunities", "review", "authorize", "executions", "prepare", "dispatch", "poll", "cancel", "reconcile", "outcome"),
     "findings": ("list", "show"),
     "report": ("generate", "show"),
     "tasks": ("list", "show"),
@@ -162,7 +162,8 @@ class CommandShell:
             ("SECURITY CHECKS", [("checks list", "List planned checks"), ("checks review", "Review check recommendations"), ("checks approve <#>", "Approve one exact planned check"), ("checks run", "Run approved bounded checks")]),
             ("VULNERABILITIES", [("vulnerabilities list", "List vulnerability candidates"), ("vulnerabilities show", "Show candidate details")]),
             ("EXPLOIT INTELLIGENCE", [
-                ("exploits list", "List matched exploit opportunities"),
+                ("exploits list [filter]", "List exploit modules available in connected Metasploit"),
+                ("exploits opportunities", "List target-matched exploit opportunities"),
                 ("exploits review <id>", "Record an explicit opportunity review"),
                 ("exploits authorize <id>", "Authorize an accepted opportunity"),
                 ("exploits prepare <opportunity> <authorization> <actor>", "Create a durable prepared execution"),
@@ -388,18 +389,39 @@ class CommandShell:
                 self._rows("VULNERABILITY CANDIDATES", ("ID", "TARGET", "PORT", "ADVISORY", "STATUS", "CONFIDENCE"), [
                     (item.candidate_id[:12], item.target, f"{item.port}/{item.protocol}", item.advisory_id, item.status, f"{item.confidence}%") for item in items
                 ])
-            elif command in {"exploits list", "exploits review"}:
+            elif command == "exploits list":
+                modules = self._metasploit_client().exploit_modules()
+                if args:
+                    query = " ".join(args).casefold()
+                    modules = [name for name in modules if query in name.casefold()]
+                self._rows(
+                    "METASPLOIT EXPLOIT MODULE CATALOG",
+                    ("#", "MODULE"),
+                    [(index, name) for index, name in enumerate(modules, 1)],
+                )
+                if not modules:
+                    self.console.print(
+                        "[yellow]No modules matched. Check the filter or Metasploit RPC catalog.[/yellow]"
+                    )
+                self.console.print(
+                    "[dim]Module inventory is not a target match or execution approval. "
+                    "Use exploits opportunities to view matched targets.[/dim]"
+                )
+            elif command in {"exploits opportunities", "exploits review"}:
                 items = self.store.get_exploit_opportunities(self.workspace.name)
-                if command == "exploits review" and args:
-                    opportunity = next((item for item in items if item.opportunity_id.startswith(args[0])), None)
-                    if opportunity is None:
-                        self.console.print("[red]Exploit opportunity not found.[/red]")
-                    elif len(args) < 4:
+                if command == "exploits review":
+                    if not args:
                         self.console.print("[yellow]Usage: exploits review <id> <accepted|rejected|deferred> <reviewer> <rationale>[/yellow]")
                     else:
-                        review = review_opportunity(opportunity, args[2], args[1], " ".join(args[3:]))
-                        self.store.save_exploit_review(review)
-                        self.console.print(f"[green][+][/green] Review recorded: {review.review_id[:12]}")
+                        opportunity = next((item for item in items if item.opportunity_id.startswith(args[0])), None)
+                        if opportunity is None:
+                            self.console.print("[red]Exploit opportunity not found.[/red]")
+                        elif len(args) < 4:
+                            self.console.print("[yellow]Usage: exploits review <id> <accepted|rejected|deferred> <reviewer> <rationale>[/yellow]")
+                        else:
+                            review = review_opportunity(opportunity, args[2], args[1], " ".join(args[3:]))
+                            self.store.save_exploit_review(review)
+                            self.console.print(f"[green][+][/green] Review recorded: {review.review_id[:12]}")
                 self._rows("EXPLOIT OPPORTUNITIES", ("ID", "TARGET", "PORT", "MODULE", "RANK", "STATUS"), [
                     (item.opportunity_id, item.target, f"{item.port}/{item.protocol}", item.module_name, item.rank, item.status) for item in items
                 ])
