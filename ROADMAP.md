@@ -73,6 +73,12 @@ OSV workflow integration is active when explicit mappings are configured, but th
 
 ## Current handoff — 2026-11-04
 
+### Latest implementation milestone: complete Metasploit running references
+- Tightened the execution lifecycle invariant: an execution cannot enter `running` unless both a positive-integer Metasploit job ID and a non-empty UUID are persisted.
+- Applied the same validation to normal dispatch acknowledgements and operator reconciliation of uncertain dispatches. Invalid or incomplete references leave the record in its prior non-running state.
+- Updated lifecycle regression coverage for missing job IDs, missing UUIDs, and malformed job IDs.
+- This closes a mismatch where an operator could previously reconcile an uncertain dispatch with only a job ID even though the poller requires both references.
+
 ### Latest implementation milestone: live discovery cancellation and exploit console lifecycle
 - Replaced the blocking Nmap subprocess call with a bounded `Popen` monitor that captures stderr to a temporary file, enforces the existing timeout, and supports cooperative termination. Cancellation sends terminate, waits up to five seconds, then kills the process if required.
 - Added a durable `cancelled` discovery-run result and `WorkflowCancelled` assessment state. The orchestrator checks cancellation at stage boundaries; enumeration and external advisory lookups finish their current bounded operation before cancellation is acknowledged.
