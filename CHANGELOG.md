@@ -1,5 +1,10 @@
 ## Unreleased
 
+### Fixed
+- Fixed Metasploit RPC console submission: commands now end with an actual newline, allowing `db_nmap` to execute instead of leaving the command text unsubmitted. The console adapter now treats an idle response with no command output as a submission failure rather than a successful scan.
+- Updated the Metasploit console regression test to assert the actual newline terminator.
+
+
 ### Added
 - Added a bounded same-origin web application mapper to the interactive assessment. It follows only same-origin HTML links with GET requests, inventories query parameter names and form actions/methods/fields, skips common state-changing routes, caps pages/depth/requests/response bytes/timeouts, and never submits forms or follows redirects. Page inventory is persisted as run-linked web-surface observations.
 - Corrected HTTP application observation classification to preserve the actual HTTP/HTTPS scheme and the `http_application` kind, ensuring passive web checks, technology correlation, and the mapper receive the intended evidence.
