@@ -239,7 +239,7 @@ class MetasploitClientTests(unittest.TestCase):
         write_calls = [args for method, args in transport.calls if method == "console.write"]
         self.assertEqual(
             write_calls[-1],
-            ("token-1", "console-7", "db_nmap -n -Pn -sV --version-light -p 22,80,443 192.0.2.10/32 192.0.2.0/24\\n"),
+            ("token-1", "console-7", "db_nmap -n -Pn -sV --version-light -p 22,80,443 192.0.2.10/32 192.0.2.0/24\n"),
         )
         self.assertGreaterEqual(
             sum(method == "console.destroy" for method, _ in transport.calls), 2,
