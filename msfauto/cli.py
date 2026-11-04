@@ -138,7 +138,7 @@ def run_safe_checks(
         for index, recommendation in enumerate(selected, start=1):
             module_name = f"{recommendation.module_type}/{recommendation.module_name}"
             print(
-                f"\\n[{index}/{len(selected)}] {recommendation.target}:"
+                f"\n[{index}/{len(selected)}] {recommendation.target}:"
                 f"{recommendation.port}/{recommendation.protocol} -> {module_name}"
             )
             print(f"Risk: {recommendation.risk} | Confidence: {recommendation.confidence}%")
