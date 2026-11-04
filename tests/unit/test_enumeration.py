@@ -345,6 +345,60 @@ class EnumerationTests(unittest.TestCase):
         )
         http_probe.assert_not_called()
 
+    def test_ftp_greeting_timeout_identifies_protocol_phase(self):
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+
+        def serve():
+            conn, _ = listener.accept()
+            with conn:
+                conn.recv(1)
+                threading.Event().wait(0.15)
+            listener.close()
+
+        thread = threading.Thread(target=serve, daemon=True)
+        thread.start()
+        try:
+            observations = _ftp_probe(
+                "lab", "127.0.0.1", Service(port, "tcp", "open", name="ftp"),
+                0.05,
+            )
+        finally:
+            thread.join(timeout=1)
+            listener.close()
+        self.assertEqual(observations[0].status, "failed")
+        self.assertEqual(observations[0].attributes["error_stage"], "ftp_greeting")
+        self.assertEqual(observations[0].attributes["error_type"], "TimeoutError")
+
+    def test_smtp_greeting_timeout_identifies_protocol_phase(self):
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+
+        def serve():
+            conn, _ = listener.accept()
+            with conn:
+                conn.recv(1)
+                threading.Event().wait(0.15)
+            listener.close()
+
+        thread = threading.Thread(target=serve, daemon=True)
+        thread.start()
+        try:
+            observations = _smtp_probe(
+                "lab", "127.0.0.1", Service(port, "tcp", "open", name="smtp"),
+                0.05,
+            )
+        finally:
+            thread.join(timeout=1)
+            listener.close()
+        self.assertEqual(observations[0].status, "failed")
+        self.assertEqual(observations[0].attributes["error_stage"], "smtp_greeting")
+        self.assertEqual(observations[0].attributes["error_type"], "TimeoutError")
+
     def test_ftp_probe_records_greeting_and_features(self):
         listener = socket.socket()
         listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
