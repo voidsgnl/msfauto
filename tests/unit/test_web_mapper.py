@@ -1,12 +1,13 @@
 import threading
 import unittest
+from typing import ClassVar
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from msfauto.enumeration.web_mapper import map_web_application
 
 
 class _MapperHandler(BaseHTTPRequestHandler):
-    requests = []
+    requests: ClassVar[list[tuple[str, str]]] = []
 
     def do_GET(self):
         type(self).requests.append(("GET", self.path))
