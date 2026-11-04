@@ -170,7 +170,9 @@ class ObservationConsoleTests(unittest.TestCase):
     def test_observations_list_selects_number_and_displays_details(self):
         output = io.StringIO()
         self.shell.console = Console(file=output, width=160)
-        self.shell.session.prompt = lambda *_args, **_kwargs: "1"
+        selections = iter(("1", "2"))
+        self.shell.session.prompt = lambda *_args, **_kwargs: next(selections)
+        self.shell.execute("observations list")
         self.shell.execute("observations list")
         rendered = output.getvalue()
         self.assertIn("│ 1 ", rendered)
