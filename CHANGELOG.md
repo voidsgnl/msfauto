@@ -4,6 +4,14 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Live Metasploit exploit module inventory
+
+- Changed `exploits list [filter]` to query and display the connected Metasploit framework's available exploit module references instead of showing only target-matched opportunities (which were empty when no explicit catalog mappings existed).
+- Added `exploits opportunities` for the separate workspace-scoped list of target-matched applicability leads.
+- Added case-insensitive module-name filtering and console regression tests.
+- The live inventory is not a claim of target applicability or authorization; no modules are executed by listing.
+
+
 - Added a standard-library input fallback so the command console can still start if `prompt-toolkit` is missing; enhanced completion and persistent history remain available when the dependency is installed.
 ### Exact-match module verification registry
 - Added a registry for module-specific target-side verifiers, selected only by exact persisted Metasploit module name.
