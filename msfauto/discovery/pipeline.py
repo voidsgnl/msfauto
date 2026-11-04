@@ -3,6 +3,8 @@ from __future__ import annotations
 import shutil
 import subprocess
 import xml.etree.ElementTree as ET
+from threading import Event
+from time import monotonic, sleep
 from datetime import datetime, timezone
 from ipaddress import ip_address
 from pathlib import Path
@@ -24,6 +26,7 @@ def run_nmap(
     output_path: Path,
     timeout: float = 300,
     executable: str = "nmap",
+    cancel_event: Event | None = None,
 ) -> tuple[DiscoveryRun, tuple[Host, ...]]:
     """Run a bounded XML-producing discovery command for the active policy."""
     scanner = shutil.which(executable)
@@ -41,29 +44,49 @@ def run_nmap(
         command.extend(["-p", ",".join(str(port) for port in policy.allowed_ports)])
     command.extend(targets)
     started_at = _utc_now()
-    try:
-        completed = subprocess.run(
-            command,
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-    except subprocess.TimeoutExpired as exc:
-        finished_at = _utc_now()
-        return (
-            DiscoveryRun(
-                workspace, executable, tuple(command), str(output_path), "timed_out",
-                started_at, finished_at, str(exc),
-            ),
-            (),
-        )
-    if completed.returncode != 0:
-        finished_at = _utc_now()
+    deadline = monotonic() + timeout
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    while process.poll() is None:
+        if cancel_event is not None and cancel_event.is_set():
+            process.terminate()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+            if process.stderr is not None:
+                process.stderr.close()
+            return (
+                DiscoveryRun(
+                    workspace, executable, tuple(command), str(output_path), "cancelled",
+                    started_at, _utc_now(), "Discovery cancelled by operator.",
+                ),
+                (),
+            )
+        if monotonic() >= deadline:
+            process.kill()
+            process.wait()
+            stderr = process.stderr.read() if process.stderr is not None else ""
+            return (
+                DiscoveryRun(
+                    workspace, executable, tuple(command), str(output_path), "timed_out",
+                    started_at, _utc_now(), stderr.strip() or "Discovery timed out.",
+                ),
+                (),
+            )
+        sleep(0.1)
+
+    stderr = process.stderr.read() if process.stderr is not None else ""
+    if process.returncode != 0:
         return (
             DiscoveryRun(
                 workspace, executable, tuple(command), str(output_path), "failed",
-                started_at, finished_at, completed.stderr.strip(),
+                started_at, _utc_now(), stderr.strip(),
             ),
             (),
         )
