@@ -1,8 +1,8 @@
 import io
 import tempfile
 import unittest
-from pathlib import Path
 from contextlib import redirect_stdout
+from pathlib import Path
 from threading import Event
 from unittest.mock import patch
 
