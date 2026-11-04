@@ -9,6 +9,16 @@
 
 # MSFAuto Roadmap
 
+### Latest implementation milestone: live Metasploit exploit inventory in the console
+
+- Corrected the empty-list confusion by separating the live framework module inventory from target-matched exploit opportunities.
+- `exploits list [filter]` now calls Metasploit RPC `module.exploits` and lists available exploit module references, with an optional case-insensitive substring filter.
+- `exploits opportunities` remains the workspace-scoped list of exact-match applicability leads produced from explicitly mapped catalog entries and discovered service/vulnerability data.
+- The framework inventory is metadata discovery only; it does not imply target applicability, approval, or dispatch.
+- Added console tests for live inventory listing, filtering, and keeping opportunity retrieval workspace-scoped.
+- Next: improve catalog enrichment and operator mapping workflows so module inventory can be converted into reliable target applicability intelligence without guessing product/version identity.
+
+
 - Console startup now has a standard-library input fallback when `prompt-toolkit` is unavailable; install declared dependencies to restore completion and persistent command history.
 
 ### Latest implementation milestone: exact-match module verification registry
