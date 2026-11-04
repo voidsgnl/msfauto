@@ -121,6 +121,24 @@ class WorkspaceStore:
                 )
                 """
             )
+            discovery_run_columns = {
+                row["name"] for row in connection.execute("PRAGMA table_info(discovery_runs)")
+            }
+            if "scan_id" not in discovery_run_columns:
+                connection.execute("ALTER TABLE discovery_runs ADD COLUMN scan_id TEXT NOT NULL DEFAULT ''")
+            connection.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_discovery_runs_scan_id "
+                "ON discovery_runs(scan_id) WHERE scan_id <> ''"
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS discovery_snapshots (
+                    scan_id TEXT PRIMARY KEY,
+                    workspace TEXT NOT NULL,
+                    hosts_json TEXT NOT NULL
+                )
+                """
+            )
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS discovery_hosts (
@@ -721,26 +739,116 @@ class WorkspaceStore:
             result.append(VulnerabilityAdvisory(**values))
         return tuple(result)
 
-    def save_discovery_run(self, run: DiscoveryRun) -> None:
+    def save_discovery_run(
+        self, run: DiscoveryRun, hosts: tuple[Host, ...] = ()
+    ) -> None:
+        """Persist scan metadata and an immutable normalized host/service snapshot."""
+        snapshot = [
+            {
+                "address": str(host.address),
+                "status": host.status,
+                "hostname": host.hostname,
+                "services": [
+                    {
+                        "port": service.port,
+                        "protocol": service.protocol,
+                        "state": service.state,
+                        "name": service.name,
+                        "product": service.product,
+                        "version": service.version,
+                        "method": service.method,
+                        "confidence": service.confidence,
+                        "extra_info": service.extra_info,
+                        "tunnel": service.tunnel,
+                        "cpes": list(service.cpes),
+                        "source": service.source,
+                        "observed_at": service.observed_at,
+                    }
+                    for service in host.services
+                ],
+            }
+            for host in hosts
+        ]
         with self._connect() as connection:
             connection.execute(
                 """
                 INSERT INTO discovery_runs(
                     workspace, scanner, command_json, output_path, status,
-                    started_at, finished_at, error
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    started_at, finished_at, error, scan_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    run.workspace,
-                    run.scanner,
-                    json.dumps(run.command),
-                    run.output_path,
-                    run.status,
-                    run.started_at,
-                    run.finished_at,
-                    run.error,
+                    run.workspace, run.scanner, json.dumps(run.command),
+                    run.output_path, run.status, run.started_at,
+                    run.finished_at, run.error, run.scan_id,
                 ),
             )
+            connection.execute(
+                "INSERT INTO discovery_snapshots(scan_id, workspace, hosts_json) VALUES (?, ?, ?)",
+                (run.scan_id, run.workspace, json.dumps(snapshot, sort_keys=True)),
+            )
+
+    def get_discovery_runs(self, workspace: str) -> tuple[DiscoveryRun, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT scanner, command_json, output_path, status, started_at,
+                       finished_at, error, scan_id
+                FROM discovery_runs WHERE workspace = ?
+                ORDER BY started_at DESC, rowid DESC
+                """,
+                (workspace,),
+            ).fetchall()
+        return tuple(
+            DiscoveryRun(
+                workspace=workspace,
+                scanner=row["scanner"],
+                command=tuple(json.loads(row["command_json"])),
+                output_path=row["output_path"],
+                status=row["status"],
+                started_at=row["started_at"],
+                finished_at=row["finished_at"],
+                error=row["error"],
+                scan_id=row["scan_id"] or f"legacy-{index}",
+            )
+            for index, row in enumerate(rows, 1)
+        )
+
+    def compare_discovery_runs(
+        self, workspace: str, older_scan_id: str, newer_scan_id: str
+    ) -> dict[str, list[tuple[str, str]]]:
+        """Compare immutable normalized snapshots; services key on address/port/protocol."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT scan_id, hosts_json FROM discovery_snapshots
+                WHERE workspace = ? AND scan_id IN (?, ?)
+                """,
+                (workspace, older_scan_id, newer_scan_id),
+            ).fetchall()
+        snapshots = {row["scan_id"]: json.loads(row["hosts_json"]) for row in rows}
+        if older_scan_id not in snapshots or newer_scan_id not in snapshots:
+            raise ValueError("Both scan snapshots must exist in the active workspace.")
+        def index(snapshot: list[dict[str, object]]) -> dict[tuple[str, int, str], str]:
+            result: dict[tuple[str, int, str], str] = {}
+            for host in snapshot:
+                address = str(host["address"])
+                for service in host["services"]:
+                    key = (address, int(service["port"]), str(service["protocol"]))
+                    fingerprint = " ".join(
+                        str(service[field]) for field in ("state", "name", "product", "version")
+                    ).strip()
+                    result[key] = fingerprint
+            return result
+        old = index(snapshots[older_scan_id])
+        new = index(snapshots[newer_scan_id])
+        added = [(f"{key[0]}:{key[1]}/{key[2]}", new[key]) for key in sorted(new.keys() - old.keys())]
+        removed = [(f"{key[0]}:{key[1]}/{key[2]}", old[key]) for key in sorted(old.keys() - new.keys())]
+        changed = [
+            (f"{key[0]}:{key[1]}/{key[2]}", f"{old[key]} -> {new[key]}")
+            for key in sorted(old.keys() & new.keys()) if old[key] != new[key]
+        ]
+        return {"added": added, "removed": removed, "changed": changed}
 
     def save_module_metadata(self, module: ModuleMetadata) -> None:
         with self._connect() as connection:
