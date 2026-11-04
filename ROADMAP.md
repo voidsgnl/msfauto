@@ -180,12 +180,14 @@ OSV workflow integration is active when explicit mappings are configured, but th
    - Never automatically retry an operation whose dispatch outcome is unknown.
 
 7. **Terminal interface**
-   - [x] Replace the button-oriented dashboard with a full-screen, keyboard-driven Textual application.
-   - [x] Add a branded numbered main menu and dedicated screens for targets/services, vulnerability candidates, exploit intelligence, executions, findings/evidence, workspace scope, and assessment history.
-   - [x] Add live task animation, elapsed time, workflow-stage activity messages, and terminal lifecycle feedback.
-   - [ ] Add deeper drill-down views and guided configuration/review prompts for each assessment workflow.
-   - [ ] Connect execution manager controls to persisted job/exploit lifecycle operations with explicit confirmation.
-   - [ ] Add session and post-exploitation screens when those domain services are implemented.
+   - [x] Replace the menu-driven Textual dashboard as the primary entry point with a persistent Rich + prompt_toolkit command console.
+   - [x] Add Fluxion-inspired ASCII branding, compact workspace/profile/scope context, and a clean `msfauto >` prompt.
+   - [x] Add grouped `help` output for workspace, scope, discovery, planning, checks, vulnerability, exploit, findings, reporting, and dashboard command families.
+   - [x] Add command completion and retain one-shot CLI flags for automation.
+   - [x] Connect supported commands to existing workspace, discovery, planning, checks, vulnerability, exploit-intelligence, findings, and reporting services.
+   - [ ] Complete guided opportunity-bound exploit review and authorization commands without bypassing the existing lifecycle.
+   - [ ] Add responsive asynchronous task streaming/cancellation.
+   - [ ] Add session and post-exploitation commands when those domain services are implemented.
 
 ## Latest implementation milestone: protocol confirmation for unknown TCP services
 - Nmap may return an unrecognized service label even when the endpoint speaks HTTP, as observed with the local OWASP Juice Shop instance on TCP/3000.
@@ -211,3 +213,15 @@ The dispatcher, framework reconciler, and evidence-backed outcome-assessment rec
 - Added a live activity area and animated running indicator with elapsed time. Progress remains indeterminate unless the workflow supplies a real measurable percentage.
 - The interface is terminal-only: no browser UI, HTML preview, or native desktop GUI is part of the product direction.
 - Follow-up work: deepen each view with focused detail screens and guided review/configuration prompts, then connect execution controls as the underlying lifecycle APIs mature.
+
+
+## Latest implementation milestone: Metasploit-style command console (2026-11-04)
+
+- Replaced the primary interactive entry point with a persistent Rich + prompt_toolkit command shell; the former numbered Textual dashboard is no longer launched by default.
+- Startup is intentionally minimal: MSFAuto ASCII branding, workspace/profile/scope context, and the `msfauto >` prompt. The full catalogue appears only after `help`.
+- Added the requested hierarchical command reference: workspace, scope, discovery, plan, checks, vulnerabilities, exploits, findings, report, dashboard, help, and exit.
+- Connected supported commands to existing application/storage services and retained one-shot CLI flags for automation.
+- Added command-name completion. Persistent history and fully responsive asynchronous task execution remain follow-up work.
+- Some commands are informational/reserved where the underlying guided workflow is not yet connected (notably exploit authorization); no placeholder command may bypass persisted authorization.
+- Dependencies now include Rich and prompt_toolkit. The previous Textual implementation remains as legacy code pending cleanup; it is not the primary interface.
+- Verification status: implementation committed to main; CI/local test results still need to be checked.
