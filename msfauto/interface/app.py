@@ -9,6 +9,21 @@ from textual.app import App, ComposeResult
 from textual.containers import Vertical
 from textual.widgets import DataTable, Footer, Header, Static
 
+
+def _build_context_markup(
+    workspace_name: str,
+    profile: str,
+    targets: list[str],
+    ports: str,
+) -> str:
+    """Build Rich markup for the persistent workspace context panel."""
+    return (
+        f"[bold #9ce4d6]WORKSPACE[/bold]  {workspace_name}    "
+        f"[bold #9ce4d6]PROFILE[/bold]  {profile}\\n"
+        f"[bold #9ce4d6]SCOPE[/bold]  {', '.join(targets) or 'not configured'}\\n"
+        f"[bold #9ce4d6]PORTS[/bold]  {ports}"
+    )
+
 from ..core import AssessmentApplication, WorkflowError
 from ..discovery import DiscoveryError
 from ..storage import WorkspaceStore
@@ -162,10 +177,12 @@ class Dashboard(App[None]):
                 id="brand",
             )
             yield Static(
-                f"[bold #9ce4d6]WORKSPACE[/bold]  {self.workspace.name}    "
-                f"[bold #9ce4d6]PROFILE[/bold]  {self.workspace.policy.profile}\n"
-                f"[bold #9ce4d6]SCOPE[/bold]  {', '.join(targets) or 'not configured'}\n"
-                f"[bold #9ce4d6]PORTS[/bold]  {ports}",
+                _build_context_markup(
+                    self.workspace.name,
+                    self.workspace.policy.profile,
+                    targets,
+                    ports,
+                ),
                 id="context",
             )
             yield Static("MAIN MENU  /  SELECT A WORKFLOW", id="screen-title")
