@@ -569,7 +569,7 @@ def enumerate_services(
                 results.append(
                     _observation(
                         workspace, target, service, kind, "failed",
-                        {"error_type": type(exc).__name__},
+                        _error_attributes(exc),
                     )
                 )
     return tuple(sorted(results, key=lambda item: (
