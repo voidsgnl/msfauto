@@ -30,7 +30,6 @@ def _build_context_markup(
     )
 
 
-
 class Dashboard(App[None]):
     """Full-screen, menu-driven terminal interface for MSFAuto."""
 
