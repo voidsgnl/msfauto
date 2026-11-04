@@ -9,6 +9,15 @@
 
 # MSFAuto Roadmap
 
+### Latest implementation milestone: exact-match module verification registry
+
+- Added a module verifier registry keyed by the exact persisted Metasploit module name; no fuzzy matching or inferred verifier selection is allowed.
+- Registered verifiers receive the persisted execution and an explicit bounded timeout budget (0.1–30 seconds) and must return a structured verdict, method, rationale, and target-evidence IDs.
+- Verifier timeouts and modules without a registered verifier create an append-only inconclusive target assessment. Unsupported modules send no probe.
+- All conclusive results still pass through ExploitOutcomeValidator, which enforces terminal execution state, exact workspace/target evidence binding, and rejection of framework-originated evidence.
+- Added tests for exact module selection, evidence-backed results, unsupported modules, timeout handling, and timeout bounds.
+- No built-in module verifier is registered yet: a concrete verifier must be based on a documented, non-destructive target-side indicator for a specific module. The registry foundation is complete; first real module-specific verifier remains the next implementation task.
+
 ## Product definition
 
 **MSFAuto is an automated security assessment platform for discovering, enumerating, assessing, exploiting, and validating security weaknesses in explicitly authorized environments.**
