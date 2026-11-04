@@ -357,3 +357,12 @@ The dispatcher, framework reconciler, and evidence-backed outcome-assessment rec
 - Added `tasks list` and `tasks show <id>` for inspecting task state and any queued task output.
 - Discovery is currently submitted as non-cancellable because the Nmap adapter still uses a blocking subprocess call. Do not present cancellation as available until the scanner process and orchestrator support safe cooperative cancellation.
 - Follow-up: implement cancellable Nmap process management and stage-boundary cancellation, add lifecycle tests for the task runner, then expose the existing persisted exploit execution lifecycle through console commands without weakening review, authorization, scope, single-use dispatch, or uncertain-outcome reconciliation.
+
+
+## Latest implementation milestone: reliable Nmap host discovery and current inventory
+
+- Added `-Pn` to the bounded Nmap invocation so targets are scanned even when they do not respond to Nmap's host-discovery probes. The explicit workspace target and port scope remain enforced.
+- Changed the workspace's current host/service inventory to replacement semantics on a completed discovery import. Services and hosts absent from the latest result are removed instead of remaining as stale records.
+- Historical discovery snapshots remain separate and available for history and comparison.
+- Added regression coverage for the `-Pn` command option and removal of stale services/hosts, including an empty completed result.
+- Next validation: run discovery against the user's authorized workspace and compare imported services with the same Nmap command using `-Pn`.
