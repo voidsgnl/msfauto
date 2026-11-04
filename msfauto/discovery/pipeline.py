@@ -17,6 +17,42 @@ class DiscoveryError(ValueError):
     """Raised when discovery data is malformed or outside the active scope."""
 
 
+QUICK_TCP_PORTS = (
+    21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445,
+    465, 587, 993, 995, 1433, 3306, 3389, 5432, 5900, 8080, 8443,
+)
+STANDARD_TCP_PORTS = tuple(sorted({
+    *QUICK_TCP_PORTS,
+    20, 69, 88, 123, 161, 389, 500, 514, 636, 873, 902, 989, 990,
+    992, 1000, 1025, 1080, 1099, 1434, 1521, 1723, 1883, 2049,
+    2181, 2375, 2376, 3000, 3128, 3268, 3269, 3307, 4000, 4444,
+    5000, 5001, 5060, 5061, 5432, 5672, 5901, 5985, 5986, 6379,
+    7001, 7002, 8000, 8008, 8009, 8081, 8082, 8088, 8888, 9000,
+    9090, 9200, 9300, 9418, 9443, 10000, 11211, 27017,
+}))
+SCAN_PROFILES = ("quick", "standard", "full")
+
+
+def _ports_for_profile(policy: ScopePolicy, profile: str) -> tuple[int, ...] | None:
+    if profile not in SCAN_PROFILES:
+        raise DiscoveryError(
+            f"Unknown scan profile: {profile}. Choose quick, standard, or full."
+        )
+    if policy.allowed_ports:
+        if profile == "full":
+            return tuple(policy.allowed_ports)
+        base = QUICK_TCP_PORTS if profile == "quick" else STANDARD_TCP_PORTS
+        selected = tuple(port for port in base if port in policy.allowed_ports)
+        if not selected:
+            raise DiscoveryError(
+                f"The {profile} profile has no ports inside the workspace's saved port scope."
+            )
+        return selected
+    if profile == "full":
+        return None
+    return QUICK_TCP_PORTS if profile == "quick" else STANDARD_TCP_PORTS
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -28,6 +64,7 @@ def run_nmap(
     timeout: float = 300,
     executable: str = "nmap",
     cancel_event: Event | None = None,
+    scan_profile: str = "standard",
 ) -> tuple[DiscoveryRun, tuple[Host, ...]]:
     """Run a bounded XML-producing discovery command for the active policy."""
     scanner = shutil.which(executable)
@@ -40,9 +77,12 @@ def run_nmap(
     if not targets:
         raise DiscoveryError("Cannot discover without an authorized target scope.")
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    selected_ports = _ports_for_profile(policy, scan_profile)
     command = [scanner, "-n", "-Pn", "-sV", "--version-light", "-oX", str(output_path)]
-    if policy.allowed_ports:
-        command.extend(["-p", ",".join(str(port) for port in policy.allowed_ports)])
+    if selected_ports is None:
+        command.append("-p-")
+    else:
+        command.extend(["-p", ",".join(str(port) for port in selected_ports)])
     command.extend(targets)
     started_at = _utc_now()
     deadline = monotonic() + timeout
