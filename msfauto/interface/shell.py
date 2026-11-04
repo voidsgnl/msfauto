@@ -19,7 +19,6 @@ from ..assessment.planner import build_plan
 from ..cli import display_plan, run_safe_checks
 from ..core import AssessmentApplication
 from ..discovery import DiscoveryError, parse_nmap_xml
-from ..exploitation import authorize_opportunity, review_opportunity
 from ..execution import (
     ExploitDispatchUncertain,
     ExploitExecutionError,
@@ -29,6 +28,7 @@ from ..execution import (
     reconcile_uncertain_execution,
     request_exploit_cancellation,
 )
+from ..exploitation import authorize_opportunity, review_opportunity
 from ..integrations.metasploit import (
     MetasploitClient,
     MetasploitConfig,
