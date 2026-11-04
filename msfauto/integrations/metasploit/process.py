@@ -118,7 +118,7 @@ class MetasploitProcessManager:
         if scheme == "http":
             command.append("-S")
 
-        self._log = tempfile.TemporaryFile(mode="w+t", encoding="utf-8")
+        self._log = tempfile.TemporaryFile(mode="w+t", encoding="utf-8")  # noqa: SIM115 - retained for child lifetime
         try:
             self.process = subprocess.Popen(
                 command,
