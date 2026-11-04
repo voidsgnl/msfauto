@@ -147,7 +147,7 @@ class ObservationConsoleTests(unittest.TestCase):
 
     def test_observations_list_is_available_in_discovery_mode(self):
         output = io.StringIO()
-        self.shell.console = Console(file=output)
+        self.shell.console = Console(file=output, width=160)
         self.shell.session.prompt = lambda *_args, **_kwargs: ""
         self.shell.execute("observations list")
         rendered = output.getvalue()
@@ -158,7 +158,7 @@ class ObservationConsoleTests(unittest.TestCase):
 
     def test_observations_host_filters_to_exact_target(self):
         output = io.StringIO()
-        self.shell.console = Console(file=output)
+        self.shell.console = Console(file=output, width=160)
         self.shell.session.prompt = lambda *_args, **_kwargs: ""
         self.shell.execute("observations host 127.0.0.1")
         rendered = output.getvalue()
@@ -168,7 +168,7 @@ class ObservationConsoleTests(unittest.TestCase):
 
     def test_observations_list_selects_number_and_displays_details(self):
         output = io.StringIO()
-        self.shell.console = Console(file=output)
+        self.shell.console = Console(file=output, width=160)
         self.shell.session.prompt = lambda *_args, **_kwargs: "1"
         self.shell.execute("observations list")
         rendered = output.getvalue()
@@ -179,7 +179,7 @@ class ObservationConsoleTests(unittest.TestCase):
 
     def test_observations_show_resolves_prefix_and_displays_attributes(self):
         output = io.StringIO()
-        self.shell.console = Console(file=output)
+        self.shell.console = Console(file=output, width=160)
         self.shell.execute("observations show observation-abc")
         rendered = output.getvalue()
         self.assertIn("mail.example", rendered)
@@ -187,6 +187,6 @@ class ObservationConsoleTests(unittest.TestCase):
 
     def test_observations_show_rejects_ambiguous_prefix(self):
         output = io.StringIO()
-        self.shell.console = Console(file=output)
+        self.shell.console = Console(file=output, width=160)
         self.shell.execute("observations show observation-")
         self.assertIn("ambiguous", output.getvalue().casefold())
