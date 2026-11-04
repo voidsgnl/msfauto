@@ -290,6 +290,11 @@ def interactive(store: WorkspaceStore, workspace_name: str, profile: str) -> int
             return 2
 
     from .interface import CommandShell
+    from .integrations.metasploit import (
+        MetasploitClient,
+        MetasploitConfig,
+        MsgpackHttpTransport,
+    )
     from .integrations.metasploit.process import MetasploitProcessManager
 
     rpc_url = os.environ.get(
@@ -301,11 +306,20 @@ def interactive(store: WorkspaceStore, workspace_name: str, profile: str) -> int
     try:
         try:
             username, password = process_manager.start(username, password)
+            # Authenticate before advertising the RPC service as ready. This also
+            # detects msfrpcd builds that do not support environment credentials.
+            MetasploitClient(
+                MsgpackHttpTransport(MetasploitConfig(url=rpc_url, timeout=5.0)),
+                username=username,
+                password=password,
+            )
             os.environ["MSFAUTO_METASPLOIT_USERNAME"] = username
             os.environ["MSFAUTO_METASPLOIT_PASSWORD"] = password
             state = "Started local msfrpcd" if process_manager.started else "Using existing Metasploit RPC service"
             print(f"[+] {state} at {rpc_url}")
         except MetasploitError as exc:
+            if process_manager.started:
+                process_manager.stop()
             print(f"[!] Metasploit RPC unavailable: {exc}")
         CommandShell(store, workspace).run()
     finally:
