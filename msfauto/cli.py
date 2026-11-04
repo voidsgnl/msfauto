@@ -315,9 +315,11 @@ def interactive(store: WorkspaceStore, workspace_name: str, profile: str) -> int
             )
             os.environ["MSFAUTO_METASPLOIT_USERNAME"] = username
             os.environ["MSFAUTO_METASPLOIT_PASSWORD"] = password
+            os.environ["MSFAUTO_METASPLOIT_CONNECTED"] = "1"
             state = "Started local msfrpcd" if process_manager.started else "Using existing Metasploit RPC service"
             print(f"[+] {state} at {rpc_url}")
         except MetasploitError as exc:
+            os.environ.pop("MSFAUTO_METASPLOIT_CONNECTED", None)
             if process_manager.started:
                 process_manager.stop()
             print(f"[!] Metasploit RPC unavailable: {exc}")
