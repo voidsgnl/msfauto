@@ -397,7 +397,7 @@ class EnumerationTests(unittest.TestCase):
             listener.close()
         self.assertEqual(observations[0].status, "failed")
         self.assertEqual(observations[0].attributes["error_stage"], "smtp_greeting")
-        self.assertEqual(observations[0].attributes["error_type"], "TimeoutError")
+        self.assertEqual(observations[0].attributes["error_type"], "SMTPServerDisconnected")
 
     def test_ftp_probe_records_greeting_and_features(self):
         listener = socket.socket()
