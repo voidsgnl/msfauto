@@ -1,5 +1,13 @@
 ## Unreleased
 
+### Fixed
+- Run scoped Nmap discovery with `-Pn` so targets are scanned even when host-discovery probes receive no response.
+- Replace the current workspace host/service inventory after a completed scan, removing stale records that were absent from the latest result while retaining historical snapshots.
+
+### Tests
+- Added regression coverage for Nmap's `-Pn` option and current-inventory replacement, including empty scan results.
+
+
 ### Added
 - Bounded service-enumeration failure diagnostics, including per-endpoint assessment warnings and completed/partial/failed counts.
 
