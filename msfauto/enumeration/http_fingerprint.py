@@ -61,8 +61,8 @@ def fingerprint_http_html(headers: dict[str, str], body: bytes, *, truncated: bo
     try:
         parser.feed(text)
         parser.close()
-    except Exception:  # noqa: BLE001 - malformed HTML must not fail service enumeration
-        pass
+    except Exception as exc:  # noqa: BLE001 - malformed HTML must not fail service enumeration
+        parser.markers.add(f"parse_error:{type(exc).__name__}")
 
     title = " ".join(parser.title_parts).strip()[:MAX_TEXT_LENGTH]
     technologies: list[dict[str, object]] = []
