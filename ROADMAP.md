@@ -1,8 +1,9 @@
-### Latest implementation milestone: service-observation console inspection
+### Latest implementation milestone: numbered service-observation inspection
 
-- Added discovery-mode `observations` commands to inspect persisted protocol evidence without starting probes or changing inventory.
-- `observations` / `observations list` displays all observations in the active workspace; `observations host <ip>` filters by target; `observations show <id-prefix>` displays the complete stored attributes and collection metadata.
-- Observation lookup is workspace-scoped, supports unambiguous ID prefixes, and reports missing or ambiguous identifiers without guessing.
+- Discovery-mode `observations` and `observations list` display a numbered list of stored observations and prompt for a row number; selecting a row opens its full attributes and metadata.
+- `observations host <ip>` provides the same numbered selection flow filtered to one target.
+- `observations show <number>` opens a row directly; exact IDs and unambiguous ID prefixes remain supported for scripted or precise lookup.
+- Inspection remains read-only, workspace-scoped, and performs no network probes or inventory changes. Empty input cancels selection; invalid and out-of-range choices are rejected.
 - Next: use these records to improve service-to-vulnerability and exploit-catalog correlation while keeping protocol observations as supporting evidence only.
 
 ### Latest implementation milestone: phase-specific FTP and SMTP diagnostics
