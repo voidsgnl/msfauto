@@ -9,8 +9,8 @@ from ..assessment.metasploit_intelligence import discover_web_auxiliary_modules
 from ..assessment.planner import build_plan
 from ..discovery import DiscoveryError, run_metasploit_db_nmap, run_nmap
 from ..enumeration import enumerate_services
-from ..enumeration.web_mapper import map_web_application
 from ..enumeration.models import ServiceObservation
+from ..enumeration.web_mapper import map_web_application
 from ..exploitation.matcher import load_exploit_catalog, match_exploits
 from ..integrations.metasploit import MetasploitClient, MetasploitError
 from ..storage import WorkspaceStore
