@@ -1,5 +1,10 @@
 ## Unreleased
 
+### Product direction
+- Established MSFAuto as a web-first, Metasploit-powered assessment platform. Metasploit is the primary testing/exploitation engine; MSFAuto provides target-aware orchestration, evidence-driven next-action selection, correlation, and a guided operator experience.
+- Prioritized web reconnaissance and application investigation. The default discovery profile is intended to focus on important web and supporting-service ports; full TCP scanning remains opt-in.
+- Added a staged roadmap for scoped URL/origin targets, evidence-driven web investigation, Metasploit auxiliary/check module recommendations, and a unified target-centric assessment workflow. These are roadmap items, not claims of implemented functionality.
+
 ### Added
 - Added read-only POP3 and IMAP service adapters. They collect protocol greetings and CAPA/CAPABILITY data without authentication; implicit TLS services on ports 993 and 995 are negotiated as protocol-aware mail endpoints, with certificate metadata retained. SMTP on implicit-TLS port 465 now receives SMTP greeting/EHLO enumeration after TLS negotiation.
 - Added `investigate [target-ip]` to summarize each discovered service's evidence state and evidence-driven next action, including manual-review and missing-intelligence gaps.
