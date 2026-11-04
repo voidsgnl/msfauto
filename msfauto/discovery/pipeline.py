@@ -146,6 +146,12 @@ def parse_nmap_xml(
             if not policy.permits_port(port):
                 continue
             state_node = port_node.find("state")
+            state = state_node.get("state", "unknown") if state_node is not None else "unknown"
+            # The current inventory and service-enumeration inputs represent
+            # exposed services only. Closed/filtered ports remain in the raw
+            # Nmap XML artifact and historical scan provenance.
+            if state != "open":
+                continue
             service_node = port_node.find("service")
             confidence_text = service_node.get("conf", "0") if service_node is not None else "0"
             try:
@@ -158,7 +164,7 @@ def parse_nmap_xml(
                 Service(
                     port=port,
                     protocol=port_node.get("protocol", ""),
-                    state=state_node.get("state", "unknown") if state_node is not None else "unknown",
+                    state=state,
                     name=service_node.get("name", "") if service_node is not None else "",
                     product=service_node.get("product", "") if service_node is not None else "",
                     version=service_node.get("version", "") if service_node is not None else "",
