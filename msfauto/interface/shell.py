@@ -6,9 +6,29 @@ import sqlite3
 import time
 from pathlib import Path
 
-from prompt_toolkit import PromptSession
-from prompt_toolkit.completion import WordCompleter
-from prompt_toolkit.history import FileHistory
+try:
+    from prompt_toolkit import PromptSession
+    from prompt_toolkit.completion import WordCompleter
+    from prompt_toolkit.history import FileHistory
+except ModuleNotFoundError:
+    class PromptSession:  # type: ignore[no-redef]
+        """Minimal stdlib fallback when prompt-toolkit is not installed."""
+
+        def __init__(self, **_: object) -> None:
+            pass
+
+        def prompt(self, message: object = "") -> str:
+            if isinstance(message, list):
+                message = "".join(str(part[1]) for part in message)
+            return input(str(message))
+
+    class WordCompleter:  # type: ignore[no-redef]
+        def __init__(self, *_: object, **__: object) -> None:
+            pass
+
+    class FileHistory:  # type: ignore[no-redef]
+        def __init__(self, *_: object, **__: object) -> None:
+            pass
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -77,6 +97,12 @@ class CommandShell:
             complete_while_typing=True,
             history=FileHistory(str(history_path)),
         )
+        if PromptSession.__module__ == __name__:
+            self.console.print(
+                "[yellow][!][/yellow] prompt_toolkit is unavailable; using basic input "
+                "without command completion or persistent history. Install project "
+                "dependencies to enable the enhanced prompt."
+            )
         self.running = True
         self.tasks = TaskManager()
 
