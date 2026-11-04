@@ -9,6 +9,8 @@
 
 # MSFAuto Roadmap
 
+- Console startup now has a standard-library input fallback when `prompt-toolkit` is unavailable; install declared dependencies to restore completion and persistent command history.
+
 ### Latest implementation milestone: exact-match module verification registry
 
 - Added a module verifier registry keyed by the exact persisted Metasploit module name; no fuzzy matching or inferred verifier selection is allowed.
