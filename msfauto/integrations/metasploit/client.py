@@ -169,6 +169,9 @@ class MetasploitClient:
                 high = int(bounds[-1])
                 if not 1 <= low <= high <= 65535:
                     raise MetasploitError("db_nmap ports must be between 1 and 65535.")
+        # Creating a framework console initializes the framework database
+        # connection on Metasploit builds that lazily load the DB subsystem.
+        self._console_command("version", timeout=min(timeout, 10.0))
         added = self._request("db.add_workspace", workspace)
         if added.get("result") not in {"success", "failed"}:
             raise MetasploitError("Metasploit returned an invalid workspace creation response.")
