@@ -76,6 +76,65 @@ class _SlowHTTPHandler(BaseHTTPRequestHandler):
 
 
 class EnumerationTests(unittest.TestCase):
+    def test_timed_probe_adds_elapsed_timeout_and_failure_classification(self):
+        from msfauto.enumeration.runner import _run_timed_probe
+
+        service = Service(25, "tcp", "open", name="smtp")
+        with patch(
+            "msfauto.enumeration.runner._smtp_probe",
+            return_value=(
+                ServiceObservation(
+                    observation_id="timed",
+                    workspace="lab",
+                    target="127.0.0.1",
+                    port=25,
+                    transport="tcp",
+                    protocol="smtp",
+                    kind="smtp_response",
+                    status="failed",
+                    attributes={
+                        "error_type": "SMTPServerDisconnected",
+                        "error": "Connection unexpectedly closed: timed out",
+                        "error_stage": "smtp_greeting",
+                    },
+                ),
+            ),
+        ) as probe:
+            result = _run_timed_probe(
+                probe, "lab", "127.0.0.1", service, 0.25, timeout=0.25
+            )
+        probe.assert_called_once()
+        attrs = result[0].attributes
+        self.assertEqual(attrs["timeout_seconds"], 0.25)
+        self.assertGreaterEqual(attrs["elapsed_ms"], 0)
+        self.assertEqual(attrs["failure_category"], "timeout")
+        self.assertIn("configured timeout", attrs["failure_explanation"])
+
+    def test_protocol_specific_timeouts_are_validated_and_applied(self):
+        host = Host(
+            address=ipaddress.ip_address("127.0.0.1"),
+            status="up",
+            services=(Service(25, "tcp", "open", name="smtp"),),
+        )
+        with patch(
+            "msfauto.enumeration.runner._smtp_probe", return_value=()
+        ) as probe:
+            enumerate_services(
+                "lab", (host,), build_policy(["127.0.0.1"]),
+                timeout=3.0, protocol_timeouts={"smtp": 1.25},
+            )
+        self.assertEqual(probe.call_args.args[-1], 1.25)
+        with self.assertRaises(ValueError):
+            enumerate_services(
+                "lab", (host,), build_policy(["127.0.0.1"]),
+                protocol_timeouts={"smtp": 0},
+            )
+        with self.assertRaises(ValueError):
+            enumerate_services(
+                "lab", (host,), build_policy(["127.0.0.1"]),
+                protocol_timeouts={"unknown": 1},
+            )
+
     def test_error_attributes_preserve_bounded_diagnostic_detail(self):
         attributes = _error_attributes(ConnectionRefusedError("connection refused"))
         self.assertEqual(attributes["error_type"], "ConnectionRefusedError")
