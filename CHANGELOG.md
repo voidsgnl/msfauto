@@ -4,6 +4,12 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Live command-console task output
+- Added a task registry for background workflows with task IDs, status, progress-event queues, captured results/errors, and a cooperative cancellation primitive.
+- Routed interactive `discovery run` through the shared assessment application in a worker task and streamed real workflow-stage events to the terminal alongside a Rich activity indicator.
+- Added `tasks list` and `tasks show <id>` console commands.
+- Discovery remains non-cancellable until Nmap process management and orchestrator stage-boundary cancellation are implemented; no false cancellation guarantee is exposed.
+
 ### Console approval workflows
 - Added direct per-recommendation approval using the stable persisted action identity; `checks run` now consumes only matching approved records in the interactive console.
 - Added persisted exploit review commands for accepted, rejected, and deferred decisions, bound to the exact opportunity.
