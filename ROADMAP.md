@@ -1,3 +1,11 @@
+### Current implementation focus: Metasploit-backed web investigation
+
+- [x] Add a bounded read-only discovery helper that searches Metasploit auxiliary modules using observed web technology names.
+- [x] Restrict returned candidates to auxiliary modules and retrieve exact framework descriptions, check support, and required option metadata.
+- [ ] Connect the metadata helper to the interactive `investigate` workflow and present module prerequisites/evidence gaps per target endpoint.
+- [ ] Add service-specific auxiliary discovery for HTTP server products and versions after reliable fingerprints are available.
+- [ ] Map selected modules to bounded, non-destructive checks and route all execution through the existing approval and authorization lifecycle. Metadata lookup must never execute a module.
+
 ### Latest implementation milestone: enriched protocol observations
 
 - TLS handshakes now retain decoded X.509 subject, issuer, common name, SAN entries, validity bounds/current validity, serial number, and signature algorithm/hash alongside existing protocol/cipher/fingerprint metadata. Parsing certificate metadata does not imply trust-chain or hostname validation.
