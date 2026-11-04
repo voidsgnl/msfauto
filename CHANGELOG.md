@@ -1,7 +1,7 @@
 ## Unreleased
 
 ### Added
-- Discovery-mode `observations` inspection commands: list stored service observations, filter by host, and show full attributes by observation ID or unique prefix. Inspection is read-only and restricted to the active workspace; it does not initiate probes or modify assessment records.
+- Discovery-mode `observations` now presents numbered saved-observation lists, prompts for a row selection, and opens the selected observation's full attributes and metadata. Host-filtered lists support the same flow; `observations show <number|id-prefix>` supports direct lookup. Inspection is read-only, workspace-scoped, and does not initiate probes or modify assessment records.
 
 
 ### Improved
