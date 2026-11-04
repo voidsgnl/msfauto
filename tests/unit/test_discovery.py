@@ -61,10 +61,10 @@ class DiscoveryTests(unittest.TestCase):
             initial_path.write_text(NMAP_XML, encoding="utf-8")
             updated_path.write_text(
                 NMAP_XML.replace(
-                    '      <port protocol="tcp" portid="80">\\n'
-                    '        <state state="open"/>\\n'
-                    '        <service name="http"/>\\n'
-                    '      </port>\\n',
+                    '      <port protocol="tcp" portid="80">\n'
+                    '        <state state="open"/>\n'
+                    '        <service name="http"/>\n'
+                    '      </port>\n',
                     "",
                 ),
                 encoding="utf-8",
