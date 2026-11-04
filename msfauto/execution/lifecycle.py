@@ -308,10 +308,21 @@ def mark_exploit_running(
     record = store.get_exploit_execution(execution_id)
     if record is None:
         raise ExploitExecutionError(f"Unknown execution: {execution_id}")
+    if not external_job_id.strip() or not external_uuid.strip():
+        raise ExploitExecutionError(
+            "A running execution requires both a Metasploit job ID and UUID."
+        )
+    try:
+        if int(external_job_id) < 1:
+            raise ValueError
+    except ValueError as exc:
+        raise ExploitExecutionError(
+            "The Metasploit job ID must be a positive integer."
+        ) from exc
     allowed = frozenset({"dispatching", "dispatch_uncertain"}) if reconciled else frozenset({"dispatching"})
     return _transition(
         store, record, allowed, "running", actor=actor, detail=detail, now=now,
-        external_job_id=external_job_id, external_uuid=external_uuid,
+        external_job_id=external_job_id.strip(), external_uuid=external_uuid.strip(),
     )
 
 
