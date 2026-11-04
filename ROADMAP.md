@@ -10,12 +10,12 @@ MSFAuto should not become merely a graphical wrapper around Metasploit. Metasplo
 
 ## Product and interface direction
 
-- MSFAuto is a **terminal-only application**. The primary operator experience is a full-screen Textual interface; there is no web interface or native desktop GUI in the product plan.
-- Interaction is keyboard-driven and menu-oriented, inspired by the guided workflow style of tools such as Fluxion without copying its branding, wording, or behavior.
-- The interface opens on a branded main menu with numbered workflows, dedicated terminal screens, clear back/navigation keys, and focused prompts.
-- Long-running operations use truthful lifecycle states, animated indeterminate activity when no measurable percentage exists, elapsed time, and a bounded live activity log.
-- Keep assessment services, integrations, persistence, and authorization independent of Textual widgets so workflows remain testable and reusable by CLI commands.
-- The interface prioritizes targets, services, vulnerability candidates, exploit intelligence, execution lifecycle, findings, evidence, and run history.
+- MSFAuto is a **terminal-only application**. There is no web interface or mouse-driven desktop GUI in the product plan.
+- The primary operator experience is a persistent Metasploit-style command console, with Fluxion-inspired terminal aesthetics rather than a menu-driven TUI.
+- Startup is intentionally minimal: MSFAuto branding, compact workspace/profile/scope/RPC context, and a persistent `msfauto >` prompt. The command catalogue is displayed only when the operator enters `help`.
+- Operators use concise hierarchical commands such as `discovery run`, `scope show`, `plan build`, and `exploits list`; detailed output appears in the terminal and returns to the prompt.
+- `dashboard` is optional and explicitly invoked. One-shot CLI flags remain available for automation.
+- Use Rich for terminal rendering and prompt_toolkit for editable input, completion, and persistent command history. Keep assessment services, integrations, persistence, and authorization independent of the shell.
 
 ## Core assessment capabilities
 
@@ -186,6 +186,7 @@ OSV workflow integration is active when explicit mappings are configured, but th
    - [x] Add command completion and retain one-shot CLI flags for automation.
    - [x] Connect supported commands to existing workspace, discovery, planning, checks, vulnerability, exploit-intelligence, findings, and reporting services.
    - [ ] Complete guided opportunity-bound exploit review and authorization commands without bypassing the existing lifecycle.
+- [x] Persist interactive command history under the MSFAuto home directory (`command_history`).
    - [ ] Add responsive asynchronous task streaming/cancellation.
    - [ ] Add session and post-exploitation commands when those domain services are implemented.
 
@@ -221,7 +222,7 @@ The dispatcher, framework reconciler, and evidence-backed outcome-assessment rec
 - Startup is intentionally minimal: MSFAuto ASCII branding, workspace/profile/scope context, and the `msfauto >` prompt. The full catalogue appears only after `help`.
 - Added the requested hierarchical command reference: workspace, scope, discovery, plan, checks, vulnerabilities, exploits, findings, report, dashboard, help, and exit.
 - Connected supported commands to existing application/storage services and retained one-shot CLI flags for automation.
-- Added command-name completion. Persistent history and fully responsive asynchronous task execution remain follow-up work.
+- Added command-name completion. Persistent command history is stored under the MSFAuto home directory; fully responsive asynchronous task execution remains follow-up work.
 - Some commands are informational/reserved where the underlying guided workflow is not yet connected (notably exploit authorization); no placeholder command may bypass persisted authorization.
 - Dependencies now include Rich and prompt_toolkit. The previous Textual implementation remains as legacy code pending cleanup; it is not the primary interface.
-- Verification status: implementation committed to main; CI/local test results still need to be checked.
+- Verification status: the previous CI runs passed 159 tests but exposed an import-order lint issue; the import correction and persistent-history update are committed to main and their CI runs are pending.
