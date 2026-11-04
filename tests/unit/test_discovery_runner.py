@@ -36,6 +36,17 @@ class DiscoveryRunnerTests(unittest.TestCase):
         self.assertIn("-Pn", command)
         run.assert_called_once()
 
+
+    def test_default_standard_profile_is_focused_and_web_first(self) -> None:
+        from msfauto.discovery.pipeline import QUICK_TCP_PORTS, STANDARD_TCP_PORTS
+
+        self.assertLessEqual(len(QUICK_TCP_PORTS), 16)
+        self.assertLessEqual(len(STANDARD_TCP_PORTS), 50)
+        self.assertTrue({80, 443, 3000, 5000, 8000, 8080, 8443}.issubset(STANDARD_TCP_PORTS))
+        self.assertTrue({22, 25, 53, 445, 3306, 5432}.issubset(STANDARD_TCP_PORTS))
+        self.assertNotIn(27000, STANDARD_TCP_PORTS)
+        self.assertGreater(len(STANDARD_TCP_PORTS), len(QUICK_TCP_PORTS))
+
     def test_runner_terminates_process_when_cancelled(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "scan.xml"
