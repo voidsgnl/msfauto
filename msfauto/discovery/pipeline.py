@@ -56,6 +56,25 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _updated_during_scan(record: dict[str, object], started_at: str) -> str | None:
+    """Return the DB update timestamp only when it belongs to this scan."""
+    raw = record.get("updated_at")
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    try:
+        updated = datetime.fromisoformat(raw.strip().replace("Z", "+00:00"))
+        scan_started = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if updated.tzinfo is None:
+        updated = updated.replace(tzinfo=timezone.utc)
+    if scan_started.tzinfo is None:
+        scan_started = scan_started.replace(tzinfo=timezone.utc)
+    if updated.astimezone(timezone.utc) < scan_started.astimezone(timezone.utc):
+        return None
+    return raw.strip()
+
+
 def run_nmap(
     workspace: str,
     policy: ScopePolicy,
@@ -174,6 +193,8 @@ def run_metasploit_db_nmap(
 
     normalized_hosts: dict[str, dict[str, object]] = {}
     for record in host_records:
+        if _updated_during_scan(record, started_at) is None:
+            continue
         address_text = record.get("address")
         if not isinstance(address_text, str):
             continue
@@ -186,6 +207,9 @@ def run_metasploit_db_nmap(
 
     services_by_host: dict[str, list[Service]] = {}
     for record in service_records:
+        observed_at = _updated_during_scan(record, started_at)
+        if observed_at is None:
+            continue
         address_text = record.get("host")
         if not isinstance(address_text, str):
             continue
@@ -209,7 +233,7 @@ def run_metasploit_db_nmap(
             method="metasploit-db_nmap",
             confidence=5,
             source="metasploit-db",
-            observed_at=_utc_now(),
+            observed_at=observed_at,
         ))
         normalized_hosts.setdefault(str(address), {"address": str(address), "state": "alive"})
 
