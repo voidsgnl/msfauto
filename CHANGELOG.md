@@ -4,6 +4,13 @@ All notable changes to MSFAuto are documented here.
 
 ## Unreleased
 
+### Metasploit RPC setup clarity
+
+- Clarified that MSFAuto does not start `msfrpcd`; the daemon must currently be started separately.
+- Documented that RPC authentication is needed for read-only module catalogue queries too, not just exploit execution.
+- Replaced the misleading missing-credentials message with explicit Metasploit RPC setup guidance and added a regression test.
+
+
 ### Live Metasploit exploit module inventory
 
 - Changed `exploits list [filter]` to query and display the connected Metasploit framework's available exploit module references instead of showing only target-matched opportunities (which were empty when no explicit catalog mappings existed).
