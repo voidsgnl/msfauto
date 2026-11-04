@@ -724,12 +724,24 @@ class CommandShell:
                     self.console.print("[green][+][/green] Scope updated.")
                     self._show_context()
             elif command == "discovery run":
+                scan_profile = "standard"
+                if args == ["--full"]:
+                    scan_profile = "full"
+                elif len(args) == 2 and args[0] in {"--profile", "--scan-profile"}:
+                    scan_profile = args[1].casefold()
+                elif args:
+                    self.console.print("[yellow]Usage: discover run [--profile quick|standard|full][/yellow]")
+                    return True
+                if scan_profile not in {"quick", "standard", "full"}:
+                    self.console.print("[yellow]Usage: discover run [--profile quick|standard|full][/yellow]")
+                    return True
                 application = AssessmentApplication(self.workspace, self.store)
                 task = self.tasks.submit(
-                    "assessment",
+                    f"{scan_profile} assessment",
                     lambda cancel, emit: application.run_assessment(
                         lambda event: emit(f"[{event.stage}] {event.message}", event.level),
                         cancel_event=cancel,
+                        scan_profile=scan_profile,
                     ),
                     cancellable=True,
                 )
