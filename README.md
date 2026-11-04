@@ -1,24 +1,28 @@
 # MSFAuto
 
-**MSFAuto is an automated security assessment platform** for discovering, enumerating, assessing, exploiting, and validating security weaknesses in explicitly authorized environments.
+**MSFAuto is a web-first, Metasploit-powered penetration-testing automation platform** for investigating web applications and exposed services in explicitly authorized environments.
 
 Its primary purpose is to perform useful security assessment work and produce technically meaningful results. Safety controls, evidence integrity, orchestration, and reporting support that purpose; they do not define the product.
 
-MSFAuto is not intended to be merely a graphical wrapper around Metasploit. Metasploit is one integration and execution engine within a broader platform.
+MSFAuto makes Metasploit's existing auxiliary, exploit, job, and session capabilities easier to discover and use through an evidence-driven workflow. MSFAuto owns orchestration, target context, decision logic, evidence correlation, and the operator experience; Metasploit is the primary testing and exploitation engine, not a feature to recreate.
 
 ## Product capabilities
 
-The intended platform is organized around these core capabilities:
+The primary workflow is **web application assessment**. Given an explicitly authorized target, MSFAuto identifies the exposed web surface, investigates observed technologies and behavior, identifies evidence gaps, and recommends the next useful assessment action.
 
-- **Reconnaissance and discovery:** identify in-scope hosts, ports, and exposed services.
-- **Service enumeration and intelligence:** fingerprint services, identify versions and technologies, and gather configuration and service-specific context.
-- **Vulnerability assessment:** identify candidate weaknesses, assess prerequisites, and prioritize checks using evidence and confidence.
-- **Exploitation:** match applicable exploit techniques to target observations, review prerequisites and options, and execute explicitly authorized attempts through supported integrations.
-- **Post-exploitation assessment:** perform separately authorized, bounded assessment of achieved access, privilege context, and security impact.
-- **Validation:** verify suspected weaknesses and exploit outcomes using evidence.
-- **Analysis and correlation:** connect observations and results across assessment stages and produce meaningful findings.
+Core capabilities, in priority order:
 
-Supporting capabilities include assessment orchestration, authorization and approvals, session/job lifecycle management, evidence integrity, reporting, and a persistent Metasploit-style command console.
+- **Web reconnaissance:** identify HTTP/HTTPS services, virtual hosts, redirects, TLS properties, application technologies, routes, and exposed resources within scope.
+- **Evidence-driven investigation:** select bounded checks based on the actual server, framework, CMS, application behavior, and authentication surface. Preserve evidence and explain why each next action is relevant.
+- **Metasploit-native assessment:** make suitable built-in auxiliary scanners, check-capable modules, and module metadata discoverable through guided workflows. Prefer existing framework functionality over duplicate probes.
+- **Vulnerability and exploit intelligence:** correlate observed evidence with advisories and Metasploit module requirements; distinguish facts, hypotheses, unsupported matches, and evidence gaps.
+- **Controlled exploitation:** prepare applicable modules from persisted findings, explain prerequisites/options, and require explicit action-specific authorization before intrusive execution.
+- **Supporting network assessment:** investigate important infrastructure and supporting services. Broad all-port scanning is opt-in, not the default.
+- **Validation and reporting:** preserve run-linked evidence, independently assess outcomes, and produce actionable findings with confidence and limitations.
+
+The normal workflow is one orchestrated assessment: discover → identify → investigate each relevant service → decide the next evidence-gathering step → correlate vulnerabilities/modules → present reviewable opportunities. Manual inspection remains available when automation lacks sufficient evidence or confidence.
+
+Supporting capabilities include workspace and target scope, run history, cancellation/recovery, Metasploit RPC lifecycle management, approvals, evidence integrity, findings, and a persistent command console.
 
 ## Current implementation status
 
@@ -162,34 +166,34 @@ Evidence IDs must already exist and belong to the same workspace and exact targe
 
 ## Interface direction
 
-MSFAuto is a **terminal-only application** with a persistent Metasploit-style, mode-aware command prompt. The root `msfauto >` prompt exposes `use <mode>`, `show modes`, `help`, and `exit`. Enter `discovery`, `exploit`, `analysis`, or `workspace` mode to get a focused command catalogue and a matching prompt such as `[discovery] msfauto >`. Use `back` to return to the root prompt; `help` always shows only the current context's commands. Existing hierarchical command handlers and services are reused beneath the short mode commands. Discovery comparisons report host additions/removals/identity changes as well as service-level changes. Rich terminal output and live task messages provide feedback without turning the application into a menu-driven TUI. There is no web interface or native desktop GUI in the product plan.
+MSFAuto is a **terminal-first application** with a persistent Metasploit-style command console. Its purpose is to make the assessment workflow straightforward, not to reproduce Metasploit's entire console or expose hundreds of raw options by default.
 
-Example:
+The intended high-level workflow is concise:
+
 ```text
-msfauto > show modes
-msfauto > use discovery
-[discovery] msfauto > help
-[discovery] msfauto > history
-[discovery] msfauto > back
-msfauto > use exploit
-[exploit] msfauto > list
+msfauto > assess web
+msfauto > findings
+msfauto > inspect <finding-id>
+msfauto > modules search <term>
+msfauto > exploits opportunities
 ```
 
-The CLI remains available for scripting, automation, imports, and diagnostics.
+These examples describe the intended experience; commands not yet implemented remain roadmap items. Existing discovery, workspace, observation, vulnerability, and exploit lifecycle commands remain available. Advanced operators retain access to relevant Metasploit metadata and supported framework operations.
+
+The current application remains terminal-only. Rich and prompt_toolkit provide rendering, completion, and command history. Assessment services and integrations remain independent of the shell.
 
 ## Intended assessment lifecycle
 
-1. Select a workspace and define the authorized scope.
-2. Discover hosts, ports, and exposed services.
-3. Enumerate services and build target intelligence.
-4. Assess potential vulnerabilities and identify evidence gaps.
-5. Review candidate exploit paths, prerequisites, and expected outcomes.
-6. Explicitly authorize and execute supported exploit attempts.
-7. Where separately authorized, assess resulting access and security impact.
-8. Validate outcomes, correlate evidence, and review findings.
-9. Generate a report from the assessment run.
+1. Select or configure an explicitly authorized web target and scope.
+2. Perform focused discovery of important web and supporting-service ports; broad all-TCP discovery is opt-in.
+3. Identify HTTP/HTTPS services and application technologies, including non-standard web ports and virtual-host context.
+4. Investigate each relevant service sequentially using the best available MSFAuto adapter or suitable Metasploit auxiliary/check module.
+5. Select the next useful action from observed evidence, prerequisites, confidence, and information gaps. Offer manual inspection when automation cannot make a reliable decision.
+6. Correlate evidence with vulnerability intelligence and Metasploit module metadata; explain why a candidate applies and what remains unverified.
+7. Present prioritized findings and potential attack paths. Require explicit review and action-specific authorization before intrusive testing or exploit execution.
+8. Independently validate outcomes, preserve evidence against the assessment run, and generate a report.
 
-The workflow must distinguish observations, hypotheses, candidate vulnerabilities, validated findings, and execution outcomes.
+Network and non-web assessments remain supported, but web application security is the primary product focus. Distinguish observations, hypotheses, candidate vulnerabilities, validated findings, framework execution state, and independently verified target outcomes.
 
 ## Run from source
 
