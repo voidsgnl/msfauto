@@ -112,6 +112,14 @@ class AssessmentApplication:
                 self.workspace.name, hosts, self.workspace.policy
             )
             self.store.save_service_observations(observations)
+            for item in observations:
+                if item.status in {"failed", "partial"}:
+                    detail = str(item.attributes.get("error") or item.attributes.get("error_type") or "protocol response incomplete")[:160]
+                    emit(
+                        "enumeration",
+                        f"{item.status.upper()}: {item.target}:{item.port}/{item.protocol} — {detail}",
+                        "warning",
+                    )
             check_cancelled()
             mappings = load_package_mappings()
             if mappings:
@@ -170,11 +178,12 @@ class AssessmentApplication:
                     "Exploit matching skipped: no curated or synchronized catalog entries are available.",
                 )
             completed = sum(item.status == "completed" for item in observations)
+            partial = sum(item.status == "partial" for item in observations)
             failed = sum(item.status == "failed" for item in observations)
             emit(
                 "enumeration",
                 f"Service enumeration recorded {len(observations)} observation(s): "
-                f"{completed} completed, {failed} failed.",
+                f"{completed} completed, {partial} partial, {failed} failed.",
             )
             check_cancelled()
             transition("planning", "Building a read-only plan from stored observations.")
