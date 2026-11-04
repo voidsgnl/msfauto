@@ -9,13 +9,16 @@
 
 # MSFAuto Roadmap
 
-### Metasploit RPC setup clarity
+### Metasploit RPC automatic startup and lifecycle
 
-- Documented that MSFAuto currently expects an externally started `msfrpcd`; it does not launch or supervise the daemon.
-- Clarified that authenticated RPC credentials are required for read-only module catalogue queries as well as execution-related operations.
-- Improved the missing-credentials error so it identifies the RPC configuration requirement and does not misleadingly label catalogue listing as exploit execution.
-- Added regression coverage for the setup error.
-- Future consideration: an explicit, opt-in RPC service manager with lifecycle/status checks; do not silently start a daemon or manage credentials as a side effect of launching the console.
+- The interactive console now checks the configured RPC endpoint on startup.
+- For a local loopback endpoint with no listener, MSFAuto starts `msfrpcd` in the foreground as a supervised child process, binds it to loopback, and waits up to 30 seconds for the RPC socket.
+- If a local service is already listening, MSFAuto reuses it and never starts a duplicate. Remote RPC endpoints are never started locally.
+- When starting its own daemon without supplied credentials, MSFAuto generates an ephemeral username/password pair. The password is passed through the supported `MSF_RPC_USER`/`MSF_RPC_PASS` child environment variables, not process arguments.
+- On normal console exit, MSFAuto terminates only the daemon process it started; external services are left untouched.
+- Startup failures are reported while leaving non-Metasploit console commands available.
+- Added lifecycle tests for automatic startup, credential handling, existing-service reuse, remote-endpoint restrictions, and owned-process shutdown.
+- Compatibility note: automatic credential injection requires an msfrpcd build that supports `MSF_RPC_USER` and `MSF_RPC_PASS`; otherwise startup diagnostics identify the daemon failure.
 
 
 ### Latest implementation milestone: live Metasploit exploit inventory in the console
