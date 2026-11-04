@@ -88,6 +88,7 @@ COMMANDS = {
     "vulnerabilities": ("list", "show"),
     "exploits": ("list", "opportunities", "review", "authorize", "executions", "prepare", "dispatch", "poll", "cancel", "reconcile", "outcome"),
     "findings": ("list", "show"),
+    "investigate": (),
     "report": ("generate", "show"),
     "tasks": ("list", "show"),
     "dashboard": (),
@@ -98,7 +99,7 @@ COMMANDS = {
 MODES = {
     "discovery": {
         "description": "Host discovery, Nmap imports, service inventory and scan comparisons.",
-        "commands": {"run": "discovery run", "scan": "discovery run", "import": "discovery import", "show": "discovery show", "history": "discovery history", "compare": "discovery compare", "observations": "observations"},
+        "commands": {"run": "discovery run", "scan": "discovery run", "import": "discovery import", "show": "discovery show", "history": "discovery history", "compare": "discovery compare", "observations": "observations", "investigate": "investigate"},
     },
     "exploit": {
         "description": "Metasploit module inventory and the controlled exploit lifecycle.",
@@ -227,7 +228,8 @@ class CommandShell:
                     ("show", "Show discovered hosts and services"),
                     ("history", "List scan history"),
                     ("compare <old-id> <new-id>", "Compare two scan snapshots"),
-                    ("observations [list|history|run <id>|all|host <ip>|show <id>]", "Browse observations grouped by discovery run"),
+                    ("observations [list|history|run <id>|all|host <ip>|show <id>]", "Inspect recorded service evidence"),
+                    ("investigate [target]", "Show the next evidence or review action for each discovered service"),
                 ],
                 "exploit": [
                     ("list [filter]", "List live Metasploit exploit modules"),
@@ -330,7 +332,7 @@ class CommandShell:
             add("Error detail", "error")
             add("Failure category", "failure_category")
             add("Elapsed time (ms)", "elapsed_ms")
-            add("Timeout budget (s)", "timeout_seconds")
+            add("Socket operation timeout (s)", "timeout_seconds")
             add("Interpretation", "failure_explanation")
         elif item.protocol == "tls":
             for label, key in (
@@ -382,9 +384,34 @@ class CommandShell:
                 add(label, key)
             rows.append(("Probe limitation", "No SMTP authentication or mail delivery was attempted."))
         elif item.protocol == "ftp":
-            for label, key in (("Server greeting", "welcome"), ("FEAT capabilities", "features"), ("FEAT status", "feat_status")):
+            for label, key in (("Server greeting", "welcome"), ("FEAT capabilities", "features")):
                 add(label, key)
+            features = attrs.get("features")
+            feat_status = attrs.get("feat_status")
+            if feat_status:
+                rendered_feat_status = str(feat_status)
+            elif isinstance(features, list):
+                rendered_feat_status = (
+                    f"Advertised ({len(features)} capabilities)" if features
+                    else "No capabilities advertised"
+                )
+            else:
+                rendered_feat_status = "Not recorded"
+            rows.append(("FEAT status", rendered_feat_status))
             rows.append(("Probe limitation", "No FTP authentication or file operations were attempted."))
+        elif item.protocol == "pop3":
+            add("Server greeting", "greeting")
+            add("CAPA capabilities", "capabilities")
+            add("TLS version", "tls_version")
+            add("TLS cipher", "tls_cipher")
+            rows.append(("Probe limitation", "No POP3 authentication or mailbox commands were attempted."))
+        elif item.protocol == "imap":
+            add("Server greeting", "greeting")
+            add("CAPABILITY response", "capability_status")
+            add("Capabilities", "capabilities")
+            add("TLS version", "tls_version")
+            add("TLS cipher", "tls_cipher")
+            rows.append(("Probe limitation", "No IMAP authentication or mailbox commands were attempted."))
         elif item.protocol == "ssh":
             add("SSH banner", "banner")
             add("Banner valid", "banner_valid")
@@ -555,6 +582,88 @@ class CommandShell:
             return
         self.console.print(
             "[yellow]Usage: observations [list|history|run <scan-id>|all|host <ip> [all]|show <id>][/yellow]"
+        )
+
+    def _investigate(self, args: list[str]) -> None:
+        """Show evidence-driven next actions for each open service in the latest run."""
+        if len(args) > 1:
+            self.console.print("[yellow]Usage: investigate [target-ip][/yellow]")
+            return
+        runs = self.store.get_discovery_runs(self.workspace.name)
+        latest = runs[0] if runs else None
+        if latest is None:
+            self.console.print("[yellow]No discovery run is available; run 'discover run' first.[/yellow]")
+            return
+        observations = self.store.get_service_observations(
+            self.workspace.name, discovery_run_id=latest.scan_id,
+        )
+        if args:
+            observations = [item for item in observations if item.target == args[0]]
+        candidates = self.store.get_vulnerability_candidates(self.workspace.name)
+        opportunities = self.store.get_exploit_opportunities(self.workspace.name)
+        rows = []
+        for host in self.store.get_hosts(self.workspace.name):
+            target = str(host.address)
+            if args and target != args[0]:
+                continue
+            for service in host.services:
+                endpoint = [
+                    item for item in observations
+                    if item.target == target and item.port == service.port
+                    and item.transport == service.protocol
+                ]
+                endpoint_candidates = [
+                    item for item in candidates
+                    if item.target == target and item.port == service.port
+                ]
+                endpoint_opportunities = [
+                    item for item in opportunities
+                    if item.target == target and item.port == service.port
+                ]
+                fingerprint = " ".join(filter(None, (service.product, service.version, service.name))) or "unknown"
+                if not endpoint:
+                    state = "INSUFFICIENT"
+                    action = "No adapter observation; inspect service fingerprint manually."
+                else:
+                    latest_observation = endpoint[0]
+                    attrs = latest_observation.attributes or {}
+                    if latest_observation.status in {"failed", "partial"}:
+                        state = "NEEDS_REVIEW"
+                        stage = attrs.get("error_stage", "protocol response")
+                        explanation = attrs.get("failure_explanation") or attrs.get("error") or "Incomplete protocol evidence."
+                        action = f"Review {stage} result; {explanation}"
+                    elif latest_observation.status == "unsupported":
+                        state = "NEEDS_REVIEW"
+                        action = str(attrs.get("next_action") or "Manually identify this service and collect protocol evidence.")
+                    elif endpoint_opportunities:
+                        state = "READY"
+                        action = "Review exploit prerequisites and compatibility: " + ", ".join(
+                            item.opportunity_id[:12] for item in endpoint_opportunities[:3]
+                        )
+                    elif endpoint_candidates:
+                        state = "READY"
+                        action = "Review vulnerability candidates: " + ", ".join(
+                            item.candidate_id[:12] for item in endpoint_candidates[:3]
+                        )
+                    elif not service.product or not service.version:
+                        state = "NEEDS_REVIEW"
+                        action = "Improve product/version identification before vulnerability matching."
+                    else:
+                        state = "INSUFFICIENT"
+                        action = "Fingerprint recorded; vulnerability/package mappings or exploit intelligence are missing."
+                rows.append((target, f"{service.port}/{service.protocol}", fingerprint, state, action))
+        self.console.print(
+            f"[bright_cyan][*][/bright_cyan] Evidence review for run {latest.scan_id[:12]} ({latest.status})."
+        )
+        self._rows(
+            "SERVICE INVESTIGATION — NEXT ACTIONS",
+            ("TARGET", "PORT", "FINGERPRINT", "STATE", "NEXT ACTION"),
+            rows,
+        )
+        self.console.print(
+            "[dim]This view is advisory and read-only. READY means evidence is ready for human review, "
+            "not that a vulnerability is confirmed or exploitation is authorized. Use observations "
+            "to inspect the recorded protocol evidence.[/dim]"
         )
 
     def _plan(self):
@@ -772,6 +881,8 @@ class CommandShell:
                 self._hosts()
             elif command == "observations":
                 self._observations(args)
+            elif command == "investigate":
+                self._investigate(args)
             elif command == "discovery history":
                 runs = self.store.get_discovery_runs(self.workspace.name)
                 self._rows(
