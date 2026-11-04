@@ -114,21 +114,21 @@ class Dashboard(App[None]):
     ]
 
     MENU = (
-        "[bold #9ce4d6]  [1][/bold #9ce4d6]  Start assessment"
+        "[bold #9ce4d6]  1.[/bold #9ce4d6]  Start assessment"
         "       [dim]Run discovery, enumeration and assessment planning[/dim]\n"
-        "[bold #9ce4d6]  [2][/bold #9ce4d6]  Targets & services"
+        "[bold #9ce4d6]  2.[/bold #9ce4d6]  Targets & services"
         "     [dim]Hosts, ports, fingerprints and service observations[/dim]\n"
-        "[bold #9ce4d6]  [3][/bold #9ce4d6]  Vulnerability assessment"
+        "[bold #9ce4d6]  3.[/bold #9ce4d6]  Vulnerability assessment"
         " [dim]Matched advisories and assessment candidates[/dim]\n"
-        "[bold #9ce4d6]  [4][/bold #9ce4d6]  Exploit intelligence"
+        "[bold #9ce4d6]  4.[/bold #9ce4d6]  Exploit intelligence"
         "    [dim]Applicable exploit opportunities and metadata[/dim]\n"
-        "[bold #9ce4d6]  [5][/bold #9ce4d6]  Execution manager"
+        "[bold #9ce4d6]  5.[/bold #9ce4d6]  Execution manager"
         "      [dim]Exploit execution lifecycle and job states[/dim]\n"
-        "[bold #9ce4d6]  [6][/bold #9ce4d6]  Findings & evidence"
+        "[bold #9ce4d6]  6.[/bold #9ce4d6]  Findings & evidence"
         "      [dim]Recorded findings, artifacts and provenance[/dim]\n"
-        "[bold #9ce4d6]  [7][/bold #9ce4d6]  Workspace & scope"
+        "[bold #9ce4d6]  7.[/bold #9ce4d6]  Workspace & scope"
         "       [dim]Saved authorization policy and target boundaries[/dim]\n"
-        "[bold #9ce4d6]  [8][/bold #9ce4d6]  Assessment history"
+        "[bold #9ce4d6]  8.[/bold #9ce4d6]  Assessment history"
         "       [dim]Previous runs and their final states[/dim]\n\n"
         "[dim]  Press a number to open a section. Press H or ESC to return here.[/dim]"
     )
@@ -263,6 +263,9 @@ class Dashboard(App[None]):
         )
 
     def action_start_assessment(self) -> None:
+        if self._task_active:
+            self._set_status("An assessment is already running.", "warning")
+            return
         self.run_worker(self.run_discovery(), name="assessment", exclusive=True)
 
     def action_targets(self) -> None:
