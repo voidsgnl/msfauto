@@ -634,10 +634,10 @@ class EnumerationTests(unittest.TestCase):
         def serve():
             conn, _ = listener.accept()
             with conn:
-                conn.sendall(b"+OK Dovecot ready\\r\\n")
+                conn.sendall(b"+OK Dovecot ready\r\n")
                 command = conn.recv(128)
                 if command.upper().startswith(b"CAPA"):
-                    conn.sendall(b"+OK Capability list follows\\r\\nUSER\\r\\nUIDL\\r\\nTOP\\r\\n.\\r\\n")
+                    conn.sendall(b"+OK Capability list follows\r\nUSER\r\nUIDL\r\nTOP\r\n.\r\n")
                 conn.recv(128)  # QUIT
             listener.close()
 
@@ -664,10 +664,10 @@ class EnumerationTests(unittest.TestCase):
         def serve():
             conn, _ = listener.accept()
             with conn:
-                conn.sendall(b"* OK Dovecot ready\\r\\n")
+                conn.sendall(b"* OK Dovecot ready\r\n")
                 command = conn.recv(128)
                 if b"CAPABILITY" in command.upper():
-                    conn.sendall(b"* CAPABILITY IMAP4rev1 STARTTLS AUTH=PLAIN\\r\\na001 OK Capability completed\\r\\n")
+                    conn.sendall(b"* CAPABILITY IMAP4rev1 STARTTLS AUTH=PLAIN\r\na001 OK Capability completed\r\n")
                 conn.recv(128)  # LOGOUT
             listener.close()
 
