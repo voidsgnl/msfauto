@@ -1,5 +1,11 @@
 # Assessment Workflow
 
+## Product objective
+
+The operator supplies an authorized target (ultimately an IP address, network, or URL); MSFAuto autonomously discovers its attack surface, investigates relevant services and applications, runs bounded vulnerability checks, correlates evidence with Metasploit modules, and presents findings with a prepared exploitation path. The operator should not have to choose each scanner or enumeration command.
+
+Metasploit is the primary framework integration. The intended discovery path is `db_nmap` through the Metasploit RPC console, followed by host/service retrieval from the Metasploit database. Nmap XML import remains useful for interoperability, but should not be the primary discovery-to-inventory path. Authenticated RPC primitives for `db_nmap`, temporary console lifecycle, and database inventory retrieval are now available; the assessment orchestrator still needs to be wired to them.
+
 ## Default discovery coverage
 
 The interactive entry point is `discover run` (also available as `discovery run`). It runs the end-to-end, read-only assessment pipeline using the `standard` TCP port profile by default.
