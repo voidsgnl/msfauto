@@ -272,7 +272,7 @@ class EnumerationTests(unittest.TestCase):
         self.assertEqual(application.protocol, "http")
         self.assertEqual(observation.attributes["nmap_fingerprint"]["name"], "ppp?")
         self.assertEqual(observation.attributes["nmap_fingerprint"]["confidence"], 3)
-        self.assertTrue(any(item.kind == "http_application_response" for item in results))
+        self.assertTrue(any(item.kind == "http_application" for item in results))
 
     def test_unknown_tcp_service_with_non_http_response_is_not_classified(self):
         listener = socket.socket()
