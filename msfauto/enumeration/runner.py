@@ -882,9 +882,12 @@ def enumerate_services(
                 "imap": _imap_probe,
                 "smb": _smb_probe,
             }[kind]
+            probe_kwargs = {}
+            if kind in {"smtp", "pop3", "imap"}:
+                probe_kwargs["server_hostname"] = server_hostname or target
             futures.append(executor.submit(
                 _run_timed_probe, probe, workspace, target, service, selected_timeout,
-                timeout=selected_timeout, server_hostname=server_hostname or target,
+                timeout=selected_timeout, **probe_kwargs,
             ))
         for future in as_completed(futures):
             try:
