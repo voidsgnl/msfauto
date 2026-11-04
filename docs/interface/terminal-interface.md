@@ -2,62 +2,56 @@
 
 ## Product direction
 
-MSFAuto is terminal-only. The primary operator experience is a full-screen Textual application with a guided, numbered-menu interaction model. There is no browser interface or native desktop GUI in the product plan.
+MSFAuto is a terminal-only security framework console. Its primary operator experience is a persistent command shell inspired by the interaction model of the Metasploit Framework console and the visual language of Fluxion. It is not a conventional widget-driven TUI, web application, or desktop GUI.
 
-The interaction style takes inspiration from the guided workflow and full-screen terminal presentation of tools such as Fluxion. MSFAuto retains its own identity, terminology, assessment workflow, and implementation.
+The startup screen is intentionally minimal: ASCII branding, workspace/profile/scope context, and the `msfauto >` prompt. The full command catalogue is displayed only when the operator enters `help`.
 
-## Interaction model
+## Launch and interaction
 
-- Launch directly into a branded main menu.
-- Use number keys to enter a workflow; do not require clicking buttons.
-- Use `H` or `Esc` to return to the main menu, `R` to refresh the current view, and `Q` to quit.
-- Keep workspace, profile, authorized targets, and port policy visible as persistent context.
-- Give each major workflow a dedicated terminal view.
-- Use prompts for configuration and explicit operator decisions when those workflows are implemented.
-- Keep long-running activity visible without flooding the screen with raw logs.
+- `msfauto` or `msfauto shell` opens the persistent interactive console.
+- `msfauto --workspace lab` opens the console in a selected workspace.
+- `help` displays the grouped command reference.
+- Operators enter simple hierarchical commands such as `discovery run`, `plan show`, and `findings list`.
+- Rich renders branding, tables, status messages, and operation output.
+- prompt_toolkit provides the persistent input line, cursor editing, command completion, and interactive history.
+- The existing one-shot CLI flags remain available for scripts and automation.
 
-## Main menu
+## Command catalogue
 
-| Key | Workflow | Current behavior |
-| --- | --- | --- |
-| 1 | Start assessment | Runs saved-scope discovery, service enumeration, and read-only planning |
-| 2 | Targets & services | Displays stored hosts and service fingerprints |
-| 3 | Vulnerability assessment | Displays persisted vulnerability candidates |
-| 4 | Exploit intelligence | Displays matched exploit opportunities |
-| 5 | Execution manager | Displays persisted exploit execution lifecycle records |
-| 6 | Findings & evidence | Displays findings and evidence records |
-| 7 | Workspace & scope | Displays workspace policy and authorized boundaries |
-| 8 | Assessment history | Displays previous assessment runs |
+| Group | Commands |
+| --- | --- |
+| Workspace | `workspace create`, `workspace list`, `workspace show`, `workspace use` |
+| Scope | `scope show`, `scope validate`, `scope update` |
+| Discovery | `discovery run`, `discovery import <file.xml>`, `discovery show` |
+| Planning | `plan build`, `plan show` |
+| Checks | `checks list`, `checks review`, `checks approve`, `checks run` |
+| Vulnerabilities | `vulnerabilities list`, `vulnerabilities show <id>` |
+| Exploits | `exploits list`, `exploits review`, `exploits authorize` |
+| Findings | `findings list`, `findings show <id>` |
+| Reporting | `report generate [json|markdown]`, `report show` |
+| General | `dashboard`, `help`, `exit` |
 
-A menu entry must reflect a real application capability. Do not present placeholder actions as operational features.
+Commands that need additional values accept them after the command. For example, `workspace use lab`, `discovery import scan.xml`, and `vulnerabilities show <candidate-id>`.
 
 ## Visual language
 
-- Near-black terminal background with restrained teal/cyan identity accents.
-- ASCII wordmark and compact product/version descriptor.
+- Fluxion-inspired terminal presentation with MSFAuto's own ASCII identity.
+- Minimal startup screen; no permanent command catalogue or dashboard panels.
+- Near-black terminal background with restrained cyan/teal accents.
 - Clear section headers, separators, aligned tables, and concise status labels.
-- Distinct success, warning, failure, and active-task colors; always include text labels so color is not the only signal.
-- Keep dense technical information readable and avoid decorative clutter.
+- Distinct success, warning, failure, and active-task colours; status is also communicated in text.
+- Command output is rendered in the console and the prompt returns after each command.
 
-## Long-running task presentation
+## Long-running operations and authorization
 
-- Display an animated spinner and a clear RUNNING state while work is active.
-- Display elapsed time from the actual task start.
-- Stream real workflow-stage messages into a bounded activity log.
-- Use an indeterminate indicator when the engine does not expose a reliable progress fraction. Never invent percentages.
-- Show terminal outcomes such as COMPLETED or FAILED and include the elapsed duration.
-- Treat dispatch uncertainty as a distinct lifecycle state requiring reconciliation; do not imply that it is an ordinary failure or safe to retry.
+- Discovery streams real workflow-stage messages and reports its actual terminal outcome.
+- Do not display fabricated progress percentages when the engine exposes no measurable fraction.
+- Passive checks continue to require exact, recorded approval before dispatch.
+- Exploit review and action-specific authorization remain separate from exploit execution. A console command must not bypass persisted review, authorization, scope revalidation, or the controlled dispatcher.
+- Dispatch uncertainty is a distinct state; uncertain operations must never be retried automatically.
 
-## Architecture boundary
+## Current implementation boundaries
 
-Textual widgets own presentation and keyboard navigation only. Application services own workflow orchestration; domain packages own assessment decisions; integrations own external tool communication; storage owns durable records. UI actions must not bypass scope or action-specific authorization enforcement.
+The command shell connects to existing workspace, scope, discovery, planning, check, vulnerability, exploit-intelligence, findings, and reporting services. Some catalogue entries are currently informational or reserved for guided workflows; the console reports this rather than pretending an unsupported action succeeded. In particular, exploit authorization is not synthesized from a generic command: it must use the existing opportunity-bound review and authorization lifecycle.
 
-## Current implementation and follow-up
-
-The current interface implements the numbered main menu, dedicated inventory/intelligence/execution/evidence/scope/history views, keyboard navigation, an animated task indicator, elapsed time, and a live workflow activity log.
-
-Next interface work:
-1. Add focused detail screens and row drill-down for vulnerability and exploit records.
-2. Add guided prompts for workspace configuration, exploit review, and action-specific authorization.
-3. Connect execution controls to the persisted lifecycle and reconciliation services.
-4. Add session and post-exploitation screens when the underlying services exist.
+The previous Textual dashboard is no longer the primary application entry point. One-shot CLI options remain supported.
