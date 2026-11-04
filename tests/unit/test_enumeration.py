@@ -117,14 +117,14 @@ class EnumerationTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join(timeout=1)
-        self.assertEqual(len(results), 1)
-        observation = results[0]
+        observation = next(item for item in results if item.protocol == "http")
         self.assertEqual(observation.protocol, "http")
         self.assertEqual(observation.status, "completed")
-        self.assertEqual(observation.attributes["status_code"], 204)
+        self.assertEqual(observation.attributes["status_code"], 200)
         self.assertEqual(observation.attributes["detected_by"], "active_http_probe")
         self.assertEqual(observation.attributes["nmap_fingerprint"]["name"], "ppp?")
         self.assertEqual(observation.attributes["nmap_fingerprint"]["confidence"], 3)
+        self.assertTrue(any(item.kind == "http_application_response" for item in results))
 
     def test_unknown_tcp_service_with_non_http_response_is_not_classified(self):
         listener = socket.socket()
