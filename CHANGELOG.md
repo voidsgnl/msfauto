@@ -6,8 +6,8 @@ All notable changes to MSFAuto are documented here.
 
 ### Metasploit execution reference integrity
 - Require both a positive-integer framework job ID and a non-empty UUID before any execution can enter `running`.
-- Enforce the invariant for dispatch acknowledgements and operator reconciliation, keeping incomplete references in a non-running state.
-- Added regression tests for missing and malformed references.
+- Enforce the invariant for dispatch acknowledgements and operator reconciliation, keeping incomplete references in a non-running state. A malformed acknowledgement after the single RPC attempt is recorded as uncertain and cannot be retried.
+- Added regression tests for missing and malformed references, including malformed dispatch acknowledgements.
 
 ### Live command-console task output and execution controls
 - Added a task registry for background workflows with task IDs, lifecycle status, progress-event queues, captured results/errors, and cooperative cancellation.
