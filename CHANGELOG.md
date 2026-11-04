@@ -5,6 +5,7 @@
 - Wired the interactive `run` assessment path to execute `db_nmap` through Metasploit RPC and normalize in-scope host/open-service records from the selected Metasploit database workspace. The legacy standalone Nmap path remains for non-interactive/one-shot use and XML import remains available.
 - Validated `db_nmap` inputs as IP/CIDR targets and bounded port specifications; console output is capped and timed, and temporary consoles are destroyed after use.
 - Connected observed HTTP application technologies to bounded Metasploit auxiliary-module metadata discovery. Exact module options and check support are persisted for planning; this stage never executes modules.
+- Added passive HTTP response-header checks for CSP, MIME sniffing protection, Referrer-Policy, HSTS on HTTPS, and version-like Server header disclosure. Findings are persisted as `potential` with integrity-checked evidence and deduplicated per workspace/endpoint/check; no intrusive requests or exploit checks are run.
 - Filtered Metasploit host/service inventory by each record's `updated_at` timestamp relative to scan start, preventing older workspace records from being misreported as results of the current assessment.
 
 ### Product direction
