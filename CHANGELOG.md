@@ -1,5 +1,13 @@
 ## Unreleased
 
+### Metasploit-style operation modes
+
+- Add root-level `use <mode>`, `show modes`, and `back` navigation.
+- Add dedicated `discovery`, `exploit`, `analysis`, and `workspace` command modes with mode-specific help, completion, and prompt labels.
+- Route short mode commands into the existing command handlers without duplicating business logic or weakening exploit lifecycle controls.
+- Extend discovery comparisons to report new, missing, and changed hosts in addition to service changes.
+- Add regression tests for mode routing and host-level comparison.
+
 ### Nmap discovery history and comparison
 
 - Assign stable IDs to discovery runs and retain each Nmap XML artifact at a unique workspace-scoped path rather than overwriting the previous scan.
