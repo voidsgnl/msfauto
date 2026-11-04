@@ -352,11 +352,13 @@ OSV workflow integration is active when explicit mappings are configured, but th
 
 3. **Web reconnaissance and application investigation**
    - [x] Capture bounded HTTP/HTTPS response metadata, redirects, TLS certificate metadata, and basic HTML technology indicators.
-   - [ ] Add bounded route/resource discovery with request budgets, same-origin defaults, redirect scope checks, and opt-in for broader crawling.
+   - [x] Add bounded same-origin HTML route discovery with request/depth/page/response/time budgets; inventory query parameter names and form metadata without submitting forms. Redirects are recorded as page responses but not followed, so they cannot silently expand scope.
+   - [ ] Add explicitly authorized redirect-following with destination scope validation and opt-in for broader crawling.
    - [ ] Add virtual-host and application-origin investigation using authorized hostnames.
    - [ ] Add technology-specific investigation packs for common web servers, frameworks, CMS platforms, and application stacks.
    - [ ] Add authentication-surface mapping without credential guessing or brute force by default.
-   - [ ] Store request/response observations with source, timing, status, truncation, and run ID.
+   - [x] Store web-surface page observations with source, status, depth, response size/truncation, URL, form metadata, query parameter names, and discovery-run ID.
+   - [ ] Add richer request/response provenance including timing, response headers, and redirect-chain decisions.
 
 4. **Metasploit-native module intelligence and execution**
    - [x] Read live Metasploit module inventories and inspect module metadata/options.
