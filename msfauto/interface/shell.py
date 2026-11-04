@@ -3,7 +3,6 @@ from __future__ import annotations
 import shlex
 import sqlite3
 from pathlib import Path
-from typing import Callable
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter
@@ -16,7 +15,7 @@ from ..assessment.planner import build_plan
 from ..cli import display_plan, run_discovery, run_safe_checks
 from ..discovery import DiscoveryError, parse_nmap_xml
 from ..reporting import ReportError, write_report
-from ..scope import PROFILES, ScopeError, build_policy
+from ..scope import ScopeError, build_policy
 from ..storage import WorkspaceStore
 from ..storage.models import Workspace
 
