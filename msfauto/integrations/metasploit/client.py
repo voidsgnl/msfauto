@@ -117,6 +117,11 @@ class MetasploitClient:
         output: list[str] = []
         total_bytes = 0
         deadline = monotonic() + timeout
+        # RPC console.write acknowledges bytes queued, not that the console
+        # has begun executing them. Allow a short dispatch window for the
+        # asynchronous console worker to transition to busy or emit output.
+        submission_deadline = min(deadline, monotonic() + 5.0)
+        command_started = False
         try:
             # Drain the initial banner before submitting the command.
             self._request("console.read", console_id)
@@ -133,14 +138,16 @@ class MetasploitClient:
                     raise MetasploitError("Metasploit console output exceeded the 4 MB limit.")
                 if chunk:
                     output.append(chunk)
-                if response.get("busy") is False:
-                    result = "".join(output)
-                    if not result.strip():
-                        raise MetasploitError(
-                            "Metasploit console became idle without returning command output; "
-                            "the command may not have been submitted."
-                        )
-                    return result
+                    command_started = True
+                if response.get("busy") is True:
+                    command_started = True
+                if response.get("busy") is False and command_started:
+                    return "".join(output)
+                if response.get("busy") is False and monotonic() >= submission_deadline:
+                    raise MetasploitError(
+                        "Metasploit accepted the console write but never started the command; "
+                        "the console remained idle without command output."
+                    )
                 sleep(0.1)
             raise MetasploitError(f"Metasploit command timed out after {timeout:g} seconds.")
         finally:
