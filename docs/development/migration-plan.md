@@ -23,7 +23,7 @@ Keep the application and domain services decoupled from the current Textual inte
 | Existing area | Current responsibility | Direction |
 |---|---|---|
 | `cli.py` | CLI bootstrap and current interactive entry | Retain for scripting and diagnostics |
-| `interface/app.py` | Textual prototype | Supersede with graphical application; reuse application services |
+| `interface/app.py` | Full-screen Textual terminal application | Evolve the menu-driven terminal workflows; keep domain behavior in application services |
 | `core/` | Workflow coordination and persisted events | Evolve into assessment orchestration across all engines |
 | `discovery/` | Nmap discovery and XML parsing | Expand into reconnaissance and service observation pipeline |
 | `scope/` | Scope policy and validation | Retain as a mandatory execution boundary |
@@ -36,7 +36,7 @@ Keep the application and domain services decoupled from the current Textual inte
 ## Phase 0 — Product architecture
 - [x] Correct product definition to prioritize assessment capability.
 - [x] Make exploitation and post-exploitation explicit core capabilities.
-- [x] Correct intended UI direction to graphical, not TUI.
+- [x] Confirm terminal-only product direction and replace the button dashboard with a numbered, keyboard-driven Textual interface.
 - [ ] Audit current code against the intended capability model.
 - [ ] Define domain contracts for enumeration, vulnerability assessment, exploit catalog/matching, exploit execution, sessions, and validation.
 
@@ -85,7 +85,7 @@ Keep the application and domain services decoupled from the current Textual inte
 - [ ] Orchestrate the complete assessment lifecycle.
 - [ ] Add end-to-end success and failure-path tests.
 
-## Phase 7 — Graphical application
+## Phase 7 — Terminal interaction
 - [ ] Define graphical frontend/backend architecture.
 - [ ] Replace the Textual prototype as the primary interface.
 - [ ] Build connected asset, service, vulnerability, exploit, execution/session, evidence, and findings views.
