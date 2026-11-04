@@ -186,6 +186,75 @@ class ObservationConsoleTests(unittest.TestCase):
         self.assertIn("mail.example", rendered)
         self.assertIn("STARTTLS", rendered)
 
+    def test_tls_observation_summary_surfaces_certificate_and_limitations(self):
+        item = ServiceObservation(
+            observation_id="tls-summary",
+            workspace="lab",
+            target="127.0.0.1",
+            port=443,
+            transport="tcp",
+            protocol="tls",
+            kind="tls_response",
+            status="completed",
+            attributes={
+                "tls_version": "TLSv1.3",
+                "cipher": "TLS_AES_256_GCM_SHA384",
+                "certificate_subject": "CN=example.test",
+                "certificate_valid_now": True,
+                "certificate_sha256": "abc123",
+            },
+            confidence=9,
+        )
+        summary = dict(self.shell._observation_summary(item))
+        self.assertEqual(summary["TLS version"], "TLSv1.3")
+        self.assertEqual(summary["Certificate subject"], "CN=example.test")
+        self.assertIn("trust chain", summary["Validation limitation"])
+
+    def test_failed_observation_summary_shows_stage_and_error(self):
+        item = ServiceObservation(
+            observation_id="smtp-failure",
+            workspace="lab",
+            target="127.0.0.1",
+            port=25,
+            transport="tcp",
+            protocol="smtp",
+            kind="smtp_response",
+            status="failed",
+            attributes={
+                "error_stage": "smtp_greeting",
+                "error_type": "TimeoutError",
+                "error": "timed out",
+            },
+            confidence=0,
+        )
+        summary = dict(self.shell._observation_summary(item))
+        self.assertEqual(summary["Failure stage"], "smtp_greeting")
+        self.assertEqual(summary["Error type"], "TimeoutError")
+        self.assertEqual(summary["Error detail"], "timed out")
+
+    def test_http_application_summary_uses_normalized_fingerprint_fields(self):
+        item = ServiceObservation(
+            observation_id="http-app",
+            workspace="lab",
+            target="127.0.0.1",
+            port=3000,
+            transport="tcp",
+            protocol="http_application",
+            kind="http_application_response",
+            status="completed",
+            attributes={
+                "title": "OWASP Juice Shop",
+                "technologies": [{"name": "Angular", "confidence": 9}],
+                "resources": ["/main.js"],
+                "body_bytes": 2048,
+                "truncated": False,
+            },
+            confidence=9,
+        )
+        summary = dict(self.shell._observation_summary(item))
+        self.assertEqual(summary["Page title"], "OWASP Juice Shop")
+        self.assertIn("Angular", summary["Detected technologies"])
+        self.assertIn("/main.js", summary["Asset/resource references"])
     def test_observations_show_rejects_ambiguous_prefix(self):
         output = io.StringIO()
         self.shell.console = Console(file=output, width=160)
