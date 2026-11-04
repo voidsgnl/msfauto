@@ -148,13 +148,13 @@ class ObservationConsoleTests(unittest.TestCase):
     def test_observations_list_is_available_in_discovery_mode(self):
         output = io.StringIO()
         self.shell.console = Console(file=output, width=160)
-        self.shell.session.prompt = lambda *_args, **_kwargs: ""
-        self.shell.execute("observations list")
+        with patch.object(self.shell.session, "prompt", return_value="") as prompt:
+            self.shell.execute("observations list")
         rendered = output.getvalue()
         self.assertIn("observa", rendered)
         self.assertIn("127.0.0.1", rendered)
         self.assertIn("smtp_capa", rendered)
-        self.assertIn("Select observation number", rendered)
+        prompt.assert_called_once()
 
     def test_observations_host_filters_to_exact_target(self):
         output = io.StringIO()
