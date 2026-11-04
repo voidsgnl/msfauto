@@ -482,7 +482,10 @@ class EnumerationTests(unittest.TestCase):
             "msfauto.enumeration.runner._tls_probe", return_value=()
         ) as tls_probe, patch(
             "msfauto.enumeration.runner._http_probe"
-        ) as http_probe:
+        ) as http_probe, patch(
+            "msfauto.enumeration.runner._run_timed_probe",
+            side_effect=lambda probe, *args, timeout, **kwargs: probe(*args, **kwargs),
+        ):
             enumerate_services("lab", (host,), policy)
         tls_probe.assert_called_once_with(
             "lab", "127.0.0.1", service, 3.0,
