@@ -92,12 +92,6 @@ COMMANDS = {
     "exit": (),
     "quit": (),
 }
-COMMAND_WORDS = [
-    "use", "show modes", "back", "help", "exit", "quit",
-    *[command for mode in MODES.values() for command in mode["commands"]],
-    *[f"{root} {sub}" for root, children in COMMANDS.items() for sub in children],
-]
-
 MODES = {
     "discovery": {
         "description": "Host discovery, Nmap imports, service inventory and scan comparisons.",
@@ -116,6 +110,12 @@ MODES = {
         "commands": {"workspace": "workspace", "scope": "scope"},
     },
 }
+
+COMMAND_WORDS = [
+    "use", "show modes", "back", "help", "exit", "quit",
+    *[command for mode in MODES.values() for command in mode["commands"]],
+    *[f"{root} {sub}" for root, children in COMMANDS.items() for sub in children],
+]
 
 
 class CommandShell:
