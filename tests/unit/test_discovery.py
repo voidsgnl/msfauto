@@ -32,6 +32,23 @@ class DiscoveryTests(unittest.TestCase):
         self.assertTrue(service.observed_at)
         self.assertEqual(len(hosts[0].services), 1)
 
+    def test_parser_ignores_closed_and_filtered_ports(self) -> None:
+        xml = NMAP_XML.replace(
+            "</ports>",
+            '<port protocol="tcp" portid="20"><state state="closed"/></port>'
+            '<port protocol="tcp" portid="143"><state state="filtered"/></port>'
+            "</ports>",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "scan.xml"
+            path.write_text(xml, encoding="utf-8")
+            hosts = parse_nmap_xml(path, build_policy(["192.168.56.0/24"]))
+
+        self.assertEqual(
+            [(service.port, service.state) for service in hosts[0].services],
+            [(22, "open"), (80, "open")],
+        )
+
     def test_parser_rejects_out_of_scope_result(self) -> None:
         xml = NMAP_XML.replace("192.168.56.10", "192.168.57.10")
         with tempfile.TemporaryDirectory() as directory:
