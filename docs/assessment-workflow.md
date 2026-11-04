@@ -14,9 +14,9 @@ An explicit saved workspace port allowlist takes precedence over profile default
 
 ## Product workflow
 
-MSFAuto's primary workflow is an end-to-end security assessment, not a sequence of disconnected scanner commands. The intended primary interface is a terminal-only, full-screen Textual application with keyboard-driven numbered menus.
+MSFAuto's primary workflow is an end-to-end, command-driven security assessment, not a sequence of disconnected scanner commands. The primary interface is a persistent Metasploit-style command console. The normal entry point is `discover run`: it discovers the prioritized port set, identifies services, investigates each open service sequentially, correlates vulnerability and exploit intelligence, and persists one traceable assessment run.
 
-The terminal experience lets an operator move between an assessment overview, assets, services, vulnerability candidates, exploit opportunities, execution/session activity, evidence, and findings while retaining clear context about the active workspace and authorized scope.
+Broad all-TCP-port discovery remains an explicit alternative through `discover run --profile full`. Individual evidence and analysis commands remain available when an operator wants to inspect or repeat a specific stage. The `investigate` view explains what evidence exists and what should happen next for each discovered service. Manual review is an explicit workflow state, not a dead end.
 
 ## Assessment stages
 
@@ -35,10 +35,12 @@ The terminal experience lets an operator move between an assessment overview, as
 
 ### 3. Service enumeration
 - Fingerprint identified services and gather useful product/version details.
-- Run appropriate service-specific enumeration checks.
+- Run appropriate service-specific enumeration checks sequentially, one open service at a time.
+- Collect protocol greetings, capabilities, TLS metadata, and application fingerprints where supported; never attempt authentication as part of passive enumeration.
 - Inspect relevant configuration and protocol behavior.
 - Preserve raw output as evidence and parse structured observations for later stages.
 - Clearly identify what remains unknown; do not overstate fingerprint confidence.
+- Produce a per-service next-action assessment: ready for analyst review, needs manual/additional review, or insufficient evidence/intelligence.
 
 ### 4. Vulnerability assessment
 - Correlate observed products, versions, configurations, and behaviors with vulnerability knowledge.
@@ -95,13 +97,12 @@ Dispatch uncertainty must be represented explicitly and require operator reconci
 
 ## Interface behavior
 
-- Use the full-screen Textual terminal application as the primary experience.
-- Present assets, services, vulnerability candidates, exploit opportunities, execution/session activity, evidence, and findings as connected views.
+- Use the persistent Rich + prompt_toolkit command console as the primary experience.
+- Keep startup minimal and expose the full command catalogue through `help`.
 - Keep workspace and authorization context visible.
-- Show meaningful progress and actionable status, not raw log floods.
-- Make technical details, command output, and evidence accessible on demand.
+- Show meaningful stage progress and per-service status, not raw log floods.
+- Make technical details and stored evidence accessible through `observations` and next-step guidance through `investigate`.
 - Keep the interface independent of assessment decisions and execution enforcement; application services and execution adapters own those responsibilities.
-- Use numbered menu choices and keyboard navigation; do not introduce clickable dashboard controls or a browser interface.
 
 ## Authorization boundary
 
