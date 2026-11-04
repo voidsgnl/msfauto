@@ -13,6 +13,7 @@ from msfauto.enumeration import enumerate_services
 from msfauto.enumeration.http_fingerprint import fingerprint_http_html
 from msfauto.enumeration.models import ServiceObservation
 from msfauto.enumeration.runner import (
+    _error_attributes,
     _ftp_probe,
     _http_probe,
     _smb_probe,
@@ -50,6 +51,12 @@ class _HTTPHandler(BaseHTTPRequestHandler):
 
 
 class EnumerationTests(unittest.TestCase):
+    def test_error_attributes_preserve_bounded_diagnostic_detail(self):
+        attributes = _error_attributes(ConnectionRefusedError("connection refused"))
+        self.assertEqual(attributes["error_type"], "ConnectionRefusedError")
+        self.assertEqual(attributes["error"], "connection refused")
+        self.assertLessEqual(len(attributes["error"]), 160)
+
     def test_http_probe_records_status_and_bounded_headers(self):
         server = ThreadingHTTPServer(("127.0.0.1", 0), _HTTPHandler)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
