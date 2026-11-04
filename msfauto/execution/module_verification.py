@@ -6,9 +6,8 @@ from dataclasses import dataclass
 
 from msfauto.storage.database import WorkspaceStore
 
-from .lifecycle import ExploitExecution, TERMINAL_STATES
+from .lifecycle import TERMINAL_STATES, ExploitExecution
 from .outcome_validation import (
-    ExploitOutcomeValidationError,
     ExploitOutcomeValidator,
     TargetOutcomeAssessment,
 )
@@ -107,18 +106,15 @@ class ModuleVerifierRegistry:
             raise ModuleVerificationError(
                 "A module verifier must return ModuleVerificationResult."
             )
-        try:
-            return self.outcomes.record(
-                execution.execution_id,
-                verdict=result.verdict,
-                verifier=f"module:{execution.module_name}",
-                method=result.method,
-                evidence_ids=result.evidence_ids,
-                rationale=result.rationale,
-                actor=actor,
-            )
-        except ExploitOutcomeValidationError:
-            raise
+        return self.outcomes.record(
+            execution.execution_id,
+            verdict=result.verdict,
+            verifier=f"module:{execution.module_name}",
+            method=result.method,
+            evidence_ids=result.evidence_ids,
+            rationale=result.rationale,
+            actor=actor,
+        )
 
     def _inconclusive(
         self,
