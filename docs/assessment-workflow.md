@@ -9,7 +9,7 @@ The interactive entry point is `discover run` (also available as `discovery run`
 - `--profile full` or `--full`: all TCP ports, unless the workspace has an explicit port allowlist.
 - One-shot equivalent: `python -m msfauto.cli --discover --scan-profile full`.
 
-A saved workspace port allowlist is always authoritative. A scan profile may narrow that list but cannot expand it. Nmap's discovery result feeds service fingerprinting and the existing protocol adapters. The assessment enumerator runs with one worker by default so service investigations occur sequentially. Unsupported or unrecognized service adapters remain an explicit coverage gap and should be surfaced for manual investigation rather than interpreted as a negative result.
+An explicit saved workspace port allowlist takes precedence over profile defaults and is scanned exactly as configured. Profiles never expand that saved list. Nmap's discovery result feeds service fingerprinting and the existing protocol adapters. The assessment enumerator runs with one worker by default so service investigations occur sequentially. Unsupported or unrecognized service adapters remain an explicit coverage gap and should be surfaced for manual investigation rather than interpreted as a negative result.
 
 
 ## Product workflow
