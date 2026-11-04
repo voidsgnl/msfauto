@@ -39,15 +39,9 @@ def _ports_for_profile(policy: ScopePolicy, profile: str) -> tuple[int, ...] | N
             f"Unknown scan profile: {profile}. Choose quick, standard, or full."
         )
     if policy.allowed_ports:
-        if profile == "full":
-            return tuple(policy.allowed_ports)
-        base = QUICK_TCP_PORTS if profile == "quick" else STANDARD_TCP_PORTS
-        selected = tuple(port for port in base if port in policy.allowed_ports)
-        if not selected:
-            raise DiscoveryError(
-                f"The {profile} profile has no ports inside the workspace's saved port scope."
-            )
-        return selected
+        # An explicit workspace port allowlist is the operator's selected
+        # assessment surface and takes precedence over profile defaults.
+        return tuple(policy.allowed_ports)
     if profile == "full":
         return None
     return QUICK_TCP_PORTS if profile == "quick" else STANDARD_TCP_PORTS
