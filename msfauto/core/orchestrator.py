@@ -9,6 +9,7 @@ from ..assessment.metasploit_intelligence import discover_web_auxiliary_modules
 from ..assessment.planner import build_plan
 from ..discovery import DiscoveryError, run_metasploit_db_nmap, run_nmap
 from ..enumeration import enumerate_services
+from ..enumeration.web_mapper import map_web_application
 from ..enumeration.models import ServiceObservation
 from ..exploitation.matcher import load_exploit_catalog, match_exploits
 from ..integrations.metasploit import MetasploitClient, MetasploitError
@@ -182,6 +183,54 @@ class AssessmentApplication:
                     )
             observations = tuple(collected)
             self.store.save_service_observations(observations, discovery_run_id)
+
+            web_roots = {
+                (item.target, item.port, item.protocol)
+                for item in observations
+                if item.kind == "http_application"
+                and item.status in {"completed", "partial"}
+                and item.protocol in {"http", "https"}
+            }
+            hostnames = {
+                str(host.address): host.hostname
+                for host in hosts
+                if host.hostname
+            }
+            mapped_surfaces: list[ServiceObservation] = []
+            if web_roots:
+                transition(
+                    "web_mapping",
+                    "Mapping same-origin application routes and form metadata within bounded GET-only request budgets.",
+                )
+                for target, port, scheme in sorted(web_roots):
+                    try:
+                        mapped_surfaces.extend(map_web_application(
+                            self.workspace.name,
+                            target,
+                            port,
+                            scheme,
+                            hostname=hostnames.get(target) or target,
+                        ))
+                    except (OSError, ValueError) as exc:
+                        emit(
+                            "web_mapping",
+                            f"Web mapping skipped for {target}:{port}: {str(exc)[:160]}",
+                            "warning",
+                        )
+                if mapped_surfaces:
+                    self.store.save_service_observations(
+                        tuple(mapped_surfaces), discovery_run_id
+                    )
+                completed_pages = sum(item.status == "completed" for item in mapped_surfaces)
+                failed_pages = sum(item.status == "failed" for item in mapped_surfaces)
+                emit(
+                    "web_mapping",
+                    f"Web mapping recorded {completed_pages} page observation(s) and "
+                    f"{failed_pages} failed request(s) across {len(web_roots)} origin(s). "
+                    "GET only; forms were inventoried, never submitted.",
+                )
+            else:
+                emit("web_mapping", "No completed HTTP application roots were available to map.")
 
             web_findings = record_web_configuration_findings(
                 self.workspace.name, observations, self.store
