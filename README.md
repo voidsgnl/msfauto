@@ -18,7 +18,7 @@ The intended platform is organized around these core capabilities:
 - **Validation:** verify suspected weaknesses and exploit outcomes using evidence.
 - **Analysis and correlation:** connect observations and results across assessment stages and produce meaningful findings.
 
-Supporting capabilities include assessment orchestration, authorization and approvals, session/job lifecycle management, evidence integrity, reporting, and a graphical user interface.
+Supporting capabilities include assessment orchestration, authorization and approvals, session/job lifecycle management, evidence integrity, reporting, and a full-screen, keyboard-driven terminal interface.
 
 ## Current implementation status
 
@@ -172,7 +172,7 @@ Install the project and its dependencies in a virtual environment, then run:
 python -m msfauto
 ```
 
-The current command opens the existing Textual prototype. It is not the intended final graphical interface.
+The default command opens the full-screen terminal application.
 
 The equivalent module entry point is:
 
@@ -218,7 +218,7 @@ Evidence is retained separately from interpreted findings. Tool errors, service 
 
 ## Code layout
 
-The active code is organized by responsibility: `core/` owns orchestration, `interface/` contains the current Textual prototype, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning and approval decisions, `execution/` owns approval-gated passive checks, the durable exploit lifecycle, and the narrow Metasploit exploit dispatcher, `evidence/` owns artifact collection and integrity verification, `findings/` owns evidence-linked assessment conclusions, `reporting/` exports reports, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models.
+The active code is organized by responsibility: `core/` owns orchestration, `interface/` contains the full-screen, menu-driven Textual terminal application, `discovery/` owns Nmap discovery and parsing, `scope/` owns authorization boundaries, `assessment/` owns read-only planning and approval decisions, `execution/` owns approval-gated passive checks, the durable exploit lifecycle, and the narrow Metasploit exploit dispatcher, `evidence/` owns artifact collection and integrity verification, `findings/` owns evidence-linked assessment conclusions, `reporting/` exports reports, `integrations/` owns external tool clients, and `storage/` owns SQLite persistence and domain models.
 
 The `enumeration/` package contains HTTP/HTTPS, SSH, FTP, unauthenticated SMB2 negotiation, and TLS-only handshake/certificate fingerprint adapters. The `vulnerability/` package contains evidence-aware matching, the OSV.dev client, and assessment-workflow integration. The `exploitation/` package contains a curated exploit catalog, exact applicability matching, and persisted opportunity records. The separate `execution/exploit_dispatch.py` adapter handles the narrow, authorization-bound Metasploit dispatch path. Configure mappings with `MSFAUTO_OSV_PACKAGE_MAPPINGS` as a JSON array; each entry requires `product`, `package_name`, and `ecosystem`, with optional `product_aliases`. Example: `[{"product":"OpenSSH","package_name":"openssh-server","ecosystem":"Ubuntu:22.04"}]`. The workflow queries each distinct package/ecosystem/version once, persists advisories and candidates, and continues when an individual OSV query fails. No package identity is inferred from a service banner. Bulk feed synchronization, ecosystem-specific local range evaluation, and broader CPE/package identity coverage remain future work; the exploit catalog/execution engine remains a separate first-class subsystem.
 
