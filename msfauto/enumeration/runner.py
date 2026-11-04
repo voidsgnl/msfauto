@@ -8,8 +8,8 @@ import socket
 import ssl
 import struct
 import time
-from dataclasses import replace
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import replace
 from datetime import datetime, timezone
 from uuid import uuid4
 
