@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 from contextlib import redirect_stdout
 from threading import Event
+from unittest.mock import patch
 
 from rich.console import Console
 
