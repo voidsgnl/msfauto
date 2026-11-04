@@ -394,6 +394,7 @@ def _smtp_probe(
 ) -> tuple[ServiceObservation, ...]:
     """Read SMTP greeting and EHLO capabilities; never authenticate or send mail."""
     client = smtplib.SMTP(timeout=timeout)
+    raw_socket: socket.socket | None = None
     stage = "tcp_connect"
     try:
         raw_socket = socket.create_connection((target, service.port), timeout=timeout)
@@ -452,6 +453,11 @@ def _smtp_probe(
                 client.close()
         except (OSError, smtplib.SMTPException):
             client.close()
+        if client.sock is None and raw_socket is not None:
+            try:
+                raw_socket.close()
+            except OSError:
+                pass
 
 
 def _pop3_probe(
