@@ -74,7 +74,7 @@ Matching requires an open service, an exact product alias, and either an exact a
 
 ### Importing exploit metadata from Metasploit
 
-MSFAuto can enumerate the connected framework's exploit modules through the dedicated Metasploit RPC `module.exploits` method and normalize module metadata (rank, description, platforms, architectures, targets, required options, references, and check support). Import is deliberately opt-in and restricted to modules listed in `MSFAUTO_EXPLOIT_PRODUCT_MAPPINGS`; the importer fetches detailed metadata only for those mapped modules.
+Use `exploits list [filter]` in the interactive console to display the live module-name inventory returned by Metasploit's `module.exploits` RPC method; the optional case-insensitive filter narrows that inventory. Use `exploits opportunities` for target-matched, workspace-persisted leads. These are intentionally separate: a module being present in Metasploit does not mean it applies to a discovered target. MSFAuto can also normalize module metadata (rank, description, platforms, architectures, targets, required options, references, and check support). Import is deliberately opt-in and restricted to modules listed in `MSFAUTO_EXPLOIT_PRODUCT_MAPPINGS`; the importer fetches detailed metadata only for those mapped modules.
 
 The mapping must explicitly identify products and at least one exact affected version or advisory ID. Module names, descriptions, platform labels, and references are not used to guess product identity or affected versions. Example:
 
