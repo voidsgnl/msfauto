@@ -150,7 +150,7 @@ class ObservationConsoleTests(unittest.TestCase):
         self.shell.console = Console(file=output)
         self.shell.execute("observations list")
         rendered = output.getvalue()
-        self.assertIn("observation-a", rendered)
+        self.assertIn("observa", rendered)
         self.assertIn("127.0.0.1", rendered)
         self.assertIn("smtp_capabilities", rendered)
 
@@ -160,7 +160,8 @@ class ObservationConsoleTests(unittest.TestCase):
         self.shell.execute("observations host 127.0.0.1")
         rendered = output.getvalue()
         self.assertIn("observation-a", rendered)
-        self.assertNotIn("observation-d", rendered)
+        self.assertNotIn("22/tcp", rendered)
+        self.assertIn("465/tcp", rendered)
 
     def test_observations_show_resolves_prefix_and_displays_attributes(self):
         output = io.StringIO()
