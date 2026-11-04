@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from ..assessment.investigation import build_investigation_steps
 from ..assessment.planner import build_plan
-from ..discovery import DiscoveryError, run_nmap
+from ..discovery import DiscoveryError, run_metasploit_db_nmap, run_nmap
 from ..enumeration import enumerate_services
 from ..enumeration.models import ServiceObservation
 from ..exploitation.matcher import load_exploit_catalog, match_exploits
@@ -20,6 +20,7 @@ from ..storage.models import (
     utc_now,
 )
 from ..vulnerability.workflow import assess_with_osv, load_package_mappings
+from ..integrations.metasploit import MetasploitClient
 
 
 class WorkflowError(RuntimeError):
@@ -33,20 +34,30 @@ class WorkflowCancelled(WorkflowError):
 class AssessmentApplication:
     """Shared application-service boundary and durable assessment orchestrator."""
 
-    def __init__(self, workspace: Workspace, store: WorkspaceStore) -> None:
+    def __init__(
+        self, workspace: Workspace, store: WorkspaceStore,
+        metasploit_client: MetasploitClient | None = None,
+    ) -> None:
         self.workspace = workspace
         self.store = store
+        self.metasploit_client = metasploit_client
 
     def discover(
         self, cancel_event: Event | None = None, scan_profile: str = "standard",
     ) -> tuple[str, tuple[Host, ...], str]:
         """Run bounded discovery for the workspace's saved authorization scope."""
         output_path = self.store.path.parent / "discovery" / f"{uuid4().hex}.xml"
-        run, hosts = run_nmap(
-            self.workspace.name, self.workspace.policy, output_path,
-            cancel_event=cancel_event,
-            scan_profile=scan_profile,
-        )
+        if self.metasploit_client is not None:
+            run, hosts = run_metasploit_db_nmap(
+                self.workspace.name, self.workspace.policy, self.metasploit_client,
+                scan_profile=scan_profile,
+            )
+        else:
+            run, hosts = run_nmap(
+                self.workspace.name, self.workspace.policy, output_path,
+                cancel_event=cancel_event,
+                scan_profile=scan_profile,
+            )
         self.store.save_discovery_run(run, hosts)
         if run.status == "cancelled":
             raise WorkflowCancelled(run.error or "Discovery cancelled by operator.")
