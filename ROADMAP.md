@@ -73,6 +73,17 @@ OSV workflow integration is active when explicit mappings are configured, but th
 
 ## Current handoff — 2026-11-04
 
+### Latest implementation milestone: live discovery cancellation and exploit console lifecycle
+- Replaced the blocking Nmap subprocess call with a bounded `Popen` monitor that captures stderr to a temporary file, enforces the existing timeout, and supports cooperative termination. Cancellation sends terminate, waits up to five seconds, then kills the process if required.
+- Added a durable `cancelled` discovery-run result and `WorkflowCancelled` assessment state. The orchestrator checks cancellation at stage boundaries; enumeration and external advisory lookups finish their current bounded operation before cancellation is acknowledged.
+- Interactive `discovery run` now passes its task cancellation event into the assessment workflow. Press Ctrl-C while the live task indicator is active to request cancellation; the shell waits for the scanner to stop and records the cancelled run.
+- Exposed the existing exploit lifecycle through `exploits prepare`, `exploits executions`, `exploits dispatch`, `exploits poll`, `exploits cancel`, and `exploits reconcile`.
+- Dispatch requires a prepared record and an exact `DISPATCH` confirmation, then uses the existing narrow Metasploit TCP dispatcher. No arbitrary module/target/port/options are accepted.
+- Polling uses the existing active-job and UUID-specific result reconciler. Cancellation records `cancelling` before requesting `job.stop`; a stop acknowledgement is not treated as terminal completion.
+- Uncertain dispatch remains a separate operator-only reconciliation path. A manually reconciled running state must include both the Metasploit job ID and UUID. A confirmed non-dispatch closes the attempt; retry requires a new review and authorization.
+- No live exploit was dispatched as part of this implementation. CI verification is pending for the latest commit.
+
+
 ### Latest implementation milestone: bounded HTTP application fingerprinting
 - HTTP enumeration now follows its bounded HEAD confirmation with a GET of the same origin, without following redirects.
 - The response body is capped at 64 KiB locally even when a server ignores the Range request; request and socket timeouts remain in force.
