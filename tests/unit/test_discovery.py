@@ -99,8 +99,16 @@ class DiscoveryTests(unittest.TestCase):
                 scan_id="scan-lab",
             )
             store.save_discovery_run(run, ())
+            failed = DiscoveryRun(
+                "lab", "nmap", (), "failed.xml", "failed",
+                "2026-11-02T10:00:00+00:00", "2026-11-02T10:00:01+00:00",
+                error="scanner failed", scan_id="scan-failed",
+            )
+            store.save_discovery_run(failed, ())
             with self.assertRaisesRegex(ValueError, "active workspace"):
                 store.compare_discovery_runs("other", "scan-lab", "scan-lab")
+            with self.assertRaisesRegex(ValueError, "completed scan snapshots"):
+                store.compare_discovery_runs("lab", "scan-lab", "scan-failed")
 
     def test_parser_rejects_invalid_service_confidence(self) -> None:
         xml = NMAP_XML.replace('conf="10"', 'conf="eleven"')
