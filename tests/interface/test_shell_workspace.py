@@ -2,9 +2,9 @@ from ipaddress import ip_address
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from msfauto.enumeration.models import ServiceObservation
 from msfauto.interface.shell import CommandShell, _ping_target
 from msfauto.scope import build_policy
-from msfauto.enumeration.models import ServiceObservation
 from msfauto.storage.models import DiscoveryRun, Host, Service, Workspace
 
 
