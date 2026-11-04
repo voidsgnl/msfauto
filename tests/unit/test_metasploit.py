@@ -95,12 +95,14 @@ class MetasploitClientTests(unittest.TestCase):
         )
         transport = MsgpackHttpTransport(MetasploitConfig())
 
-        with patch(
-            "msfauto.integrations.metasploit.client.urlopen",
-            return_value=io.BytesIO(error_response),
+        with (
+            patch(
+                "msfauto.integrations.metasploit.client.urlopen",
+                return_value=io.BytesIO(error_response),
+            ),
+            self.assertRaisesRegex(MetasploitError, "Login Failed"),
         ):
-            with self.assertRaisesRegex(MetasploitError, "Login Failed"):
-                transport.request("auth.login", ("user", "password"))
+            transport.request("auth.login", ("user", "password"))
 
     def test_auxiliary_execution_uses_flat_options_and_returns_run_identifiers(self) -> None:
         class ExecutionTransport(FakeTransport):
