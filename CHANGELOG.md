@@ -1,5 +1,8 @@
 ## Unreleased
 
+### Improved
+- Rebalanced the default discovery profiles around a web-first workflow: `quick` now checks a compact set of common web entry points and high-value supporting services; `standard` adds important alternate web, mail, remote-access, directory, and database ports. The `full` profile remains the explicit all-TCP-port option.
+
 ### Product direction
 - Established MSFAuto as a web-first, Metasploit-powered assessment platform. Metasploit is the primary testing/exploitation engine; MSFAuto provides target-aware orchestration, evidence-driven next-action selection, correlation, and a guided operator experience.
 - Prioritized web reconnaissance and application investigation. The default discovery profile is intended to focus on important web and supporting-service ports; full TCP scanning remains opt-in.
