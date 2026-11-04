@@ -73,7 +73,7 @@ def plan_service_investigation(
         )
         return InvestigationStep(
             target, service.port, service.protocol, fingerprint, "NEEDS_REVIEW",
-            "inspect_incomplete_observation",
+            f"inspect_incomplete_observation:{stage}",
             f"The {stage} stage did not complete: {detail} No automatic retry is scheduled.",
             "Operator-reviewed failure context and a decision whether to adjust the bounded protocol timeout or investigate manually.",
         )
