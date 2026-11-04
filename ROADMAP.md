@@ -5,7 +5,7 @@ The operator's job is to provide an authorized IP address, network, or URL and r
 - [x] Add authenticated Metasploit RPC primitives for temporary console use, bounded command output, `db_nmap` invocation, and host/service inventory reads.
 - [x] Make Metasploit's `db_nmap` and database the default discovery and inventory path for the interactive assessment shell; preserve Nmap XML import as an optional interoperability path.
 - [x] Select/create a corresponding Metasploit database workspace and verify it through workspace selection plus subsequent inventory RPC reads.
-- [ ] Complete normalization of Metasploit host/service records into existing models, including native record IDs and run-level provenance (basic host/service normalization is implemented).
+- [ ] Complete normalization of Metasploit host/service records into existing models, including native record IDs, scan freshness filtering, and run-level provenance (basic host/service normalization is implemented).
 - [ ] Add first-class URL/origin targets with DNS resolution/pinning, Host/SNI preservation, redirect boundaries, and explicit origin scope.
 - [ ] Make `run` select investigation steps from the observed attack surface rather than requiring operator-selected protocol commands.
 - [ ] Add bounded web mapping, technology fingerprinting, passive checks, and profile-governed active checks with request/time/response budgets.
@@ -39,7 +39,8 @@ MSFAuto is moving to a ZAP-style operator workflow: one `run` performs the saved
 
 - [x] Add a bounded read-only discovery helper that searches Metasploit auxiliary modules using observed web technology names.
 - [x] Restrict returned candidates to auxiliary modules and retrieve exact framework descriptions, check support, and required option metadata.
-- [ ] Connect the metadata helper to the interactive `investigate` workflow and present module prerequisites/evidence gaps per target endpoint.
+- [x] Connect observed HTTP application technologies to bounded Metasploit auxiliary-module metadata discovery and persist exact module option/check metadata for assessment planning.
+- [ ] Present technology-to-module compatibility, prerequisites, and evidence gaps against individual target endpoints in the findings view.
 - [ ] Add service-specific auxiliary discovery for HTTP server products and versions after reliable fingerprints are available.
 - [ ] Map selected modules to bounded, non-destructive checks and route all execution through the existing approval and authorization lifecycle. Metadata lookup must never execute a module.
 
