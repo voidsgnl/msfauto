@@ -7,11 +7,21 @@ import time
 from pathlib import Path
 
 try:
-    from prompt_toolkit import PromptSession
-    from prompt_toolkit.completion import WordCompleter
-    from prompt_toolkit.history import FileHistory
+    import prompt_toolkit as _prompt_toolkit
+    from prompt_toolkit.completion import WordCompleter as _WordCompleter
+    from prompt_toolkit.history import FileHistory as _FileHistory
 except ModuleNotFoundError:
-    class PromptSession:  # type: ignore[no-redef]
+    _prompt_toolkit = None
+    _WordCompleter = None
+    _FileHistory = None
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
+
+if _prompt_toolkit is None:
+    class _FallbackPromptSession:
         """Minimal stdlib fallback when prompt-toolkit is not installed."""
 
         def __init__(self, **_: object) -> None:
@@ -22,17 +32,21 @@ except ModuleNotFoundError:
                 message = "".join(str(part[1]) for part in message)
             return input(str(message))
 
-    class WordCompleter:  # type: ignore[no-redef]
+    class _FallbackWordCompleter:
         def __init__(self, *_: object, **__: object) -> None:
             pass
 
-    class FileHistory:  # type: ignore[no-redef]
+    class _FallbackFileHistory:
         def __init__(self, *_: object, **__: object) -> None:
             pass
-from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
+
+    PromptSession = _FallbackPromptSession
+    WordCompleter = _FallbackWordCompleter
+    FileHistory = _FallbackFileHistory
+else:
+    PromptSession = _prompt_toolkit.PromptSession
+    WordCompleter = _WordCompleter
+    FileHistory = _FileHistory
 
 from ..assessment.approval import record_decision
 from ..assessment.planner import build_plan
